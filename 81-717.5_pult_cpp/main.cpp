@@ -63,6 +63,7 @@ int main()
         c = 0;
         if (_kbhit()) c = _getch();
         if (c == '2') {
+            cout << "Paused!\n";
             system("pause");
             continue;
         }
