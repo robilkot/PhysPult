@@ -9,54 +9,79 @@
 
 using namespace std;
 
-enum {
-    FREQ_HZ = 3,
-    INV_FREQ_HZ = 1000000 / FREQ_HZ
-};
+void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) {
+    ifstream config("81-717.5_pult_cpp_config.txt");
+    if (!config.is_open()) {
+        cerr << "Couldn't open config file!\n";
+        system("pause");
+        exit;
+    }
+    getline(config, PATH); // get path to file with indicators state
+
+    ifstream infile(PATH);
+    if (!infile.is_open()) {
+        cerr << "Couldn't open file with indicators state!\n";
+        system("pause");
+        exit;
+    }
+    getline(infile, previous); // create string with initial state
+
+    string temp;
+    getline(config, temp);
+    FREQ_HZ = stoi(temp);
+    if (FREQ_HZ > 60) cout << "High frequence is set (>60 Hz). Are you sure you need this much?\n";
+
+    getline(config, temp); 
+    COM_BAUD_RATE = stoi(temp); // set BAUD rate
+
+    cout << "Initialized succesfully!\n" << "Path to indicators state file: " << PATH << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
+
+    infile.close();
+    config.close();
+}
 
 int main()
 {   
-    //--- FILES INITIALISING ---
+    //--- INITIALISING ---
 
-    ifstream inconfig("81-717.5_pult_cpp_config.txt");
-    if (!inconfig.is_open()) {
-        cerr << "Couldnt open config file!\n";
-        system("pause");
-        return 0;
-    }
-    
-    string PATH;
-    getline(inconfig, PATH);
-    ifstream infile(PATH);
-    if (!infile.is_open()) {
-        cerr << "Couldnt open file!\n";
-        system("pause");
-        return 0;
-    }
-    string previous;
-    getline(infile, previous); // initialize string with previous state
+    string PATH = "lamps.txt", previous;
+    short FREQ_HZ = 10;
+    DWORD COM_BAUD_RATE = 9600;
+    init(PATH, previous, FREQ_HZ, COM_BAUD_RATE);
 
     //--- COM PORT INITIALISING ---
 
-    list<int> COMports = GetCOMports();
     selectport:
-    cout << "Input port number\n";
+    list<int> COMports = GetCOMports();
 
     char com_port[] = "\\\\.\\COM4";
-    com_port[7] = _getch();
-    DWORD COM_BAUD_RATE = CBR_9600;
+    if (COMports.empty()) {
+        cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
+        if (_getch() == 'q') exit(EXIT_FAILURE);
+        goto selectport;
+    }
+    if(COMports.size()==1) {
+        cout << "Only one COM port found. Using it as output.\n";
+        com_port[7] = (char)(*COMports.begin() + '0');
+    }
+    else {
+        cout << "Input COM port number\n";
+        com_port[7] = _getch();
+    }
     SimpleSerial Serial(com_port, COM_BAUD_RATE);
 
     if (!Serial.connected_) {
-        cout << "Failed to connect! Try again\n\n";
+        cout << "Failed to connect! Press q to exit or any other key to retry.\n\n";
+        if (_getch() == 'q') exit(EXIT_FAILURE);
         goto selectport;
     }
 
-    //--- MAIN BODY ---
+    //--- BODY ---
 
-    cout << "To start press any key. To pause press 2\n";
+    cout << "Press any key to start. Press 2 to pause.\n";
     system("pause");
 
+    using namespace chrono;
     char c = 0;
     while (c != 13)
     {
@@ -68,7 +93,6 @@ int main()
             continue;
         }
 
-        using namespace chrono;
         high_resolution_clock::time_point t = high_resolution_clock::now();
         //---
 
@@ -79,18 +103,16 @@ int main()
             for (int i = 0; i < changedstate.length(); i++) to_send[i] = changedstate[i];
             to_send[changedstate.length()] = '\0'; // Forming char* to send to serial
 
-            cout << "Sending to serial: " << to_send << "\n";
-            if (!Serial.WriteSerialPort(to_send)) cerr << "Error writing smth to port!\n";
+            cout << "Writing to serial: " << to_send << "\n";
+            if (!Serial.WriteSerialPort(to_send)) cerr << "Error writing string to serial!\n";
 
             delete[] to_send;
         }
+
         //---
         int us = duration_cast<microseconds>(high_resolution_clock::now() - t).count();
-        if (us < INV_FREQ_HZ) {
-            this_thread::sleep_for(microseconds(INV_FREQ_HZ - us));
-        }
+        if (us < 1000000/FREQ_HZ) this_thread::sleep_for(microseconds(1000000 / FREQ_HZ - us));
     }
 
-    infile.close();
     return 0;
 }

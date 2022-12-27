@@ -10,7 +10,7 @@ list<int> GetCOMports()
     wchar_t lpTargetPath[5000]; // buffer to store the path of the COM PORTS
     list<int> portList;
 
-    cout << "List of availale ports :\n";
+    cout << "Available ports :\n";
     for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
     {
         wstring str = L"COM" + to_wstring(i); // converting to COM0, COM1, COM2
@@ -22,9 +22,7 @@ list<int> GetCOMports()
             string temp(str.begin(),str.end());
             cout << temp << " - " << lpTargetPath << endl;
         }
-        if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-        {
-        }
+        if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
     }
     cout << "\n";
     return portList;
