@@ -15,7 +15,7 @@ void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) 
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
         system("pause");
-        exit;
+        exit(EXIT_FAILURE);
     }
     getline(config, PATH); // get path to file with indicators state
 
@@ -23,19 +23,19 @@ void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) 
     if (!infile.is_open()) {
         cerr << "Couldn't open file with indicators state!\n";
         system("pause");
-        exit;
+        exit(EXIT_FAILURE);
     }
     getline(infile, previous); // create string with initial state
 
     string temp;
     getline(config, temp);
-    FREQ_HZ = stoi(temp);
+    if(!temp.empty()) FREQ_HZ = stoi(temp); // set frequency
     if (FREQ_HZ > 60) cout << "High frequence is set (>60 Hz). Are you sure you need this much?\n";
 
     getline(config, temp); 
-    COM_BAUD_RATE = stoi(temp); // set BAUD rate
+    if (!temp.empty()) COM_BAUD_RATE = stoi(temp); // set baud rate
 
-    cout << "Initialized succesfully!\n" << "Path to indicators state file: " << PATH << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
+    cout << "Initialized succesfully!\nPath to indicators state file: " << PATH << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
 
     infile.close();
     config.close();
@@ -45,7 +45,7 @@ int main()
 {   
     //--- INITIALISING ---
 
-    string PATH = "lamps.txt", previous;
+    string PATH = "lamps.txt", previous(26,'0');
     short FREQ_HZ = 10;
     DWORD COM_BAUD_RATE = 9600;
     init(PATH, previous, FREQ_HZ, COM_BAUD_RATE);
@@ -100,14 +100,9 @@ int main()
         string changedstate = indicators_change(PATH, previous); 
         if(!changedstate.empty())
         {
-            char* to_send = new char[changedstate.length() + 1];
-            for (int i = 0; i < changedstate.length(); i++) to_send[i] = changedstate[i];
-            to_send[changedstate.length()] = '\0'; // Forming char* to send to serial
-
+            char* to_send = &changedstate[0]; // Forming char* to send to serial
             cout << "Writing to serial: " << to_send << "\n";
             if (!Serial.WriteSerialPort(to_send)) cerr << "Error writing string to serial!\n";
-
-            delete[] to_send;
         }
 
         //---
