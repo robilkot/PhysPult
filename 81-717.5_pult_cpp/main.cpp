@@ -9,6 +9,7 @@
 
 using namespace std;
 
+// Инициализация программы по данным из конфиг-файла
 void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) {
     ifstream config("81-717.5_pult_cpp_config.txt");
     if (!config.is_open()) {
@@ -61,7 +62,7 @@ int main()
         goto selectport;
     }
     if(COMports.size()==1) {
-        cout << "Only one COM port found. Using it as output.\n";
+        cout << "Only one COM port found. Using it as output.\n\n";
         com_port[7] = (char)(*COMports.begin() + '0');
     }
     else {
