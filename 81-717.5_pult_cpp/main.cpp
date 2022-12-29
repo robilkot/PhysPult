@@ -36,9 +36,6 @@ void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) 
     if (!temp.empty()) COM_BAUD_RATE = stoi(temp); // set baud rate
 
     cout << "Initialized succesfully!\nPath to indicators state file: " << PATH << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
-
-    infile.close();
-    config.close();
 }
 
 int main()
@@ -80,7 +77,7 @@ int main()
     //--- BODY ---
 
     cout << "Press any key to start. Press 2 to pause.\n";
-    system("pause");
+    system("pause > nul");
 
     using namespace chrono;
     char c = 0;
@@ -89,15 +86,15 @@ int main()
         c = 0;
         if (_kbhit()) c = _getch();
         if (c == '2') {
-            cout << "Paused!\n";
-            system("pause");
+            cout << "Paused! Press any key to continue.\n";
+            system("pause > nul");
             continue;
         }
 
         high_resolution_clock::time_point t = high_resolution_clock::now();
         //---
 
-        string changedstate = indicators_change(PATH, previous); 
+        string changedstate = indicators_process(PATH, previous); 
         if(!changedstate.empty())
         {
             char* to_send = &changedstate[0]; // Forming char* to send to serial

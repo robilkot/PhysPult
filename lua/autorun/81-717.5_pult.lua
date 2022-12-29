@@ -49,7 +49,7 @@ for _, train in ipairs(Trains) do
 
 			---- WRITING INDICATORS' STATE
 
-			local output_indicators = "00000000000000000000000000" -- String to store indicators state
+			local output_indicators = "0000000000000000000000000000000000000000000000000000000000000000" -- String to store indicators state (64)
 
 			if Panel.SD > 0 then
 			output_indicators = string.SetChar(output_indicators, 6+1, '1') -- LSD -- in every line we add 1 because of indexing starting from 1, not 0
@@ -79,17 +79,17 @@ for _, train in ipairs(Trains) do
 			output_indicators = string.SetChar(output_indicators, 13+1, '1') --LKT 
 			end
 			
-			if KVC_last_value ~= 0 or KVC_prelast_value ~= 0 or Panel.KVC ~= 0 then
+			if self.KVC_last_value ~= 0 or self.KVC_prelast_value ~= 0 or Panel.KVC ~= 0 then
 				output_indicators = string.SetChar(output_indicators, 16+1, '1') --LKVC
 			end
-			KVC_prelast_value = KVC_last_value
-			KVC_last_value = Panel.KVC
+			self.KVC_prelast_value = self.KVC_last_value
+			self.KVC_last_value = Panel.KVC
 			
-			if LSN_last_value ~= 0 or LSN_prelast_value ~= 0 or Panel.LSN ~= 0 then
+			if self.LSN_last_value ~= 0 or self.LSN_prelast_value ~= 0 or Panel.LSN ~= 0 then
 				output_indicators = string.SetChar(output_indicators, 9+1, '1') --LSN
 			end
-			LSN_prelast_value = LSN_last_value
-			LSN_last_value = Panel.LSN
+			self.LSN_prelast_value = self.LSN_last_value
+			self.LSN_last_value = Panel.LSN
 			
 			--print(output_indicators)
 			file.Write (self.filename_indicators, output_indicators)

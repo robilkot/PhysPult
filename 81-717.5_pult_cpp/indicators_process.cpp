@@ -2,9 +2,13 @@
 #include <iostream>
 #include <fstream>
 
+//#define USECHANGEDSTATEMODEL 
+// Использовать если нужно преобразовать строку состояния в строку изменения состояния (legacy)
+
 using namespace std;
 
-string indicators_change(const string& PATH, string& previous) {
+string indicators_process(const string& PATH, string& previous)
+{
     ifstream in(PATH);
     if (!in.is_open()) {
         cerr << "Couldnt open file!\n";
@@ -17,6 +21,8 @@ string indicators_change(const string& PATH, string& previous) {
         cerr << "Error processing indicators state (unequal strings length)!\n";
         return {}; // Возврат пустой строки если предыдущая строка не совпадает по длине с данной. todo: выяснить причину возникновения такой ситуации
     }
+
+#ifdef USECHANGEDSTATEMODEL
     string output(state.length(), '0'); // Формируем выходную строку, изначально все лампы неизменны - поэтому 0
 
     bool empty = 1;
@@ -31,4 +37,10 @@ string indicators_change(const string& PATH, string& previous) {
     previous = state; // Пишем актуальное состояние в предыдущее
     if (empty) return {};
     return output;
+
+#else
+    if (previous == state) return {};
+    previous = state;
+    return state;
+#endif
 }

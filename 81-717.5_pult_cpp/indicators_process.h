@@ -5,4 +5,4 @@
 
 using namespace std;
 
-string indicators_change(const string& PATH, string& previous);
+string indicators_process(const string& PATH, string& previous);
