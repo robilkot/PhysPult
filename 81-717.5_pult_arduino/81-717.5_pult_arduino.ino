@@ -7,7 +7,8 @@ void setup()
 
 void loop()
 {
- while(1) if (Serial.available()) registersWrite(Serial.readString(), 8, 8, 9, 10);
+ if (Serial.available()) registersWrite(Serial.readString(), 8, 8, 9, 10);
+  //Serial.println(registersRead(1, 8, 10, 9));
 }
 
 void registersWrite(String toSend, uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock)
@@ -22,4 +23,18 @@ void registersWrite(String toSend, uint8_t totalRegisters, uint8_t data, uint8_t
   }
 
   PORTB |= (1 << latch - 8); // latch HIGH
+}
+
+String registersRead(uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock) {
+  PORTB &= ~(1 << latch - 8); // latch LOW
+  PORTB |= (1 << latch - 8); // latch HIGH
+
+  String ret;
+  for (int i = 0; i < totalRegisters * 8; i++) {
+    ret += (PINB & (1 << data - 8)) == (1 << data - 8 ) ?  "1" : "0";
+  
+    PORTB |= (1 << clock - 8); // clock HIGH
+    PORTB &= ~(1 << clock - 8); // clock LOW
+  }
+  return ret;
 }
