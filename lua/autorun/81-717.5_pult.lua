@@ -8,98 +8,66 @@
 --  Дополнительная информация в файле lua/licence.lua
 -----------------------------------------------------------------------------------------
 
-if(not SERVER) then return end
+if(SERVER) then return end
 
-timer.Simple(1, function()
-
-local Trains = {
-    "gmod_subway_81-717_mvm"
+-- Интервал обновления состояния индикаторов в секундах
+local updateInterval = 0.1 
+-- Путь к файлу где хранится строка состояния
+local filenameIndicators = "lamps.txt" 
+-- Соотвествие битов строки состояния лампам
+local stateTable = { 
+	--["speed"] = 0,
+	--["speed"] = 1,
+	["SD"] = 6,
+	["VD"] = 7,
+	["HRK"] = 10,
+	["ST"] = 12,
+	["LN"] = 14,
+	["KVD"] = 11,
+	["KT"] = 13,
+	["SN"] = 9,
+	["KVC"] = 16,
 }
 
---local system = Metrostroi.Systems["_ALS_ARS_D"]
---local m_Think = system.Think
 
-for _, train in ipairs(Trains) do
-	local ENT = scripted_ents.GetStored(train).t
-	local m_Initialize = ENT.Initialize 
-	function ENT:Initialize()
-		local retVal = m_Initialize(self)
-
-		--- Initialize variables in ALS.Initialize
-		self.ALS_ARS.lsn_last_value = 0
-		self.ALS_ARS.lsn_prelast_value = 0
-		
-		self.ALS_ARS.rp_last_value = 0
-		self.ALS_ARS.rp_prelast_value = 0
-			
-		self.ALS_ARS.kvc_last_value = 0
-		self.ALS_ARS.kvc_prelast_value = 0
-			
-		self.ALS_ARS.filename_indicators = "lamps.txt"
-		---
-
-		local m_Think = self.ALS_ARS.Think -- Redefining think function in ALS system
-		self.ALS_ARS.Think = function()
-			local self = self.ALS_ARS
-			local retVal = m_Think(self)
-			
-			--- OUR CODE HERE
-
-			local Panel = self.Train.Panel
-
-			---- WRITING INDICATORS' STATE
-
-			local output_indicators = "0000000000000000000000000000000000000000000000000000000000000000" -- String to store indicators state (64)
-
-			if Panel.SD > 0 then
-			output_indicators = string.SetChar(output_indicators, 6+1, '1') -- LSD -- in every line we add 1 because of indexing starting from 1, not 0
-			end	
-			
-			if Panel.LVD > 0 then
-			output_indicators = string.SetChar(output_indicators, 7+1, '1') --LVD
-			end
-			
-			if Panel.LhRK > 0 then
-			output_indicators = string.SetChar(output_indicators, 10+1, '1') --LhRK
-			end
-			
-			if Panel.LST > 0 then
-			output_indicators = string.SetChar(output_indicators, 12+1, '1') --LST
-			end
-			
-			if Panel.LN > 0 then
-			output_indicators = string.SetChar(output_indicators, 14+1, '1') --LN
-			end
-			
-			if Panel.LKVD > 0 then 
-			output_indicators = string.SetChar(output_indicators, 11+1, '1') --LKVD 
-			end
-			
-			if Panel.KT > 0 then 
-			output_indicators = string.SetChar(output_indicators, 13+1, '1') --LKT 
-			end
-			
-			if self.KVC_last_value ~= 0 or self.KVC_prelast_value ~= 0 or Panel.KVC ~= 0 then
-				output_indicators = string.SetChar(output_indicators, 16+1, '1') --LKVC
-			end
-			self.KVC_prelast_value = self.KVC_last_value
-			self.KVC_last_value = Panel.KVC
-			
-			if self.LSN_last_value ~= 0 or self.LSN_prelast_value ~= 0 or Panel.LSN ~= 0 then
-				output_indicators = string.SetChar(output_indicators, 9+1, '1') --LSN
-			end
-			self.LSN_prelast_value = self.LSN_last_value
-			self.LSN_last_value = Panel.LSN
-			
-			--print(output_indicators)
-			file.Write (self.filename_indicators, output_indicators)
-	
-			---
-			return retVal
-		end		
-
-		return retVal
-	end
+local function getPlayerDrivenTrain()
+    local seat = LocalPlayer():GetParent()
+    if (IsValid(seat)) then
+		local train = seat:GetParent()
+		if(IsValid(train)) then return train end
+	end 
 end
 
-end) 
+local function checkTrainType(train)
+	return train:GetClass() == "gmod_subway_81-717_mvm"
+end
+
+local function writeCurrentState(table, state, filename)
+	local train = getPlayerDrivenTrain()
+
+	if(not train) then return end
+	if(not checkTrainType(train)) then return end
+
+	for k, v in pairs(table) do
+		if train:GetNW2Bool(k) == true then
+			state = string.SetChar(state, v+1, '1')
+		end
+	end
+
+	local speed = train:GetPackedRatio("speed")*100
+	state = string.SetChar(state, 1, math.floor(speed/10))
+	state = string.SetChar(state, 2, math.floor(speed)%10)
+
+	--print(state)
+	file.Write (filename, state)
+end
+
+local function startIndicatorsUpdate()
+	local currentState = "0000000000000000000000000000000000000000000000000000000000000000" 
+
+	timer.Create("stateStringUpdate", updateInterval, 0, function()
+		writeCurrentState(stateTable, currentState, filenameIndicators)
+	end)
+end
+
+startIndicatorsUpdate()
