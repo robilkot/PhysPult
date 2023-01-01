@@ -3,29 +3,33 @@
 #include <thread>
 #include <conio.h>
 #include <fstream>
-#include "indicators_process.h"
+#include "process.h"
 #include "interface.h"
 #include "include/SimpleSerial.h"
+
+#define TOTALINDICATORS 26
+#define TOTALSWITCHES 64
 
 using namespace std;
 
 // Инициализация программы по данным из конфиг-файла
-void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) {
+void init(string& indicators_PATH, string& switches_PATH, string& indicators_previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) {
     ifstream config("81-717.5_pult_cpp_config.txt");
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
         system("pause");
         exit(EXIT_FAILURE);
     }
-    getline(config, PATH); // get path to file with indicators state
+    getline(config, indicators_PATH); // get path to file with indicators state
+    getline(config, switches_PATH); // get path to file with switches state
 
-    ifstream infile(PATH);
+    ifstream infile(indicators_PATH);
     if (!infile.is_open()) {
         cerr << "Couldn't open file with indicators state!\n";
         system("pause");
         exit(EXIT_FAILURE);
     }
-    getline(infile, previous); // create string with initial state
+    getline(infile, indicators_previous); // create string with initial state
 
     string temp;
     getline(config, temp);
@@ -35,17 +39,19 @@ void init(string& PATH, string& previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) 
     getline(config, temp); 
     if (!temp.empty()) COM_BAUD_RATE = stoi(temp); // set baud rate
 
-    cout << "Initialized succesfully!\nPath to indicators state file: " << PATH << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
+    cout << "Initialized succesfully!\nIndicators state file: " << indicators_PATH << "\nSwitches state file: " << switches_PATH;
+    cout << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
 }
 
 int main()
 {   
     //--- INITIALISING ---
 
-    string PATH = "lamps.txt", previous(26,'0');
+    string indicators_PATH = "lamps.txt", switches_PATH = "switches.txt";
+    string indicators_previous(TOTALINDICATORS, '0'), switches_previous(TOTALSWITCHES, '0');
     short FREQ_HZ = 10;
-    DWORD COM_BAUD_RATE = 9600;
-    init(PATH, previous, FREQ_HZ, COM_BAUD_RATE);
+    DWORD COM_BAUD_RATE = 9600; // Set default values for all variables
+    init(indicators_PATH, switches_PATH, indicators_previous, FREQ_HZ, COM_BAUD_RATE); // Initialize based on config file
 
     //--- COM PORT INITIALISING ---
 
@@ -94,13 +100,15 @@ int main()
         high_resolution_clock::time_point t = high_resolution_clock::now();
         //---
 
-        string changedstate = indicators_process(PATH, previous); 
+        string changedstate = indicators_process(indicators_PATH, indicators_previous);
         if(!changedstate.empty())
         {
             char* to_send = &changedstate[0]; // Forming char* to send to serial
             cout << "Writing to serial: " << to_send << "\n";
             if (!Serial.WriteSerialPort(to_send)) cerr << "Error writing string to serial!\n";
         }
+        
+        switches_process(switches_PATH, Serial.ReadSerialPort(1, "json"), switches_previous);
 
         //---
         int us = duration_cast<microseconds>(high_resolution_clock::now() - t).count();

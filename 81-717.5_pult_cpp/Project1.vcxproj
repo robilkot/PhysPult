@@ -129,13 +129,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="include\SimpleSerial.cpp" />
-    <ClCompile Include="indicators_process.cpp" />
+    <ClCompile Include="process.cpp" />
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\SimpleSerial.h" />
-    <ClInclude Include="indicators_process.h" />
+    <ClInclude Include="process.h" />
     <ClInclude Include="interface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
