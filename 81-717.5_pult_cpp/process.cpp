@@ -48,7 +48,7 @@ string indicators_process(const string& PATH, string& previous)
 void switches_process(const string& PATH, const string& current, string& previous)
 {
     if (previous.length() != current.length()) {
-        cerr << "Error processing indicators state (unequal strings length)!\n";
+        cerr << "Error processing indicators state (unequal strings length), skipping\n";
         return ; // Выход если предыдущая строка не совпадает по длине с данной.
     }
 

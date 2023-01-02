@@ -7,29 +7,25 @@
 #include "interface.h"
 #include "include/SimpleSerial.h"
 
-#define TOTALINDICATORS 26
-#define TOTALSWITCHES 64
-
 using namespace std;
 
-// Инициализация программы по данным из конфиг-файла
-void init(string& indicators_PATH, string& switches_PATH, string& indicators_previous, short& FREQ_HZ, DWORD& COM_BAUD_RATE) {
-    ifstream config("81-717.5_pult_cpp_config.txt");
+// Initializing based on config file
+void init(string config_PATH, string& indicators_PATH, string& switches_PATH, short& FREQ_HZ, DWORD& COM_BAUD_RATE, short& TOTALINDICATORS, short& TOTALSWITCHES) {
+    ifstream config(config_PATH);
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
         system("pause");
         exit(EXIT_FAILURE);
     }
-    getline(config, indicators_PATH); // get path to file with indicators state
-    getline(config, switches_PATH); // get path to file with switches state
+    getline(config, indicators_PATH); // set path to file with indicators state
+    getline(config, switches_PATH); // set path to file with switches state
 
-    ifstream infile(indicators_PATH);
+    ifstream infile(indicators_PATH); // check if indicators file is valid
     if (!infile.is_open()) {
         cerr << "Couldn't open file with indicators state!\n";
         system("pause");
         exit(EXIT_FAILURE);
     }
-    getline(infile, indicators_previous); // create string with initial state
 
     string temp;
     getline(config, temp);
@@ -39,19 +35,29 @@ void init(string& indicators_PATH, string& switches_PATH, string& indicators_pre
     getline(config, temp); 
     if (!temp.empty()) COM_BAUD_RATE = stoi(temp); // set baud rate
 
+    getline(config, temp);
+    if (!temp.empty()) TOTALINDICATORS = stoi(temp); // set indicators count (string length)
+
+    getline(config, temp);
+    if (!temp.empty()) TOTALSWITCHES = stoi(temp); // set switches count (string length)
+
     cout << "Initialized succesfully!\nIndicators state file: " << indicators_PATH << "\nSwitches state file: " << switches_PATH;
-    cout << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE << "\n\n";
+    cout << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE;
+    cout << "\nIndicators number: " << TOTALINDICATORS << "\nSwitches number: " << TOTALSWITCHES << "\n\n";
 }
 
-int main()
+int main(int argc, char* argv[])
 {   
     //--- INITIALISING ---
 
-    string indicators_PATH = "lamps.txt", switches_PATH = "switches.txt";
-    string indicators_previous(TOTALINDICATORS, '0'), switches_previous(TOTALSWITCHES, '0');
-    short FREQ_HZ = 10;
+    string indicators_PATH = "lamps.txt", switches_PATH = "switches.txt", config_PATH = "physpult_config.txt";
+    short FREQ_HZ = 10, TOTALINDICATORS = 32, TOTALSWITCHES = 64;
     DWORD COM_BAUD_RATE = 9600; // Set default values for all variables
-    init(indicators_PATH, switches_PATH, indicators_previous, FREQ_HZ, COM_BAUD_RATE); // Initialize based on config file
+    if (argv[1] != NULL) config_PATH = argv[1];
+
+    init(config_PATH, indicators_PATH, switches_PATH, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES); // Initialize based on config file
+
+    string indicators_previous(TOTALINDICATORS, '0'), switches_previous(TOTALSWITCHES, '0');
 
     //--- COM PORT INITIALISING ---
 
