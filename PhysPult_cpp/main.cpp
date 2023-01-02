@@ -61,30 +61,37 @@ int main(int argc, char* argv[])
 
     //--- COM PORT INITIALISING ---
 
-    selectport:
-    list<int> COMports = GetCOMports();
+    string com_port;
+    do {
+        com_port = "\\\\.\\COM";
 
-    char com_port[] = "\\\\.\\COM4";
-    if (COMports.empty()) {
-        cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
-        if (_getch() == 'q') exit(EXIT_FAILURE);
-        goto selectport;
-    }
-    if(COMports.size()==1) {
-        cout << "Only one COM port found. Using it as output.\n\n";
-        com_port[7] = (char)(*COMports.begin() + '0');
-    }
-    else {
-        cout << "Input COM port number\n";
-        com_port[7] = _getch();
-    }
-    SimpleSerial Serial(com_port, COM_BAUD_RATE);
+        list<int> COMports = GetCOMports();
+        if (COMports.empty()) {
+            cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
+            if (_getch() == 'q') exit(EXIT_FAILURE);
+            continue;
+        }
+        else if (COMports.size() == 1) {
+            cout << "Only one COM port found. Using it as output.\n\n";
+            com_port += to_string(*COMports.begin());
+            break;
+        }
+        else {
+            cout << "Input COM port number\n";
+            com_port += _getch();
+            break;
+        }
+    } while (true);
 
-    if (!Serial.connected_) {
-        cout << "Failed to connect! Press q to exit or any other key to retry.\n\n";
-        if (_getch() == 'q') exit(EXIT_FAILURE);
-        goto selectport;
-    }
+    SimpleSerial Serial(&com_port[0], COM_BAUD_RATE);
+
+    do {
+        if (!Serial.connected_) {
+            cout << "Failed to connect! Press q to exit or any other key to retry.\n\n";
+            if (_getch() == 'q') exit(EXIT_FAILURE);
+        }
+        else break;
+    } while (true);
 
     //--- BODY ---
 

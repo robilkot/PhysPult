@@ -5,10 +5,10 @@
 //#define USECHANGEDSTATEMODEL 
 // Использовать если нужно преобразовать строку состояния в строку изменения состояния (legacy)
 
-using namespace std;
-
-string indicators_process(const string& PATH, string& previous)
+std::string indicators_process(const std::string& PATH, std::string& previous)
 {
+    using namespace std;
+
     ifstream in(PATH);
     if (!in.is_open()) {
         cerr << "Couldnt open file!\n";
@@ -18,7 +18,7 @@ string indicators_process(const string& PATH, string& previous)
     string state;
     getline(in, state);
     if (previous.length() != state.length()) {
-        cerr << "Error processing indicators state (unequal strings length)!\n";
+        cerr << "Error processing indicators state (unequal strings length), skipping\n";
         return {}; // Возврат пустой строки если предыдущая строка не совпадает по длине с данной. todo: выяснить причину возникновения такой ситуации
     }
 
@@ -45,10 +45,12 @@ string indicators_process(const string& PATH, string& previous)
 #endif
 }
 
-void switches_process(const string& PATH, const string& current, string& previous)
+void switches_process(const std::string& PATH, const std::string& current, std::string& previous)
 {
+    using namespace std;
+
     if (previous.length() != current.length()) {
-        cerr << "Error processing indicators state (unequal strings length), skipping\n";
+        cerr << "Error processing switches state (unequal strings length), skipping\n";
         return ; // Выход если предыдущая строка не совпадает по длине с данной.
     }
 
@@ -56,10 +58,9 @@ void switches_process(const string& PATH, const string& current, string& previou
     previous = current;
 
     ofstream out(PATH);
-    if (!out.is_open()) {
+    if (out.is_open()) out << current;
+    else {
         cerr << "Couldnt save file!\n";
         system("pause");
-        return;
     }
-    out << current;
 }

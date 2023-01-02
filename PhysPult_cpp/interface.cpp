@@ -3,10 +3,10 @@
 #include <list>
 #include <Windows.h>
 
-using namespace std;
-
-list<int> GetCOMports()
+std::list<int> GetCOMports()
 {
+    using namespace std;
+
     wchar_t lpTargetPath[5000]; // buffer to store the path of the COM PORTS
     list<int> portList;
 

@@ -1,0 +1,9 @@
+*.*
+!*.cpp
+!*.h
+!*.sln
+!*.vcxproj
+!*.txt
+!*.ino
+!*.lua
+!*.xlsx

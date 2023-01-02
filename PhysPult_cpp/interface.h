@@ -4,6 +4,4 @@
 
 #pragma once
 
-using namespace std;
-
-list<int> GetCOMports();
+std::list<int> GetCOMports();
