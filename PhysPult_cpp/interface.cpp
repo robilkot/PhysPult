@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
 #include <list>
+#include <conio.h>
 #include <Windows.h>
+#include "include/SimpleSerial.h"
 
 std::list<int> GetCOMports()
 {
@@ -25,4 +27,28 @@ std::list<int> GetCOMports()
         if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
     }
     return portList;
+}
+
+std::string SelectCOMport() {
+    using namespace std;
+
+    string com_port = "\\\\.\\COM";
+    do {
+        list<int> COMports = GetCOMports();
+        if (COMports.empty()) {
+            cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
+            if (_getch() == 'q') exit(EXIT_FAILURE);
+            continue;
+        }
+        else if (COMports.size() == 1) {
+            cout << "Only one COM port found. Using it as output.\n\n";
+            com_port += to_string(*COMports.begin());
+            return com_port;
+        }
+        else {
+            cout << "Input COM port number\n";
+            com_port += _getch();
+            return com_port;
+        }
+    } while (true);
 }
