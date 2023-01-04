@@ -9,12 +9,15 @@
 
 using namespace std;
 
-void endProgram(SimpleSerial Serial) {
-    if (Serial.CloseSerialPort())
+void endProgram(SimpleSerial& Serial) {
+    if (Serial.CloseSerialPort()) {
+        exit(EXIT_SUCCESS);
         cout << "Closed connection to COM port\n";
-    else
+    }
+    else {
+        exit(EXIT_FAILURE);
         cerr << "Failed to close connection to COM port\n";
-    exit(EXIT_SUCCESS);
+    }
 }
 
 // Initializing based on config file
@@ -49,9 +52,9 @@ void init(string config_PATH, string& indicators_PATH, string& switches_PATH, sh
     getline(config, temp);
     if (!temp.empty()) TOTALSWITCHES = stoi(temp); // set switches count (string length)
 
-    cout << "Initialized succesfully!\nIndicators state file: " << indicators_PATH << "\nSwitches state file: " << switches_PATH;
-    cout << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE;
-    cout << "\nIndicators number: " << TOTALINDICATORS << "\nSwitches number: " << TOTALSWITCHES << "\n\n";
+    cout << "Initialized succesfully!\nIndicators state file: " << indicators_PATH << "\nSwitches state file: " << switches_PATH
+    << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE
+    << "\nIndicators number: " << TOTALINDICATORS << "\nSwitches number: " << TOTALSWITCHES << "\n\n";
 }
 
 int main(int argc, char* argv[])
@@ -65,7 +68,7 @@ int main(int argc, char* argv[])
 
     init(config_PATH, indicators_PATH, switches_PATH, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES); // Initialize based on config file
 
-    string indicators_previous(TOTALINDICATORS, '0'), switches_previous(TOTALSWITCHES, '0');
+    string indicatorsPrevious(TOTALINDICATORS, '0'), switchesPrevious(TOTALSWITCHES, '0');
 
     //--- COM PORT INITIALISING ---
     InitCOMPort:
@@ -74,65 +77,72 @@ int main(int argc, char* argv[])
 
     do {
         if (!Serial.connected_) {
-            cout << "Failed to connect! Press q to exit, 2 to select another COM port or any other key to retry.\n";
+            cout << "Failed to connect! Press 'q' to exit, '2' to select another COM port or any other key to retry.\n";
             switch (_getch()) {
             case 'q': exit(EXIT_FAILURE); break;
             case '2': goto InitCOMPort;
             } 
         }
-       /* else {
+        break;
+        /*else {
             bool init = 0;
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 10; i++) {
                 if (init) break;
-                cout << "sent Init\\n\n";
-                Serial.WriteSerialPort((char*)"Init\n");
 
-                if (Serial.ReadSerialPort(3, "json") == "PhysPultInitOK") {
-                    cout << "Arduino succesfully connected.\n";
-                    init = 1;
-                }
+                cout << "wrt {PhysPultInit} " << Serial.WriteSerialPort((char*)"{PhysPultInit}") << "\n";
+                string rec = Serial.ReadSerialPort(1, "json");
+                cout << "rec " << rec << "\n";
+                if (rec == "PhysPultInitOK") init = 1;
             }
-            if (init) break;
-           
+            if (init) {
+                cout << "Arduino succesfully connected.\n\n";
+                break;
+            }
             cerr << "Selected port is not Arduino set up for PhysPult. Press q to exit or any key to select other COM port.\n\n";
             switch (_getch()) {
                 case 'q': endProgram(Serial); break;
-            goto InitCOMPort;
             }
-        } */
+            goto InitCOMPort;
+        }*/
     } while (true);
 
     //--- BODY ---
 
-    cout << "Press any key to start. Press 2 to pause.\n";
-    system("pause > nul");
+    cout << "Starting. Press '2' to pause.\n\n";
+    system("timeout 1 > nul");
 
     using namespace chrono;
     char c = 0;
+    short linenumber = 0;
     while (c != 13)
     {
+        if (linenumber > 30) {
+            system("cls");
+            linenumber = 0;
+        }
         c = 0;
         if (_kbhit()) c = _getch();
         if (c == '2') {
-            cout << "Paused! Press any key to continue.\n";
-            system("pause > nul");
+            cout << "Paused! Press 'r' to reload config or any other key to continue.\n";
+            switch (_getch()) {
+            case 'r':  init(config_PATH, indicators_PATH, switches_PATH, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES);
+            }
             continue;
         }
 
         high_resolution_clock::time_point t = high_resolution_clock::now();
         //---
 
-        string changedstate = "{" + indicators_process(indicators_PATH, indicators_previous) + "}";
-        if(!changedstate.empty()){
-            cout << "Writing to serial: " << changedstate << "\n";
-            if (!Serial.WriteSerialPort(&changedstate[0])) cerr << "Error writing string to serial!\n";
-        }
-        
-        switches_process(switches_PATH, Serial.ReadSerialPort(1, "json"), switches_previous);
+        string sent = "{" + to_string(linenumber) + (string)"}";
+        cout << "wrt " << sent << " " << Serial.WriteSerialPort(&sent[0]) << "\n";
+        cout << "rec {" << Serial.ReadSerialPort(1, "json") << "}\n";
+
+        //updateControls(Serial, indicators_PATH, indicatorsPrevious, switches_PATH, switchesPrevious);
 
         //---
         int us = duration_cast<microseconds>(high_resolution_clock::now() - t).count();
         if (us < 1000000/FREQ_HZ) this_thread::sleep_for(microseconds(1000000 / FREQ_HZ - us));
+        linenumber++;
     }
 
     endProgram(Serial);

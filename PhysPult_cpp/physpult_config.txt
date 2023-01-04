@@ -1,6 +1,6 @@
 C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\lamps.txt
 C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\switches.txt
-5
-9600
+10
+115200
 26
 64

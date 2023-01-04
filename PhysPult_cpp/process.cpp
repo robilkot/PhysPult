@@ -1,11 +1,12 @@
 ﻿#include <string>
 #include <iostream>
 #include <fstream>
+#include "include/SimpleSerial.h"
 
 //#define USECHANGEDSTATEMODEL 
 // Использовать если нужно преобразовать строку состояния в строку изменения состояния (legacy)
 
-std::string indicators_process(const std::string& PATH, std::string& previous)
+std::string indicatorsProcess(const std::string& PATH, std::string& previous)
 {
     using namespace std;
 
@@ -45,7 +46,7 @@ std::string indicators_process(const std::string& PATH, std::string& previous)
 #endif
 }
 
-void switches_process(const std::string& PATH, const std::string& current, std::string& previous)
+void switchesProcess(const std::string& PATH, const std::string& current, std::string& previous)
 {
     using namespace std;
 
@@ -63,4 +64,18 @@ void switches_process(const std::string& PATH, const std::string& current, std::
         cerr << "Couldnt save file!\n";
         system("pause");
     }
+}
+
+void updateControls(SimpleSerial& Serial, const std::string& indicatorsPATH, std::string& indicatorsprevious, const std::string& switchesPATH, std::string& switchessprevious)
+{
+    using namespace std;
+
+    string changedstate = "{" + indicatorsProcess(indicatorsPATH, indicatorsprevious) + "}";
+    if (changedstate.size() > 2) {
+        cout << "wrt " << changedstate << Serial.WriteSerialPort(&changedstate[0]) << "\n";
+    }
+
+    string rec = Serial.ReadSerialPort(1, "json");
+    cout << "rec {" << rec << "}\n";
+    switchesProcess(switchesPATH, rec, switchessprevious);
 }

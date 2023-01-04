@@ -1,7 +1,10 @@
 #include <string>
 #include <iostream>
+#include <fstream>
+#include "include/SimpleSerial.h"
 
 #pragma once
 
-std::string indicators_process(const std::string& PATH, std::string& previous);
-void switches_process(const std::string& PATH, const std::string& current, std::string& previous);
+std::string indicatorsProcess(const std::string& PATH, std::string& previous);
+void switchesProcess(const std::string& PATH, const std::string& current, std::string& previous);
+void updateControls(SimpleSerial& Serial, const std::string& indicatorsPATH, std::string& indicatorsprevious, const std::string& switchesPATH, std::string& switchessprevious);
