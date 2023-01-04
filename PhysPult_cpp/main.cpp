@@ -21,17 +21,17 @@ void endProgram(SimpleSerial& Serial) {
 }
 
 // Initializing based on config file
-void init(string config_PATH, string& indicators_PATH, string& switches_PATH, short& FREQ_HZ, DWORD& COM_BAUD_RATE, short& TOTALINDICATORS, short& TOTALSWITCHES) {
-    ifstream config(config_PATH);
+void init(string configPath, string& indicatorsPath, string& switchesPath, short& FREQ_HZ, DWORD& COM_BAUD_RATE, short& TOTALINDICATORS, short& TOTALSWITCHES) {
+    ifstream config(configPath);
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
         system("pause");
         exit(EXIT_FAILURE);
     }
-    getline(config, indicators_PATH); // set path to file with indicators state
-    getline(config, switches_PATH); // set path to file with switches state
+    getline(config, indicatorsPath); // set path to file with indicators state
+    getline(config, switchesPath); // set path to file with switches state
 
-    ifstream infile(indicators_PATH); // check if indicators file is valid
+    ifstream infile(indicatorsPath); // check if indicators file is valid
     if (!infile.is_open()) {
         cerr << "Couldn't open file with indicators state!\n";
         system("pause");
@@ -52,7 +52,7 @@ void init(string config_PATH, string& indicators_PATH, string& switches_PATH, sh
     getline(config, temp);
     if (!temp.empty()) TOTALSWITCHES = stoi(temp); // set switches count (string length)
 
-    cout << "Initialized succesfully!\nIndicators state file: " << indicators_PATH << "\nSwitches state file: " << switches_PATH
+    cout << "Initialized succesfully!\nIndicators state file: " << indicatorsPath << "\nSwitches state file: " << switchesPath
     << "\nFrequency: " << FREQ_HZ << "\nBaud rate: " << COM_BAUD_RATE
     << "\nIndicators number: " << TOTALINDICATORS << "\nSwitches number: " << TOTALSWITCHES << "\n\n";
 }
@@ -61,17 +61,17 @@ int main(int argc, char* argv[])
 {   
     //--- INITIALISING ---
 
-    string indicators_PATH = "lamps.txt", switches_PATH = "switches.txt", config_PATH = "physpult_config.txt";
+    string indicatorsPath = "lamps.txt", switchesPath = "switches.txt", configPath = "physpult_config.txt";
     short FREQ_HZ = 10, TOTALINDICATORS = 32, TOTALSWITCHES = 64;
     DWORD COM_BAUD_RATE = 9600; // Set default values for all variables
-    if (argv[1] != NULL) config_PATH = argv[1];
-
-    init(config_PATH, indicators_PATH, switches_PATH, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES); // Initialize based on config file
-
-    string indicatorsPrevious(TOTALINDICATORS, '0'), switchesPrevious(TOTALSWITCHES, '0');
+    if (argv[1] != NULL) configPath = argv[1];
 
     //--- COM PORT INITIALISING ---
     InitCOMPort:
+
+    system("cls");
+    init(configPath, indicatorsPath, switchesPath, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES); // Initialize based on config file
+    string indicatorsPrevious(TOTALINDICATORS, '0'), switchesPrevious(TOTALSWITCHES, '0');
 
     SimpleSerial Serial(&SelectCOMport()[0], COM_BAUD_RATE);
 
@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
             switch (_getch()) {
             case 'q': exit(EXIT_FAILURE); break;
             case '2': goto InitCOMPort;
+            default: continue;
             } 
         }
         break;
@@ -108,10 +109,9 @@ int main(int argc, char* argv[])
 
     //--- BODY ---
 
-    cout << "Starting. Press '2' to pause.\n\n";
+    cout << "Starting. Press '2' to pause or 'r' to reload config.\n\n";
     system("timeout 1 > nul");
 
-    using namespace chrono;
     char c = 0;
     short linenumber = 0;
     while (c != 13)
@@ -119,30 +119,33 @@ int main(int argc, char* argv[])
         if (linenumber > 30) {
             system("cls");
             linenumber = 0;
-        }
+        } else linenumber++;
         c = 0;
-        if (_kbhit()) c = _getch();
-        if (c == '2') {
-            cout << "Paused! Press 'r' to reload config or any other key to continue.\n";
+        if (_kbhit()) {
             switch (_getch()) {
-            case 'r':  init(config_PATH, indicators_PATH, switches_PATH, FREQ_HZ, COM_BAUD_RATE, TOTALINDICATORS, TOTALSWITCHES);
+            case '2': {
+                cout << "Paused! Press any key to continue or 'r' to reload config.\n";
+                switch (_getch()) {
+                case 'r': goto InitCOMPort;
+                }
+                continue;
             }
-            continue;
+            case 'r': goto InitCOMPort;
+            }
         }
 
-        high_resolution_clock::time_point t = high_resolution_clock::now();
+        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
         //---
 
         string sent = "{" + to_string(linenumber) + (string)"}";
         cout << "wrt " << sent << " " << Serial.WriteSerialPort(&sent[0]) << "\n";
         cout << "rec {" << Serial.ReadSerialPort(1, "json") << "}\n";
 
-        //updateControls(Serial, indicators_PATH, indicatorsPrevious, switches_PATH, switchesPrevious);
+        //updateControls(Serial, indicatorsPath, indicatorsPrevious, switchesPath, switchesPrevious);
 
         //---
-        int us = duration_cast<microseconds>(high_resolution_clock::now() - t).count();
-        if (us < 1000000/FREQ_HZ) this_thread::sleep_for(microseconds(1000000 / FREQ_HZ - us));
-        linenumber++;
+        int us = chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now() - t).count();
+        if (us < 1000000/FREQ_HZ) this_thread::sleep_for(chrono::microseconds(1000000 / FREQ_HZ - us));
     }
 
     endProgram(Serial);

@@ -1,7 +1,7 @@
 void setup()
 {
-  DDRB |= B11111111; // set 8-13 to output
-  DDRD |= B11111110; // set 1-7 to output
+  //DDRB |= B11111111; // set 8-13 to output
+  //DDRD |= B11111110; // set 1-7 to output
   Serial.begin(115200);
   Serial.setTimeout(5);
 }
@@ -11,6 +11,7 @@ void loop()
   while(Serial.available() > 0 && Serial.peek() != '{') char t = Serial.read();
   String command = "";
 
+  Serial.read();
   while(true) {
     if(Serial.available() > 0){
       char temp = Serial.read();
@@ -18,13 +19,15 @@ void loop()
       command+=temp;
     }
   }
+	
+	Serial.print(command+"}");
 
 /*if(command == "PhysPultInit") {
     Serial.print("{PhysPultInitOK}");
   } else */
   
-  registersWrite(command, 8, 6, 9, 10);
-  Serial.print("{" + registersRead(1, 8, 10, 9) + "}");
+  //registersWrite(command, 8, 6, 9, 10);
+  //Serial.print("{" + registersRead(1, 8, 10, 9) + "}");
 }
 
 void registersWrite(String toSend, uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock)
