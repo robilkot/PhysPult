@@ -12,8 +12,7 @@ std::string indicatorsProcess(const std::string& PATH, std::string& previous)
 
     ifstream in(PATH);
     if (!in.is_open()) {
-        cerr << "Couldnt open file!\n";
-        system("pause");
+        cerr << "Error opening indicators state file, skipping\n";
         return {};
     }
     string state;
@@ -60,10 +59,7 @@ void switchesProcess(const std::string& PATH, const std::string& current, std::s
 
     ofstream out(PATH);
     if (out.is_open()) out << current;
-    else {
-        cerr << "Couldnt save file!\n";
-        system("pause");
-    }
+    else cerr << "Error saving switches state, skipping\n";
 }
 
 void updateControls(SimpleSerial& Serial, const std::string& indicatorsPATH, std::string& indicatorsprevious, const std::string& switchesPATH, std::string& switchessprevious)
@@ -76,6 +72,8 @@ void updateControls(SimpleSerial& Serial, const std::string& indicatorsPATH, std
     }
 
     string rec = Serial.ReadSerialPort(1, "json");
-    cout << "rec {" << rec << "}\n";
-    switchesProcess(switchesPATH, rec, switchessprevious);
+    if (!rec.empty()) {
+        cout << "rec {" << rec << "}\n";
+        switchesProcess(switchesPATH, rec, switchessprevious);
+    }
 }

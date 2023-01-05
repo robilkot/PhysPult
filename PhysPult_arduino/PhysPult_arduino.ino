@@ -8,7 +8,7 @@ void setup()
 
 void loop()
 {
-  while(Serial.available() > 0 && Serial.peek() != '{') char t = Serial.read();
+  /*while(Serial.available() > 0 && Serial.peek() != '{') char t = Serial.read();
   String command = "";
 
   Serial.read();
@@ -20,7 +20,8 @@ void loop()
     }
   }
 	
-	Serial.print(command+"}");
+  Serial.print(command+"}");
+*/
 
 /*if(command == "PhysPultInit") {
     Serial.print("{PhysPultInitOK}");
@@ -28,6 +29,16 @@ void loop()
   
   //registersWrite(command, 8, 6, 9, 10);
   //Serial.print("{" + registersRead(1, 8, 10, 9) + "}");
+
+String state = "{";
+for(int i = 0; i<64; i++) {
+  randomSeed(analogRead(0));
+	state+=random(0,2);
+}
+state+="}";
+Serial.println(state);
+
+delay(33);
 }
 
 void registersWrite(String toSend, uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock)

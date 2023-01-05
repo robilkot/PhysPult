@@ -21,7 +21,7 @@ void endProgram(SimpleSerial& Serial) {
 }
 
 // Initializing based on config file
-void init(string configPath, string& indicatorsPath, string& switchesPath, short& FREQ_HZ, DWORD& COM_BAUD_RATE, short& TOTALINDICATORS, short& TOTALSWITCHES) {
+void init(string& configPath, string& indicatorsPath, string& switchesPath, short& FREQ_HZ, DWORD& COM_BAUD_RATE, short& TOTALINDICATORS, short& TOTALSWITCHES) {
     ifstream config(configPath);
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
@@ -66,7 +66,6 @@ int main(int argc, char* argv[])
     DWORD COM_BAUD_RATE = 9600; // Set default values for all variables
     if (argv[1] != NULL) configPath = argv[1];
 
-    //--- COM PORT INITIALISING ---
     InitCOMPort:
 
     system("cls");
@@ -137,11 +136,11 @@ int main(int argc, char* argv[])
         chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
         //---
 
-        string sent = "{" + to_string(linenumber) + (string)"}";
-        cout << "wrt " << sent << " " << Serial.WriteSerialPort(&sent[0]) << "\n";
-        cout << "rec {" << Serial.ReadSerialPort(1, "json") << "}\n";
+        //string sent = "{" + to_string(linenumber) + (string)"}";
+        //cout << "wrt " << sent << " " << Serial.WriteSerialPort(&sent[0]) << "\n";
+        //cout << "rec {" << Serial.ReadSerialPort(1, "json") << "}\n";
 
-        //updateControls(Serial, indicatorsPath, indicatorsPrevious, switchesPath, switchesPrevious);
+        updateControls(Serial, indicatorsPath, indicatorsPrevious, switchesPath, switchesPrevious);
 
         //---
         int us = chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now() - t).count();
