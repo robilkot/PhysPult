@@ -1,6 +1,2 @@
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\lamps.txt
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\switches.txt
-6
-115200
-26
-64
+61000 1 115200 64 64
+Port - Frequency - Baud rate - indicators count - switches count

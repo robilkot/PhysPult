@@ -2,9 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include "include/SimpleSerial.h"
+#include "include/TcpSocket.cpp"
 
 #pragma once
 
-std::string indicatorsProcess(const std::string& PATH, std::string& previous);
-void switchesProcess(const std::string& PATH, const std::string& current, std::string& previous);
-void updateControls(SimpleSerial& Serial, const std::string& indicatorsPATH, std::string& indicatorsprevious, const std::string& switchesPATH, std::string& switchessprevious);
+using namespace std;
+
+string updateIndicators(TcpClient& client, short INDICATORSCOUNT);
+void updateSwitches(TcpClient& client, string& switches);
+void updateControls(SimpleSerial& Serial, TcpClient& client, short INDICATORSCOUNT);

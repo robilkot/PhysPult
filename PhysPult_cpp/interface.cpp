@@ -1,14 +1,17 @@
+#define WIN32_LEAN_AND_MEAN
+
 #include <iostream>
 #include <string>
 #include <list>
 #include <conio.h>
 #include <Windows.h>
-#include "include/SimpleSerial.h"
 
-std::list<int> GetCOMports()
+#include "include/TcpSocket.cpp"
+
+using namespace std;
+
+list<int> GetCOMports()
 {
-    using namespace std;
-
     wchar_t lpTargetPath[5000]; // buffer to store the path of the COM PORTS
     list<int> portList;
 
@@ -29,9 +32,7 @@ std::list<int> GetCOMports()
     return portList;
 }
 
-std::string SelectCOMport() {
-    using namespace std;
-
+string SelectCOMport() {
     string com_port = "\\\\.\\COM";
     do {
         list<int> COMports = GetCOMports();
@@ -51,4 +52,31 @@ std::string SelectCOMport() {
             return com_port;
         }
     } while (true);
+}
+
+void SendToSocket(TcpClient& client, string& msg)
+{
+    try {
+        client.Send(&msg[0], msg.length()+1);
+    }
+    catch (SocketException& ex) {
+        cout << "Error sending to socket: error code " << ex.GetWSErrorCode() << "\n";
+    }
+}
+
+string ReceiveFromSocket(TcpClient& client, short length)
+{
+    try {
+        char* msg = new char[length];
+
+        client.Recv(msg, length);
+
+        string out(msg);
+        delete[] msg;
+        return out;
+    }
+    catch (SocketException& ex) {
+        cout << "Error receiving from socket: error code " << ex.GetWSErrorCode() << "\n";
+        return {};
+    }
 }

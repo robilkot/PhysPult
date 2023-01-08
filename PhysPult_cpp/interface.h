@@ -2,5 +2,9 @@
 
 #pragma once
 
-std::list<int> GetCOMports();
-std::string SelectCOMport();
+using namespace std;
+
+list<int> GetCOMports();
+string SelectCOMport();
+void SendToSocket(TcpClient& client, string& msg);
+string ReceiveFromSocket(TcpClient& client, short length);

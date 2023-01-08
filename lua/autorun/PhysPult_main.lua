@@ -356,9 +356,9 @@ function Pult.Synchronize()
 			stateString = file.Read(switchesFileName)
 		end
 
-		Pult.SynchronizeIndicators(train)
-		Pult.SynchronizeSwitches(train, stateString)
-		Pult.SynchronizeButtons(train, stateString)
+		--Pult.SynchronizeIndicators(train)
+		--Pult.SynchronizeSwitches(train, stateString)
+		--Pult.SynchronizeButtons(train, stateString)
 	end
 end
 
