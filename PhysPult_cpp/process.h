@@ -1,6 +1,6 @@
 #include <string>
 #include <iostream>
-#include <fstream>
+
 #include "include/SimpleSerial.h"
 #include "include/TcpSocket.cpp"
 
@@ -8,6 +8,6 @@
 
 using namespace std;
 
-string updateIndicators(TcpClient& client, short INDICATORSCOUNT);
-void updateSwitches(TcpClient& client, string& switches);
-void updateControls(SimpleSerial& Serial, TcpClient& client, short INDICATORSCOUNT);
+string updateIndicators(TcpClient& client, short indicatorsCount);
+void updateSwitches(TcpClient& client, string switches);
+void updateControls(SimpleSerial& Serial, TcpClient& client, short indicatorsCount, short switchesCount);

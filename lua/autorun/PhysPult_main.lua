@@ -10,14 +10,7 @@
 
 if(SERVER) then return end
 
-timer.Create("PhysPultInit", 0.5, 1, function()
-
--- Частота обновления состояния (Гц).
-local updateFrequency = 5
--- Имя файла с индикаторами.
-local indicatorsFileName = "lamps.txt"
--- Имя файла с переключателями.
-local switchesFileName = "switches.txt"
+timer.Create("PhysPultInit", 0.1, 1, function()
 
 -- Список индикаторов с соответствующим номером бита.
 local indicators = {
@@ -293,18 +286,21 @@ function Metrostroi.GetTrainButtonById(train, buttonId)
     end
 end
 
-Pult = Pult or {}
+--PhysPult = PhysPult or {}
+if(not PhysPult) then PhysPult = {} end
 
--- Инициализирует тренажёр.
-function Pult.Initialize()
-	if (not file.Exists(switchesFileName, "DATA")) then
-		file.Append(switchesFileName, stringPadRight("", "0", table.maxn(switches)))
-	end
-end
+PhysPult.SwitchesNumber = 64 --math.max(table.maxn(switches), table.maxn(buttons))
+PhysPult.IndicatorsNumber = 64 --table.maxn(indicators)
+
+-- Частота обновления состояния (Гц).
+PhysPult.UpdateFrequency = 5
+
+-- Порт для подключения по сокетам
+PhysPult.SocketPort = 61000
 
 -- Синхронизация индикаторов в поезде.
-function Pult.SynchronizeIndicators(train)
-	local currentState = stringPadRight("", '0', table.maxn(switches))
+function PhysPult.SynchronizeIndicators(train)
+	local currentState = stringPadRight("", '0', PhysPult.IndicatorsNumber)
 
 	for k, v in pairs(indicators) do
 		if Metrostroi.GetTrainIndicatorStage(train, k) == true then
@@ -317,14 +313,14 @@ function Pult.SynchronizeIndicators(train)
 	local speed = train:GetPackedRatio("speed") * 100
 	currentState = string.SetChar(currentState, 1, math.floor(speed / 10))
 	currentState = string.SetChar(currentState, 2, math.floor(speed) % 10)
-	
-	file.Write(indicatorsFileName, currentState)
+
+	PhysPult.SocketWrtData = currentState.."\0"
 end
 
 -- Синхронизация тумблреров в поезде.
-function Pult.SynchronizeSwitches(train, stateString)
+function PhysPult.SynchronizeSwitches(train)
 	for k, v in pairs(switches) do
-		local stage = stateString[k + 1] == '1'
+		local stage = PhysPult.SocketRecData[k + 1] == '1'
 
 		if (v[2]) then
 			stage = not stage
@@ -335,9 +331,9 @@ function Pult.SynchronizeSwitches(train, stateString)
 end
 
 -- Синхронизация кнопок в поезде.
-function Pult.SynchronizeButtons(train, stateString)
+function PhysPult.SynchronizeButtons(train)
 	for k, v in pairs(buttons) do
-		if (stateString[k] == '1') then
+		if (PhysPult.SocketRecData[k] == '1') then
 			Metrostroi.DownTrainButton(train, v)
 		else 
 			Metrostroi.UpTrainButton(train, v)
@@ -346,31 +342,29 @@ function Pult.SynchronizeButtons(train, stateString)
 end
 
 -- Синхронизация физического пульта, с виртуальным пультом поезда, в котром сидит игрок.
-function Pult.Synchronize()
+function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
 
 	if(train and checkTrainType(train)) then
-		local stateString = ""
-
-		if file.Exists(switchesFileName, "DATA") then
-			stateString = file.Read(switchesFileName)
+		if(PhysPult.SocketRecData) then
+			PhysPult.SynchronizeSwitches(train)
+			PhysPult.SynchronizeButtons(train)
 		end
 
-		--Pult.SynchronizeIndicators(train)
-		--Pult.SynchronizeSwitches(train, stateString)
-		--Pult.SynchronizeButtons(train, stateString)
+		PhysPult.SynchronizeIndicators(train)
 	end
 end
 
 -- Старт синхронизации физического пульта и виртуального поезда, в котром сидит игрок.
-function Pult.StartSynchronize()
-	timer.Create("stateStringUpdate", 1 / updateFrequency, 0, function()
-		Pult.Synchronize()
+function PhysPult.StartSynchronize()
+	PhysPult.StartServer("127.0.0.1", PhysPult.SocketPort)
+
+	timer.Create("stateStringUpdate", 1 / PhysPult.UpdateFrequency, 0, function()
+		PhysPult.Synchronize()
 	end)
 	if(timer.Exists("stateStringUpdate")) then chat.AddText("PhysPult by MetroPack started!") end
 end
 
-Pult.Initialize()
-Pult.StartSynchronize()
+PhysPult.StartSynchronize()
 
 end)

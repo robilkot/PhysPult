@@ -2,18 +2,19 @@
 
 #include <string>
 #include <iostream>
-#include <fstream>
 
 #include "include/SimpleSerial.h"
 #include "include/TcpSocket.cpp"
 #include "interface.h"
 
+//#define DEBUG_SERIAL
+
 using namespace std;
 
-string updateIndicators(TcpClient& client, short INDICATORSCOUNT)
+string updateIndicators(TcpClient& client, short indicatorsCount)
 {
     static string indicatorsprevious;
-    string indicators = ReceiveFromSocket(client, INDICATORSCOUNT+1);
+    string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
 
     if (indicatorsprevious == indicators) return {};
 
@@ -21,28 +22,34 @@ string updateIndicators(TcpClient& client, short INDICATORSCOUNT)
     return indicators;
 }
 
-void updateSwitches(TcpClient& client, string& switches)
+void updateSwitches(TcpClient& client, string switches)
 {
     static string switchesprevious;
 
     if (switchesprevious == switches) return;
 
-    SendToSocket(client, switches);
+    SendToSocket(client, switches + "\0");
 
     switchesprevious = switches;
 }
 
-void updateControls(SimpleSerial& Serial, TcpClient& client, short INDICATORSCOUNT)
+void updateControls(SimpleSerial& Serial, TcpClient& client, short indicatorsCount, short switchesCount)
 {
-    string indicators = "{" + updateIndicators(client, INDICATORSCOUNT) + "}";
-    if (indicators.size() > 2) {
-       cout << "wrt " << indicators << Serial.WriteSerialPort(&indicators[0]) << "\n";
-        Serial.WriteSerialPort(&indicators[0]);
-    }
-
-    string switches = Serial.ReadSerialPort(1, "json") + "\0";
+    string switches = Serial.ReadSerialPort(1, "json");
     if (!switches.empty()) {
-        cout << "rec {" << switches << "}\n";
+#ifdef DEBUG_SERIAL
+        cout << "Serial rec {" << switches << "}\n";
+#endif
         updateSwitches(client, switches);
+    }
+    else updateSwitches(client, string(switchesCount, '0'));
+
+    string indicators = "{" + updateIndicators(client, indicatorsCount) + "}";
+    if (indicators.size() > 2) {
+#ifdef DEBUG_SERIAL
+       cout << "Seial wrt " << indicators << Serial.WriteSerialPort(&indicators[0]) << "\n";
+#else
+       Serial.WriteSerialPort(&indicators[0]);
+#endif
     }
 }
