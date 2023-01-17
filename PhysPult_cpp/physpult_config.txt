@@ -1,2 +1,2 @@
-61000 5 115200 64 64
+61000 60 115200 64 64
 Port - Frequency - Baud rate - indicators count - switches count

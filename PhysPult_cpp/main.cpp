@@ -15,21 +15,8 @@
 
 using namespace std;
 
-void endProgram(SimpleSerial& serial) {
-    TcpSocket::Dispose();
-
-    if (serial.CloseSerialPort()) {
-        exit(EXIT_SUCCESS);
-        cout << "Closed connection to COM port\n";
-    }
-    else {
-        cerr << "Failed to close connection to COM port\n";
-        exit(EXIT_FAILURE);
-    }
-}
-
 // Initializing based on config file
-void init(string& configPath, int& socketPort, short& frequency, DWORD& baudRate, short& indicatorsCount, short& switchesCount) {
+void init(string configPath, int& socketPort, short& frequency, DWORD& baudRate, short& indicatorsCount, short& switchesCount) {
     ifstream config(configPath);
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
@@ -39,11 +26,10 @@ void init(string& configPath, int& socketPort, short& frequency, DWORD& baudRate
 
     config >> socketPort >> frequency >> baudRate >> indicatorsCount >> switchesCount;
 
-    cout << "Initialized!"
-    << "\nPort: " << socketPort
-    << "; Frequency: " << frequency << "; Baud rate: " << baudRate
-    << "; Indicators: " << indicatorsCount << "; Switches: " << switchesCount
-    << "\n\n";
+    if (frequency > 60) cout << "High frequency is set (>60 Hz). Are you sure you need this much?\n";
+
+    cout << "Initialized!" << "\nPort: " << socketPort << "; Frequency: " << frequency << "; Baud rate: " << baudRate
+    << "; Indicators: " << indicatorsCount << "; Switches: " << switchesCount << "\n\n";
 }
 
 int main(int argc, char* argv[])
@@ -73,10 +59,10 @@ int main(int argc, char* argv[])
     }
     catch (SocketException& ex) {
         cout << "Failed to connect to socket: error code " << ex.GetWSErrorCode() << "\n"
-            << "Press 'q' to exit, '2' to reload config or any other key to retry.\n";
+            << "Press 'q' to exit, 'r' to reload config or any other key to retry.\n";
         switch (_getch()) {
-        case 'q': endProgram(serial);
-        case '2': {
+        case 'q': exit(EXIT_SUCCESS);
+        case 'r': {
             TcpSocket::Dispose();
             goto Init;
         }
@@ -85,45 +71,43 @@ int main(int argc, char* argv[])
     }
 
     do {
-        if (!serial.connected_) {
+        if (serial.connected_) break;
+        else {
             cout << "Failed to connect to COM port! Press 'q' to exit, '2' to select another COM port or any other key to retry.\n";
             switch (_getch()) {
-            case 'q': endProgram(serial);
+            case 'q': exit(EXIT_SUCCESS);
             case '2': goto InitCOMPort;
             default: continue;
             }
         }
-        else break;
     } while (true);
    
     //--- BODY ---
 
+    for (int i = 0; i < 5; i++) { // Это проклято.
+        this_thread::sleep_for(chrono::milliseconds(50));
+        serial.WriteSerialPort(&string("wake up, neo!\0")[0]);
+    }
+
     cout << "Starting. Press '2' to pause, 'r' to reload config or 'q' to exit.\n\n";
 
-    char c = 0;
-    short linenumber = 0;
-    while (c != 13)
+    while (true)
     {
-        if (linenumber > 30) {
-            system("cls");
-            linenumber = 0;
-        } else linenumber++;
-        c = 0;
         if (_kbhit()) {
             switch (_getch()) {
             case '2': {
                 cout << "Paused! Press any key to continue or 'r' to reload config or 'q' to exit.\n";
                 switch (_getch()) {
                 case 'r': goto Init;
-                case 'q': endProgram(serial);
+                case 'q': exit(EXIT_SUCCESS);
                 }
 
+                client.~client();
                 TcpSocket::Dispose();
                 goto InitSocket;
-                //continue;
             }
             case 'r': goto Init;
-            case 'q': endProgram(serial);
+            case 'q': exit(EXIT_SUCCESS);
             }
         }
 
@@ -133,9 +117,7 @@ int main(int argc, char* argv[])
         updateControls(serial, client, indicatorsCount, switchesCount);
 
         //---
-        int us = chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now() - t).count();
-        if (us < 1000000 / frequency) this_thread::sleep_for(chrono::microseconds(1000000 / frequency - us));
+        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
+        if (us < 1000 / frequency) this_thread::sleep_for(chrono::milliseconds(1000 / frequency - us));
     }
-
-    endProgram(serial);
 }

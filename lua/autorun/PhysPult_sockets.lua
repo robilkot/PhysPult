@@ -1,35 +1,48 @@
 if(SERVER) then return end
 
+PhysPult = PhysPult or {}
+
 local socket = require("socket.core") or socket
 
-----   API definition   ----
-
-if(not PhysPult) then PhysPult = {} end
-
 local function clientHanlder(tcpClient)
+    timer.Pause("tcp-server-physpult")
+
     local timerName = "tcp-client-handler"..tcpClient:getsockname()
-    local timerInterval = 1 / PhysPult.UpdateFrequency
-    local dataTimeout = 0
+    --local dataTimeout = 0
+    local errorCount = 0
+
+    tcpClient:send(PhysPult.SocketWrtData)
 
     tcpClient:settimeout(0.01)
 
-    timer.Create(timerName, timerInterval, dataTimeout / timerInterval, function()
+    timer.Create(timerName, 1 / PhysPult.UpdateFrequency, 0 --[[dataTimeout / timerInterval]] , function()
         tcpClient:send(PhysPult.SocketWrtData)
         chat.AddText("wrt"..PhysPult.SocketWrtData)
 
         local data, error = tcpClient:receive(PhysPult.SwitchesNumber + 1)
 
-        if (error) then
-            chat.AddText("rec failed:"..error)
+        if (error == "timeout") then
+            errorCount = errorCount + 1
+            --chat.AddText("rec failed:"..error)
+            if(errorCount == 3) then 
+                timer.Remove(timerName)
+                tcpClient:close()
+                PhysPult.SocketRecData = nil
+                chat.AddText("Client disconnected!")
+                timer.UnPause("tcp-server-physpult")
+            end
         end
     
         if (data) then
+            errorCount = 0
             chat.AddText("rec"..data)
             PhysPult.SocketRecData = data
         end
-        
+
     end) 
 end
+
+----   API definition   ----
 
 function PhysPult.StartServer(host, port)
     local tcpServer = socket.tcp4()
@@ -41,7 +54,7 @@ function PhysPult.StartServer(host, port)
 
     chat.AddText("Server start.")
 
-    timer.Create("tcp-server-"..port, 1, 0, function()
+    timer.Create("tcp-server-physpult", 0.1, 0, function()
         PhysPult.tcpClient = tcpServer:accept()
 
         if (PhysPult.tcpClient) then

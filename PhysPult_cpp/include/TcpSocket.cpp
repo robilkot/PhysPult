@@ -48,6 +48,7 @@ public:
 
 	~TcpSocket() {
 		closesocket(_socket);
+		Dispose();
 	}
 
 	static void Initialize() {

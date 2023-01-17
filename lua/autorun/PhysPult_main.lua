@@ -10,7 +10,7 @@
 
 if(SERVER) then return end
 
-timer.Create("PhysPultInit", 0.1, 1, function()
+timer.Create("PhysPultInit", 0.5, 1, function()
 
 -- Список индикаторов с соответствующим номером бита.
 local indicators = {
@@ -286,14 +286,14 @@ function Metrostroi.GetTrainButtonById(train, buttonId)
     end
 end
 
---PhysPult = PhysPult or {}
-if(not PhysPult) then PhysPult = {} end
+PhysPult = PhysPult or {}
 
+-- Количество переключателей и ламп (длины строк)
 PhysPult.SwitchesNumber = 64 --math.max(table.maxn(switches), table.maxn(buttons))
 PhysPult.IndicatorsNumber = 64 --table.maxn(indicators)
 
 -- Частота обновления состояния (Гц).
-PhysPult.UpdateFrequency = 5
+PhysPult.UpdateFrequency = 1
 
 -- Порт для подключения по сокетам
 PhysPult.SocketPort = 61000

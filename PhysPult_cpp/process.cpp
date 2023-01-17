@@ -1,11 +1,6 @@
 ﻿#define WIN32_LEAN_AND_MEAN
 
-#include <string>
-#include <iostream>
-
-#include "include/SimpleSerial.h"
-#include "include/TcpSocket.cpp"
-#include "interface.h"
+#include "process.h"
 
 //#define DEBUG_SERIAL
 
@@ -16,7 +11,7 @@ string updateIndicators(TcpClient& client, short indicatorsCount)
     static string indicatorsprevious;
     string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
 
-    if (indicatorsprevious == indicators) return {};
+    //if (indicatorsprevious == indicators) return {};
 
     indicatorsprevious = indicators;
     return indicators;
@@ -35,21 +30,19 @@ void updateSwitches(TcpClient& client, string switches)
 
 void updateControls(SimpleSerial& Serial, TcpClient& client, short indicatorsCount, short switchesCount)
 {
+    string indicators = "{" + updateIndicators(client, indicatorsCount) + "}";
+    if (indicators.size() > 2) {
+       cout << "Serial wrt " << indicators << Serial.WriteSerialPort(&indicators[0]) << "\n";
+    }
+
+    this_thread::sleep_for(chrono::milliseconds(15));
+
     string switches = Serial.ReadSerialPort(1, "json");
+
+    cout << "Serial rec {" << switches << "}\n";
+
     if (!switches.empty()) {
-#ifdef DEBUG_SERIAL
-        cout << "Serial rec {" << switches << "}\n";
-#endif
         updateSwitches(client, switches);
     }
     else updateSwitches(client, string(switchesCount, '0'));
-
-    string indicators = "{" + updateIndicators(client, indicatorsCount) + "}";
-    if (indicators.size() > 2) {
-#ifdef DEBUG_SERIAL
-       cout << "Seial wrt " << indicators << Serial.WriteSerialPort(&indicators[0]) << "\n";
-#else
-       Serial.WriteSerialPort(&indicators[0]);
-#endif
-    }
 }
