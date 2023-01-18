@@ -1,6 +1,6 @@
 #include "SimpleSerial.h"
 
-SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE)
+SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_type)
 {
 	connected_ = false;
 
@@ -13,17 +13,15 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE)
 							NULL);
 
 	if (io_handler_ == INVALID_HANDLE_VALUE) {
-
 		if (GetLastError() == ERROR_FILE_NOT_FOUND)
-			printf("Warning: Handle was not attached. Reason: %s not available\n", com_port);
+			cout << "Warning: Handle was not attached. Reason: " << com_port << " not available\n";
 	}
 	else {
 
 		DCB dcbSerialParams = { 0 };
 
 		if (!GetCommState(io_handler_, &dcbSerialParams)) {
-
-			printf("Warning: Failed to get current serial params");
+			cout << "Warning: Failed to get current serial params\n";
 		}
 
 		else {
@@ -34,10 +32,11 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE)
 			dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
 
 			if (!SetCommState(io_handler_, &dcbSerialParams))
-				printf("Warning: could not set serial port params\n");
+				cout << "Warning: Could not set serial port params\n";
 			else {
 				connected_ = true;
-				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);				
+				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);		
+				CustomSyntax(syntax_type);
 			}
 		}
 	}
@@ -84,40 +83,36 @@ void SimpleSerial::CustomSyntax(string syntax_type) {
 			syntax_name_ = "";
 			front_delimiter_ = ' ';
 			end_delimiter_ = ' ';
-			printf("Warning: Could not find delimiters, may cause problems!\n");
+			cout << "Warning: Could not find delimiters, may cause problems!\n";
 		}
 	}
 	else
-		printf ("Warning: No file open");
+		cout << "Warning: No syntax file open";
 }
 
-string SimpleSerial::ReadSerialPort(int reply_wait_time, string syntax_type) {
-
-	DWORD bytes_read;
-	char inc_msg[1];	
+string SimpleSerial::ReadSerialPort(int timeout)
+{
+	char inc_msg;	
 	string complete_inc_msg;
 	bool began = false;
 
-	CustomSyntax(syntax_type);
+	ClearCommError(io_handler_, &errors_, &status_);
 
-	unsigned long start_time = time(nullptr);
+	chrono::high_resolution_clock::time_point startTime = chrono::high_resolution_clock::now();
 
-	ClearCommError(io_handler_, &errors_, &status_);	
-
-	while ((time(nullptr) - start_time) < reply_wait_time) {
-
-		if (status_.cbInQue > 0) {
-			
-			if (ReadFile(io_handler_, inc_msg, 1, &bytes_read, NULL)) {
-				
-				if (inc_msg[0] == front_delimiter_ || began) {
+	while (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count() < timeout)
+	{
+		if (status_.cbInQue > 0) {		
+			if (ReadFile(io_handler_, &inc_msg, 1, NULL, NULL))
+			{
+				if (inc_msg == front_delimiter_ || began) {
 					began = true;
 
-					if (inc_msg[0] == end_delimiter_)
+					if (inc_msg == end_delimiter_)
 						return complete_inc_msg;
 
-					if (inc_msg[0] != front_delimiter_)
-						complete_inc_msg.append(inc_msg, 1);
+					if (inc_msg != front_delimiter_)
+						complete_inc_msg += inc_msg;
 				}				
 			}
 			else
@@ -129,16 +124,11 @@ string SimpleSerial::ReadSerialPort(int reply_wait_time, string syntax_type) {
 
 bool SimpleSerial::WriteSerialPort(char *data_sent)
 {
-	DWORD bytes_sent;	
-
-	unsigned int data_sent_length = strlen(data_sent);
-
-	if (!WriteFile(io_handler_, (void*)data_sent, data_sent_length, &bytes_sent, NULL)) {
+	if (WriteFile(io_handler_, (void*)data_sent, strlen(data_sent), NULL, NULL)) return true;
+	else {
 		ClearCommError(io_handler_, &errors_, &status_);
 		return false;
 	}
-	else
-		return true;
 }
 
 bool SimpleSerial::CloseSerialPort()
@@ -154,8 +144,5 @@ bool SimpleSerial::CloseSerialPort()
 
 SimpleSerial::~SimpleSerial()
 {
-	if (connected_) {
-		connected_ = false;
-		CloseHandle(io_handler_);		
-	}
+	CloseSerialPort();
 }
