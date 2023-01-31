@@ -1,46 +1,31 @@
+#include <AsyncStream.h>
+
 void setup()
 {
   //DDRB |= B11111111; // set 8-13 to output
   //DDRD |= B11111110; // set 1-7 to output
   Serial.begin(115200);
   Serial.setTimeout(5);
-  Serial.println("Im alive, kill me please");
 }
+
+AsyncStream<100> serial(&Serial, '}', 15); // Инициализация асинхронного считывателя
 
 void loop()
 {
-  if(Serial.available() > 0 && Serial.peek() != '{') Serial.read(); else {
+  if (serial.available()) {     // Если данные получены
+    //char* command = serial.buf + 1; // Обрезка '{'
 
-  //while(Serial.available() > 0 && Serial.peek() != '{') Serial.read();
-
-  String command = "";
-
-  while(true) {
-    if(Serial.available() > 0){
-      char temp = Serial.read();
-      if(temp=='{') continue;
-      if(temp=='}') break;
-      command+=temp;
-    }
-  }
-
-	if(command.length()) {
-    digitalWrite(13, !digitalRead(13));
-
-    String state = "{";
-    for(int i = 0; i<64; i++) {
+    char output[64+2];
+    for(int i = 1; i<65; i++) {
       randomSeed(analogRead(0));
-      state+=random(0,2);
+      output[i] = random(0,2) + '0';
     }
-    state+="}";
-    Serial.print(state);
-  }
-  
-  Serial.end();
-  Serial.begin(115200);
+    output[0] = '{';
+    output[65] = '}';
+    Serial.print(output);
 
-  //registersWrite(command, 8, 6, 9, 10);
-  //Serial.print("{" + registersRead(1, 8, 10, 9) + "}");
+    //registersWrite(command, 8, 6, 9, 10);
+    //Serial.print("{" + registersRead(1, 8, 10, 9) + "}");
   }
 }
 
