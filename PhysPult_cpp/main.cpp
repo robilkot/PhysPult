@@ -11,20 +11,28 @@
 #include "include/SimpleSerial.h"
 #include "include/TcpSocket.cpp"
 
+//#define NOCONNECTION
+
 constexpr const char* LOCALHOST = "127.0.0.1";
 
-using namespace std;
-
-// Initializing based on config file
 void init(string configPath, int& socketPort, short& frequency, DWORD& baudRate, short& indicatorsCount, short& switchesCount) {
     ifstream config(configPath);
     if (!config.is_open()) {
         cerr << "Couldn't open config file!\n";
-        system("pause");
-        exit(EXIT_FAILURE);
+        return;
     }
 
-    config >> socketPort >> frequency >> baudRate >> indicatorsCount >> switchesCount;
+    config >> socketPort >> frequency >> baudRate >> indicatorsCount >> switchesCount; // Get values from config
+
+    string metrostroiDataPath;
+    getline(config, metrostroiDataPath);
+    getline(config, metrostroiDataPath);
+    
+    ofstream dataConfig(metrostroiDataPath + "\\physpult.txt");
+    if (!config.is_open())
+        cerr << "Couldn't save config file to data!\n";
+
+    dataConfig << socketPort << " " << frequency << " " << indicatorsCount << " " << switchesCount; // Write values to config in gmod/data
 
     if (frequency > 60) cout << "High frequency is set (>60 Hz). Are you sure you need this much?\n";
 
@@ -34,26 +42,24 @@ void init(string configPath, int& socketPort, short& frequency, DWORD& baudRate,
 
 int main(int argc, char* argv[])
 {   
+    Init:
     string configPath = argv[1] == NULL ? "physpult_config.txt" : argv[1];
     int socketPort = 61000;
     short frequency = 10, indicatorsCount = 64, switchesCount = 64;
     DWORD baudRate = 9600; // Set default values for all variables
-
-    Init:
 
     system("CLS 2> nul");
     init(configPath, socketPort, frequency, baudRate, indicatorsCount, switchesCount); // Initialize based on config file
     short interval = 1000 / frequency; // in milliseconds
 
     InitCOMPort:
-
     SimpleSerial serial(&SelectCOMport()[0], baudRate, "json"); // Create serial object
 
     InitSocket:
-
     TcpSocket::Initialize();
     TcpClient client = *new TcpClient(LOCALHOST, socketPort); // Create socket client
 
+#ifndef NOCONNECTION
     try {
         client.Connect();
     }
@@ -79,6 +85,8 @@ int main(int argc, char* argv[])
         }
     } while (true);
    
+#endif
+
     //--- BODY ---
 
     for (int i = 0; i < 5; i++) { // Это проклято.
@@ -86,35 +94,35 @@ int main(int argc, char* argv[])
         serial.WriteSerialPort((char*)"{wake up, neo!}");
     }
 
-    cout << "Starting. Press 'space' to pause, 'r' to reload config or 'q' to exit.\n\n";
+    Start:
+    cout << "Starting. Press 'space' to pause or 'q' to exit.\n\n";
+
+    string indicators = string(indicatorsCount, '0'),
+             switches = string(switchesCount, '0');
+    bool pause = 0;
+
+    thread socketThread(updateSocket, ref(client), ref(indicators), ref(switches), interval, ref(pause)),
+            serialThread(updateSerial, ref(serial), ref(indicators), ref(switches), interval, ref(pause));
 
     while (true)
     {
         if (_kbhit()) {
             switch (_getch()) {
             case ' ': {
+                pause = 1;
+                socketThread.join();
+                serialThread.join();
                 cout << "Paused! Press any key to continue, 'r' to reload config or 'q' to exit.\n";
+
                 switch (_getch()) {
                 case 'r': goto Init;
                 case 'q': exit(EXIT_SUCCESS);
+                default: goto InitSocket;
                 }
-
-                goto InitSocket;
             }
-            case 'r': goto Init;
+            //case 'r': goto Init; // Нужно убивать поток перед гото
             case 'q': exit(EXIT_SUCCESS);
-
-            default: pingArduino(serial, client, switchesCount);
             }
         }
-
-        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
-        //---
-
-        //updateControls(serial, client, indicatorsCount, switchesCount);
-
-        //---
-        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
-        if (us < interval) this_thread::sleep_for(chrono::milliseconds(interval - us));
     }
 }

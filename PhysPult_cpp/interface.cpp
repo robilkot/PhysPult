@@ -55,7 +55,7 @@ void SendToSocket(TcpClient& client, string msg)
 	try {
 		client.Send(&msg[0], msg.length());
 #ifdef DEBUG_SOCKET
-		cout << "Socket wrt  " << msg << "\n";
+		cout << "Socket wrt [" << msg << "]\n";
 #endif
 	}
 	catch (SocketException& ex) {
@@ -66,17 +66,18 @@ void SendToSocket(TcpClient& client, string msg)
 string ReceiveFromSocket(TcpClient& client, short length)
 {
 	try {
-		string out(length, ' ');
+		string out;
+		out.reserve(length);
 
 		client.Recv(&out[0], length);
 
 #ifdef DEBUG_SOCKET
-		cout << "Socket rec  " << out << "\n";
+		cout << "Socket rec [" << out << "]\n";
 #endif
 		return out;
 	}
 	catch (SocketException& ex) {
 		cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
-		return string(length, '0');
+		return string(length - 1, '0');
 	}
 }

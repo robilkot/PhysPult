@@ -2,39 +2,63 @@
 
 #include "process.h"
 
-//#define DEBUG_SERIAL
-
 using namespace std;
 
-void updateControls(SimpleSerial& serial, TcpClient& client, short indicatorsCount, short switchesCount)
+//void updateControls(SimpleSerial& serial, TcpClient& client, short indicatorsCount, short switchesCount)
+//{
+//    string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
+//
+//    if (!indicators.empty()) {
+//       indicators = "{" + indicators + "}";
+//       cout << "Serial wrt " << indicators << " " << serial.WriteSerialPort(&indicators[0]) << "\n";
+//    }
+//
+//    string switches = serial.ReadSerialPort(35);
+//
+//    cout << "Serial rec {" << switches << "}\n";
+//
+//    if (!switches.empty()) SendToSocket(client, switches + '\0');
+//        else SendToSocket(client, string(switchesCount, '0') + '\0');
+//
+//    cout << "\n";
+//}
+
+void updateSerial(SimpleSerial& serial, string& indicators, string& switches, int interval, bool& stop)
 {
-    string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
+    while (!stop)
+    {
+        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
+        //---
 
-    if (!indicators.empty()) {
-       indicators = "{" + indicators + "}";
-       cout << "Serial wrt " << indicators << " " << serial.WriteSerialPort(&indicators[0]) << "\n";
+        string indicators_t = '{' + indicators + '}';
+        cout << "Serial wrt " << indicators_t << " " << serial.WriteSerialPort(&indicators_t[0]) << "\n";
+
+        string switches_t = serial.ReadSerialPort(35);
+        cout << "Serial rec {" << switches_t << "}\n";
+
+        if (switches_t.size()) switches = switches_t;
+
+        //---
+        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
+        if (us < interval) this_thread::sleep_for(chrono::milliseconds(interval - us));
     }
-
-    string switches = serial.ReadSerialPort(35);
-
-    cout << "Serial rec {" << switches << "}\n";
-
-    if (!switches.empty()) SendToSocket(client, switches + '\0');
-        else SendToSocket(client, string(switchesCount, '0') + '\0');
-
-    cout << "\n";
 }
 
-void pingArduino(SimpleSerial& serial, TcpClient& client, short switchesCount) {
+void updateSocket(TcpClient& client, string& indicators, string& switches, int interval, bool& stop)
+{
+    while (!stop)
+    {
+        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
+        //---
 
-    cout << "Serial wrt " << "{ping}" << " " << serial.WriteSerialPort((char*)"{ping}") << "\n";
+        string indicators_t = ReceiveFromSocket(client, indicators.length());
 
-    string switches = serial.ReadSerialPort(35);
+        if (indicators_t.length() == indicators.length()) indicators = indicators_t;
 
-    cout << "Serial rec {" << switches << "} (ping answer)\n";
+        SendToSocket(client, switches + '\0');
 
-    //if (!switches.empty()) SendToSocket(client, switches + '\0');
-   // else SendToSocket(client, string(switchesCount, '0') + '\0');
-
-    cout << "\n";
+        //---
+        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
+        if (us < interval) this_thread::sleep_for(chrono::milliseconds(interval - us));
+    }
 }

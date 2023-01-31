@@ -7,6 +7,16 @@ local socket = require("socket.core") or socket
 local function clientHanlder(tcpClient)
     timer.Pause("tcp-server-physpult")
 
+    if file.Exists("metrostroi_data/physpult.txt", "DATA") then
+        local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
+        local params = string.Split(paramsString, " ")
+        
+        PhysPult.SocketPort = tonumber(params[1])
+        PhysPult.UpdateFrequency = tonumber(params[2])
+        PhysPult.IndicatorsNumber = tonumber(params[3])
+        PhysPult.SwitchesNumber = tonumber(params[4])
+    end
+
     local timerName = "tcp-client-handler"..tcpClient:getsockname()
     local errorCount = 0
 

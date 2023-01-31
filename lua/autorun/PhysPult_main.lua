@@ -293,7 +293,7 @@ PhysPult.SwitchesNumber = 64 --math.max(table.maxn(switches), table.maxn(buttons
 PhysPult.IndicatorsNumber = 64 --table.maxn(indicators)
 
 -- Частота обновления состояния (Гц).
-PhysPult.UpdateFrequency = 1
+PhysPult.UpdateFrequency = 5
 
 -- Порт для подключения по сокетам
 PhysPult.SocketPort = 61000

@@ -1,2 +1,5 @@
-61000 60 115200 64 64
+61000 5 115200 64 64
+C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\metrostroi_data
+
 Port - Frequency - Baud rate - indicators count - switches count
+Path to metrostroi_data

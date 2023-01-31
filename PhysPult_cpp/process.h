@@ -10,5 +10,9 @@
 
 using namespace std;
 
-void updateControls(SimpleSerial&, TcpClient&, short indicatorsCount, short switchesCount);
-void pingArduino(SimpleSerial&, TcpClient&, short switchesCount);
+//void updateControls(SimpleSerial&, TcpClient&, short indicatorsCount, short switchesCount);
+
+void updateSocket(TcpClient& client, string& indicators, string& switches, int interval, bool& stop);
+void updateSerial(SimpleSerial& serial, string& indicators, string& switches, int interval, bool& stop);
+
+//void pingArduino(SimpleSerial&, TcpClient&, short switchesCount);
