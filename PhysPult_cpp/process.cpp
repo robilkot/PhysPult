@@ -6,43 +6,35 @@
 
 using namespace std;
 
-string updateIndicators(TcpClient& client, short indicatorsCount)
+void updateControls(SimpleSerial& serial, TcpClient& client, short indicatorsCount, short switchesCount)
 {
-    static string indicatorsprevious;
     string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
 
-    //if (indicatorsprevious == indicators) return {};
-
-    indicatorsprevious = indicators;
-    return indicators;
-}
-
-void updateSwitches(TcpClient& client, string switches)
-{
-    static string switchesprevious;
-
-    if (switchesprevious == switches) return;
-
-    SendToSocket(client, switches + "\0");
-
-    switchesprevious = switches;
-}
-
-void updateControls(SimpleSerial& Serial, TcpClient& client, short indicatorsCount, short switchesCount)
-{
-    string indicators = "{" + updateIndicators(client, indicatorsCount) + "}";
-    if (indicators.size() > 2) {
-       cout << "Serial wrt " << indicators << Serial.WriteSerialPort(&indicators[0]) << "\n";
+    if (!indicators.empty()) {
+       indicators = "{" + indicators + "}";
+       cout << "Serial wrt " << indicators << " " << serial.WriteSerialPort(&indicators[0]) << "\n";
     }
 
-    this_thread::sleep_for(chrono::milliseconds(15));
-
-    string switches = Serial.ReadSerialPort(1, "json");
+    string switches = serial.ReadSerialPort(35);
 
     cout << "Serial rec {" << switches << "}\n";
 
-    if (!switches.empty()) {
-        updateSwitches(client, switches);
-    }
-    else updateSwitches(client, string(switchesCount, '0'));
+    if (!switches.empty()) SendToSocket(client, switches + '\0');
+        else SendToSocket(client, string(switchesCount, '0') + '\0');
+
+    cout << "\n";
+}
+
+void pingArduino(SimpleSerial& serial, TcpClient& client, short switchesCount) {
+
+    cout << "Serial wrt " << "{ping}" << " " << serial.WriteSerialPort((char*)"{ping}") << "\n";
+
+    string switches = serial.ReadSerialPort(35);
+
+    cout << "Serial rec {" << switches << "} (ping answer)\n";
+
+    //if (!switches.empty()) SendToSocket(client, switches + '\0');
+   // else SendToSocket(client, string(switchesCount, '0') + '\0');
+
+    cout << "\n";
 }

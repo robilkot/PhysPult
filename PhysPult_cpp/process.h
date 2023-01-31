@@ -10,6 +10,5 @@
 
 using namespace std;
 
-string updateIndicators(TcpClient&, short indicatorsCount);
-void updateSwitches(TcpClient&, string switches);
 void updateControls(SimpleSerial&, TcpClient&, short indicatorsCount, short switchesCount);
+void pingArduino(SimpleSerial&, TcpClient&, short switchesCount);

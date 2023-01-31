@@ -20,7 +20,7 @@ list<int> GetCOMports()
 			portList.push_back(i);
 			cout << string(str.begin(), str.end()) << "\n"; //" - " << lpTargetPath << endl;
 		}
-		if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
+		//if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
 	}
 	return portList;
 }
@@ -53,7 +53,7 @@ string SelectCOMport()
 void SendToSocket(TcpClient& client, string msg)
 {
 	try {
-		client.Send(&msg[0], msg.length()+1);
+		client.Send(&msg[0], msg.length());
 #ifdef DEBUG_SOCKET
 		cout << "Socket wrt  " << msg << "\n";
 #endif
@@ -77,6 +77,6 @@ string ReceiveFromSocket(TcpClient& client, short length)
 	}
 	catch (SocketException& ex) {
 		cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
-		return {};
+		return string(length, '0');
 	}
 }
