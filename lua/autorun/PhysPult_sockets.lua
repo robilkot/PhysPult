@@ -15,6 +15,8 @@ local function clientHanlder(tcpClient)
         PhysPult.UpdateFrequency = tonumber(params[2])
         PhysPult.IndicatorsNumber = tonumber(params[3])
         PhysPult.SwitchesNumber = tonumber(params[4])
+    else
+        chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
     end
 
     local timerName = "tcp-client-handler"..tcpClient:getsockname()

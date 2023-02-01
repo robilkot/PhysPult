@@ -1,6 +1,6 @@
 #include "SimpleSerial.h"
 
-SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_type)
+SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string syntax_type)
 {
 	connected_ = false;
 
@@ -14,14 +14,14 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_ty
 
 	if (io_handler_ == INVALID_HANDLE_VALUE) {
 		if (GetLastError() == ERROR_FILE_NOT_FOUND)
-			cout << "Warning: Handle was not attached. Reason: " << com_port << " not available\n";
+			std::cout << "Warning: Handle was not attached. Reason: " << com_port << " not available\n";
 	}
 	else {
 
 		DCB dcbSerialParams = { 0 };
 
 		if (!GetCommState(io_handler_, &dcbSerialParams)) {
-			cout << "Warning: Failed to get current serial params\n";
+			std::cout << "Warning: Failed to get current serial params\n";
 		}
 
 		else {
@@ -32,7 +32,7 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_ty
 			dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
 
 			if (!SetCommState(io_handler_, &dcbSerialParams))
-				cout << "Warning: Could not set serial port params\n";
+				std::cout << "Warning: Could not set serial port params\n";
 			else {
 				connected_ = true;
 				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);		
@@ -42,12 +42,12 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_ty
 	}
 }
 
-void SimpleSerial::CustomSyntax(string syntax_type) {
+void SimpleSerial::CustomSyntax(std::string syntax_type) {
 
-	ifstream syntaxfile_exist("syntax_config.txt");
+	std::ifstream syntaxfile_exist("syntax_config.txt");
 
 	if (!syntaxfile_exist) {		
-		ofstream syntaxfile;
+		std::ofstream syntaxfile;
 		syntaxfile.open("syntax_config.txt");
 
 		if (syntaxfile) {
@@ -59,10 +59,10 @@ void SimpleSerial::CustomSyntax(string syntax_type) {
 
 	syntaxfile_exist.close();
 	
-	ifstream syntaxfile_in;
+	std::ifstream syntaxfile_in;
 	syntaxfile_in.open("syntax_config.txt");
 	
-	string line;
+	std::string line;
 	bool found = false;	
 
 	if (syntaxfile_in.is_open()) {
@@ -83,24 +83,24 @@ void SimpleSerial::CustomSyntax(string syntax_type) {
 			syntax_name_ = "";
 			front_delimiter_ = ' ';
 			end_delimiter_ = ' ';
-			cout << "Warning: Could not find delimiters, may cause problems!\n";
+			std::cout << "Warning: Could not find delimiters, may cause problems!\n";
 		}
 	}
 	else
-		cout << "Warning: No syntax file open";
+		std::cout << "Warning: No syntax file open";
 }
 
-string SimpleSerial::ReadSerialPort(int timeout)
+std::string SimpleSerial::ReadSerialPort(int timeout)
 {
 	char inc_msg;	
-	string complete_inc_msg;
+	std::string complete_inc_msg;
 	bool began = false;
 
 	ClearCommError(io_handler_, &errors_, &status_);
 
-	chrono::high_resolution_clock::time_point startTime = chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
-	while (chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count() < timeout)
+	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count() < timeout)
 	{
 		if (status_.cbInQue > 0) {		
 			if (ReadFile(io_handler_, &inc_msg, 1, NULL, NULL))

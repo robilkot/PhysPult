@@ -4,61 +4,42 @@
 
 using namespace std;
 
-//void updateControls(SimpleSerial& serial, TcpClient& client, short indicatorsCount, short switchesCount)
-//{
-//    string indicators = ReceiveFromSocket(client, indicatorsCount + 1);
-//
-//    if (!indicators.empty()) {
-//       indicators = "{" + indicators + "}";
-//       cout << "Serial wrt " << indicators << " " << serial.WriteSerialPort(&indicators[0]) << "\n";
-//    }
-//
-//    string switches = serial.ReadSerialPort(35);
-//
-//    cout << "Serial rec {" << switches << "}\n";
-//
-//    if (!switches.empty()) SendToSocket(client, switches + '\0');
-//        else SendToSocket(client, string(switchesCount, '0') + '\0');
-//
-//    cout << "\n";
-//}
-
-void updateSerial(SimpleSerial& serial, string& indicators, string& switches, int interval, bool& stop)
+void updateSerial(SimpleSerial& serial, std::string& indicators, std::string& switches, int interval, bool& stop)
 {
     while (!stop)
     {
-        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
+        std::chrono::high_resolution_clock::time_point t = std::chrono::high_resolution_clock::now();
         //---
 
-        string indicators_t = '{' + indicators + '}';
-        cout << "Serial wrt " << indicators_t << " " << serial.WriteSerialPort(&indicators_t[0]) << "\n";
+        std::string indicators_t = '{' + indicators + '}';
+        std::cout << "Serial wrt " << indicators_t << " " << serial.WriteSerialPort(&indicators_t[0]) << "\n";
 
-        string switches_t = serial.ReadSerialPort(35);
-        cout << "Serial rec {" << switches_t << "}\n";
+        std::string switches_t = serial.ReadSerialPort(35);
+        std::cout << "Serial rec {" << switches_t << "}\n";
 
         if (switches_t.size()) switches = switches_t;
 
         //---
-        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
-        if (us < interval) this_thread::sleep_for(chrono::milliseconds(interval - us));
+        int us = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t).count();
+        if (us < interval) this_thread::sleep_for(std::chrono::milliseconds(interval - us));
     }
 }
 
-void updateSocket(TcpClient& client, string& indicators, string& switches, int interval, bool& stop)
+void updateSocket(TcpClient& socket, std::string& indicators, std::string& switches, int interval, bool& stop)
 {
     while (!stop)
     {
-        chrono::high_resolution_clock::time_point t = chrono::high_resolution_clock::now();
+        std::chrono::high_resolution_clock::time_point t = std::chrono::high_resolution_clock::now();
         //---
 
-        string indicators_t = ReceiveFromSocket(client, indicators.length());
+        std::string indicators_t = ReceiveFromSocket(socket, indicators.length());
 
         if (indicators_t.length() == indicators.length()) indicators = indicators_t;
 
-        SendToSocket(client, switches + '\0');
+        SendToSocket(socket, switches + '\0');
 
         //---
-        int us = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - t).count();
-        if (us < interval) this_thread::sleep_for(chrono::milliseconds(interval - us));
+        int us = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t).count();
+        if (us < interval) this_thread::sleep_for(std::chrono::milliseconds(interval - us));
     }
 }

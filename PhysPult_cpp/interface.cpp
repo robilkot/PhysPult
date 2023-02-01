@@ -6,10 +6,10 @@
 
 using namespace std;
 
-list<int> GetCOMports()
+std::list<int> GetCOMports()
 {
 	wchar_t lpTargetPath[5000]; // buffer to store the path of the COM PORTS
-	list<int> portList;
+	std::list<int> portList;
 
 	for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
 	{
@@ -18,18 +18,18 @@ list<int> GetCOMports()
 		if (QueryDosDeviceW(str.c_str(), lpTargetPath, 5000)) //QueryDosDeviceW returns zero if it didn't find an object
 		{
 			portList.push_back(i);
-			cout << string(str.begin(), str.end()) << "\n"; //" - " << lpTargetPath << endl;
+			std::cout << std::string(str.begin(), str.end()) << "\n"; //" - " << lpTargetPath << endl;
 		}
 		//if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
 	}
 	return portList;
 }
 
-string SelectCOMport()
+std::string SelectCOMport()
 {
-	string com_port = "\\\\.\\COM";
+	std::string com_port = "\\\\.\\COM";
 	do {
-		list<int> COMports = GetCOMports();
+		std::list<int> COMports = GetCOMports();
 		if (COMports.empty()) {
 			cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
 			if (_getch() == 'q') exit(EXIT_SUCCESS);
@@ -39,7 +39,7 @@ string SelectCOMport()
 			com_port += to_string(*COMports.begin());
 		}
 		else {
-			cout << "Input COM port number and press Enter\n";
+			std::cout << "Input COM port number and press Enter\n";
 			short number = 0;
 			cin >> number;
 			com_port += to_string(number);
@@ -50,34 +50,34 @@ string SelectCOMport()
 
 // Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 
-void SendToSocket(TcpClient& client, string msg)
+void SendToSocket(TcpClient& socket, std::string msg)
 {
 	try {
-		client.Send(&msg[0], msg.length());
+		socket.Send(&msg[0], msg.length());
 #ifdef DEBUG_SOCKET
-		cout << "Socket wrt [" << msg << "]\n";
+		std::cout << "Socket wrt [" << msg << "]\n";
 #endif
 	}
 	catch (SocketException& ex) {
-		cout << "Socket wrt: error code " << ex.GetWSErrorCode() << "\n";
+		std::cout << "Socket wrt: error code " << ex.GetWSErrorCode() << "\n";
 	}
 }
 
-string ReceiveFromSocket(TcpClient& client, short length)
+std::string ReceiveFromSocket(TcpClient& socket, short length)
 {
+	std::string out;
+	out.reserve(length);
+
 	try {
-		string out;
-		out.reserve(length);
-
-		client.Recv(&out[0], length);
-
+		socket.Recv(&out[0], length);
 #ifdef DEBUG_SOCKET
-		cout << "Socket rec [" << out << "]\n";
+		std::cout << "Socket rec [" << out << "]\n";
 #endif
-		return out;
 	}
 	catch (SocketException& ex) {
-		cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
-		return string(length - 1, '0');
+		std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
+		out = std::string(length - 1, '0');
 	}
+
+	return out;
 }

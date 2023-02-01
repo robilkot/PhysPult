@@ -6,8 +6,6 @@
 #include <chrono>
 #include <fstream>
 
-using namespace std;
-
 class SimpleSerial
 {
 private:
@@ -15,16 +13,16 @@ private:
 	COMSTAT status_ = { 0 };
 	DWORD errors_ = 0;
 
-	string syntax_name_;
+	std::string syntax_name_;
 	char front_delimiter_ = ' ';
 	char end_delimiter_ = ' ';
 
-	void CustomSyntax(string syntax_type);	
+	void CustomSyntax(std::string syntax_type);	
 
 public:
-	SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, string syntax_type);
+	SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string syntax_type);
 
-	string ReadSerialPort(int timeout);
+	std::string ReadSerialPort(int timeout);
 	bool WriteSerialPort(char *data_sent);
 	bool CloseSerialPort();
 	~SimpleSerial();

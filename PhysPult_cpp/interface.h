@@ -1,7 +1,6 @@
 #include <list>
 #include <iostream>
 #include <string>
-#include <list>
 #include <conio.h>
 #include <Windows.h>
 
@@ -9,9 +8,7 @@
 
 #pragma once
 
-using namespace std;
-
-list<int> GetCOMports();
-string SelectCOMport();
-void SendToSocket(TcpClient&, string msg);
-string ReceiveFromSocket(TcpClient&, short length);
+std::list<int> GetCOMports();
+std::string SelectCOMport();
+void SendToSocket(TcpClient&, std::string msg);
+std::string ReceiveFromSocket(TcpClient&, short length);
