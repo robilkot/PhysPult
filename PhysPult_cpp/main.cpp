@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <string>
-#include <chrono>
 #include <thread>
 #include <conio.h>
 #include <fstream>
@@ -58,16 +57,19 @@ int main(int argc, char* argv[])
 
     InitSocket:
     TcpSocket::Initialize();
-    TcpClient client = *new TcpClient(LOCALHOST, socketPort); // Create socket client
+    TcpClient socket = *new TcpClient(LOCALHOST, socketPort); // Create socket client
 
 #ifndef NOCONNECTION
-    try {
-        client.Connect();
+    try
+    {
+        socket.Connect();
     }
-    catch (SocketException& ex) {
-        cerr << "Failed to connect to socket: error code " << ex.GetWSErrorCode() << "\n"
+    catch (SocketException& ex)
+    {
+        std::cerr << "Failed to connect to socket: error code " << ex.GetWSErrorCode() << "\n"
             << "Press 'q' to exit, 'r' to reload config or any other key to retry.\n";
-        switch (_getch()) {
+        switch (_getch())
+        {
         case 'q': exit(EXIT_SUCCESS);
         case 'r': goto Init;
         default: goto InitSocket;
@@ -77,7 +79,7 @@ int main(int argc, char* argv[])
     do {
         if (serial.connected_) break;
         else {
-            cerr << "Failed to connect to COM port! Press 'q' to exit, '2' to select another COM port or any other key to retry.\n";
+            std::cerr << "Failed to connect to COM port! Press 'q' to exit, '2' to select another COM port or any other key to retry.\n";
             switch (_getch()) {
             case 'q': exit(EXIT_SUCCESS);
             case '2': goto InitCOMPort;
@@ -89,17 +91,15 @@ int main(int argc, char* argv[])
 
     std::cout << "Starting. Press 'space' to pause or 'q' to exit.\n\n";
 
-    std::string indicators = std::string(indicatorsCount, '0'),
-             switches = std::string(switchesCount, '0');
+    std::string indicators(indicatorsCount, '0'),
+             switches(switchesCount, '0');
     bool pause = 0;
 
-    std::thread socketThread(updateSocket, std::ref(client), std::ref(indicators), std::ref(switches), interval, std::ref(pause)),
+    std::thread socketThread(updateSocket, std::ref(socket), std::ref(indicators), std::ref(switches), interval, std::ref(pause)),
             serialThread(updateSerial, std::ref(serial), std::ref(indicators), std::ref(switches), interval, std::ref(pause));
     
     while (true)
     {
-        std::chrono::high_resolution_clock::time_point t = std::chrono::high_resolution_clock::now();
-
         if (_kbhit())
         {
             switch (_getch())
@@ -126,7 +126,6 @@ int main(int argc, char* argv[])
             }
         }
 
-        int us = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t).count();
-        if (us < 100) std::this_thread::sleep_for(std::chrono::milliseconds(100 - us)); // Interval for pause check is 100 ms, but could be anything else. Needed for optimisation
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Interval for pause check is 100 ms, but could be anything else. Needed for optimisation
     }
 }

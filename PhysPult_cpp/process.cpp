@@ -2,13 +2,11 @@
 
 #include "process.h"
 
-using namespace std;
-
 void updateSerial(SimpleSerial& serial, std::string& indicators, std::string& switches, int interval, bool& stop)
 {
     while (!stop)
     {
-        std::chrono::high_resolution_clock::time_point t = std::chrono::high_resolution_clock::now();
+        auto beginTime = std::chrono::high_resolution_clock::now();
         //---
 
         std::string indicators_t = '{' + indicators + '}';
@@ -17,11 +15,11 @@ void updateSerial(SimpleSerial& serial, std::string& indicators, std::string& sw
         std::string switches_t = serial.ReadSerialPort(35);
         std::cout << "Serial rec {" << switches_t << "}\n";
 
-        if (switches_t.size()) switches = switches_t;
+        if (switches_t.length()) switches = switches_t;
 
         //---
-        int us = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t).count();
-        if (us < interval) this_thread::sleep_for(std::chrono::milliseconds(interval - us));
+        int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
+        if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
     }
 }
 
@@ -29,17 +27,17 @@ void updateSocket(TcpClient& socket, std::string& indicators, std::string& switc
 {
     while (!stop)
     {
-        std::chrono::high_resolution_clock::time_point t = std::chrono::high_resolution_clock::now();
+        auto beginTime = std::chrono::high_resolution_clock::now();
         //---
 
-        std::string indicators_t = ReceiveFromSocket(socket, indicators.length());
+        std::string indicators_t = ReceiveFromSocket(socket, indicators.length() + 1);
 
         if (indicators_t.length() == indicators.length()) indicators = indicators_t;
 
         SendToSocket(socket, switches + '\0');
-
+        
         //---
-        int us = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t).count();
-        if (us < interval) this_thread::sleep_for(std::chrono::milliseconds(interval - us));
+        int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
+        if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
     }
 }

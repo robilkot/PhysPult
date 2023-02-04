@@ -50,6 +50,16 @@ std::string SelectCOMport()
 
 // Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 
+void ReconnectSocket(TcpClient& socket)
+{
+	try {
+		socket.Connect();
+	}
+	catch (SocketException& ex) {
+		cerr << "Failed to reconnect to socket: error code " << ex.GetWSErrorCode() << "\n";
+	}
+}
+
 void SendToSocket(TcpClient& socket, std::string msg)
 {
 	try {
@@ -60,6 +70,8 @@ void SendToSocket(TcpClient& socket, std::string msg)
 	}
 	catch (SocketException& ex) {
 		std::cout << "Socket wrt: error code " << ex.GetWSErrorCode() << "\n";
+
+		ReconnectSocket(socket);
 	}
 }
 
@@ -77,6 +89,8 @@ std::string ReceiveFromSocket(TcpClient& socket, short length)
 	catch (SocketException& ex) {
 		std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
 		out = std::string(length - 1, '0');
+
+		ReconnectSocket(socket);
 	}
 
 	return out;

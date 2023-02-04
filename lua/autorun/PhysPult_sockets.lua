@@ -22,7 +22,7 @@ local function clientHanlder(tcpClient)
     local timerName = "tcp-client-handler"..tcpClient:getsockname()
     local errorCount = 0
 
-    --tcpClient:send(PhysPult.SocketWrtData)
+    tcpClient:send(PhysPult.SocketWrtData) -------
     tcpClient:settimeout(0.01)
 
     timer.Create(timerName, 1 / PhysPult.UpdateFrequency, 0, function()
@@ -41,7 +41,7 @@ local function clientHanlder(tcpClient)
             if(errorCount == 3) then 
                 tcpClient:close()
                 PhysPult.SocketRecData = nil
-                chat.AddText("Client disconnected!")
+                chat.AddText("PhysPult: Client disconnected!")
                 timer.UnPause("tcp-server-physpult")
                 timer.Remove(timerName)
             end
@@ -63,7 +63,7 @@ function PhysPult.StartServer(host, port)
         PhysPult.tcpClient = tcpServer:accept()
 
         if (PhysPult.tcpClient) then
-            chat.AddText("Client connected!")
+            chat.AddText("PhysPult: Client connected!")
             clientHanlder(PhysPult.tcpClient)
         end
     end)
