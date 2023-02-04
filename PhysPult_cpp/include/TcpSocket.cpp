@@ -31,6 +31,8 @@ protected:
 
 public:
 	TcpSocket(const char* ipString, u_short port) {
+		Initialize();
+
 		_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 		sockaddr_in addressInfo{};

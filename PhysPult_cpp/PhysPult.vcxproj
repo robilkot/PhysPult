@@ -130,14 +130,10 @@
   <ItemGroup>
     <ClCompile Include="include\SimpleSerial.cpp" />
     <ClCompile Include="include\TcpSocket.cpp" />
-    <ClCompile Include="process.cpp" />
-    <ClCompile Include="interface.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\SimpleSerial.h" />
-    <ClInclude Include="interface.h" />
-    <ClInclude Include="process.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

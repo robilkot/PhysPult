@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 #include <fstream>
+#include <exception>
 
 class SimpleSerial
 {
@@ -20,10 +21,11 @@ private:
 	void CustomSyntax(std::string syntax_type);	
 
 public:
+	SimpleSerial();
 	SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string syntax_type);
 
 	std::string ReadSerialPort(int timeout);
-	bool WriteSerialPort(char *data_sent);
+	bool WriteSerialPort(std::string data_sent);
 	bool CloseSerialPort();
 	~SimpleSerial();
 	bool connected_;

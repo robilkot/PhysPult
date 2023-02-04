@@ -1,5 +1,11 @@
 #include "SimpleSerial.h"
 
+SimpleSerial::SimpleSerial()
+{
+	io_handler_ = nullptr;
+	connected_ = false;
+}
+
 SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string syntax_type)
 {
 	connected_ = false;
@@ -31,8 +37,10 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string synt
 			dcbSerialParams.Parity = NOPARITY;
 			dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
 
-			if (!SetCommState(io_handler_, &dcbSerialParams))
-				std::cout << "Warning: Could not set serial port params\n";
+			if (!SetCommState(io_handler_, &dcbSerialParams)) {
+				DWORD err = GetLastError();
+				std::cout << "Warning: Could not set serial port params!" << err << "\n";
+			}
 			else {
 				connected_ = true;
 				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);		
@@ -122,10 +130,13 @@ std::string SimpleSerial::ReadSerialPort(int timeout)
 	return complete_inc_msg;		
 }
 
-bool SimpleSerial::WriteSerialPort(char *data_sent)
+bool SimpleSerial::WriteSerialPort(std::string data_sent)
 {
-	if (WriteFile(io_handler_, (void*)data_sent, strlen(data_sent), NULL, NULL)) return true;
+	if (WriteFile(io_handler_, &data_sent[0], data_sent.length(), NULL, NULL)) return true;
 	else {
+		DWORD err = GetLastError();
+		std::cout << "WriteFile error! " << err << "\n";
+
 		ClearCommError(io_handler_, &errors_, &status_);
 		return false;
 	}
@@ -135,7 +146,12 @@ bool SimpleSerial::CloseSerialPort()
 {
 	if (connected_) {
 		connected_ = false;
-		CloseHandle(io_handler_);
+		try {
+			CloseHandle(io_handler_);
+		}
+		catch (std::exception& ex) {
+			std::cout << "Error closing serial port connection! " << ex.what() << "\n";
+		}
 		return true;
 	}	
 	else
