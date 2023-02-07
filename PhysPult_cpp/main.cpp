@@ -12,7 +12,7 @@
 
 constexpr const char* LOCALHOST = "127.0.0.1";
 
-#define DEBUG
+//#define DEBUG
 
 std::list<int> GetCOMports()
 {
@@ -65,9 +65,6 @@ private:
 		switchesCount = 64;
 	DWORD baudRate = 9600;
 
-	bool serialConnected = 0,
-		socketConnected = 0;
-
 	std::string configPath = "physpult_config.txt",
 				COMport = "\\\\.\\COM1",
 				indicators = std::string(indicatorsCount, '0'),
@@ -80,10 +77,11 @@ private:
 		COMport = SelectCOMport();
 
 		do {
+			serial.~SimpleSerial(); // Close previous connection
+
 			serial = *new SimpleSerial(&COMport[0], baudRate, "json");
 
 			if (serial.connected_) {
-				serialConnected = 1;
 				break;
 			}
 			else {
@@ -104,7 +102,6 @@ private:
 			try
 			{
 				socket.Connect();
-				socketConnected = 1;
 				break;
 			}
 			catch (SocketException& ex)
@@ -160,10 +157,6 @@ public:
 		if (!configPath.empty()) this->configPath = configPath;
 
 		reloadConfig(this->configPath);
-		indicators = std::string(indicatorsCount, '0'),
-		switches = std::string(switchesCount, '0');
-		
-		interval = 1000 / frequency;
 
 		socketConnect();
 		serialConnect();
@@ -174,6 +167,11 @@ public:
 		std::ifstream config(configPath);
 		if (config.is_open()) {
 			config >> socketPort >> frequency >> baudRate >> indicatorsCount >> switchesCount; // Get values from config
+
+			interval = 1000 / frequency;
+
+			indicators = std::string(indicatorsCount, '0'),
+			switches = std::string(switchesCount, '0');
 		}
 		else {
 			std::cerr << "Couldn't open config file! Using default parameters.\n";
@@ -194,18 +192,17 @@ public:
 	}
 
 	void serialReconnect() {
-		serialConnected = 0;
-		serial = SimpleSerial(&COMport[0], baudRate, "json");
+		serial.~SimpleSerial(); // Close previous connection
+
+		serial = *new SimpleSerial(&COMport[0], baudRate, "json");
 
 		if (!serial.connected_) {
 			std::cerr << "Failed to reconnect to COM port! Select another COM port.\n";
 			serialConnect();
 		}
-		else serialConnected = 1;
 	}
 	
 	void socketReconnect() {
-		socketConnected = 0;
 		socketConnect();
 	}
 
@@ -255,7 +252,7 @@ public:
 
 int main(int argc, char* argv[])
 {   
-	std::string arg = argv[1] == NULL ? "" : argv[1];
+	std::string arg = argv[1] == NULL ? "physpult_config.txt" : argv[1];
 	PhysPult physpult(arg);
 
 	std::cout << "Starting. Press 'space' to stop or 'q' to exit.\n\n";
@@ -292,7 +289,9 @@ int main(int argc, char* argv[])
 			if (reload) {
 				reload = 0;
 				pause = 1;
-				physpult = PhysPult(arg);
+				physpult.reloadConfig(arg);
+				physpult.serialReconnect();
+				physpult.socketReconnect();
 				pause = 0;
 			}
 			if (stop) break; // Break from while(true) loop
