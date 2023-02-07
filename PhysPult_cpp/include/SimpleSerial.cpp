@@ -37,14 +37,14 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string synt
 			dcbSerialParams.Parity = NOPARITY;
 			dcbSerialParams.fDtrControl = DTR_CONTROL_ENABLE;
 
-			if (!SetCommState(io_handler_, &dcbSerialParams)) {
-				DWORD err = GetLastError();
-				std::cout << "Warning: Could not set serial port params!" << err << "\n";
+			if (SetCommState(io_handler_, &dcbSerialParams)) {
+				connected_ = true;
+				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);
+				CustomSyntax(syntax_type);
 			}
 			else {
-				connected_ = true;
-				PurgeComm(io_handler_, PURGE_RXCLEAR | PURGE_TXCLEAR);		
-				CustomSyntax(syntax_type);
+				DWORD err = GetLastError();
+				std::cout << "Warning: Could not set serial port params!" << err << "\n";
 			}
 		}
 	}
@@ -146,12 +146,8 @@ bool SimpleSerial::CloseSerialPort()
 {
 	if (connected_) {
 		connected_ = false;
-		try {
-			CloseHandle(io_handler_);
-		}
-		catch (std::exception& ex) {
-			std::cout << "Error closing serial port connection! " << ex.what() << "\n";
-		}
+		CloseHandle(io_handler_);
+
 		return true;
 	}	
 	else
@@ -160,5 +156,6 @@ bool SimpleSerial::CloseSerialPort()
 
 SimpleSerial::~SimpleSerial()
 {
+	//std::cout << connected_ << ' ' << io_handler_ << ' ' << "destr\n";
 	CloseSerialPort();
 }
