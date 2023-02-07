@@ -133,18 +133,15 @@ private:
 	}
 
 	std::string ReceiveFromSocket() {
-		size_t length = this->indicators.length() + 1;
 
-		std::string out;
-		out.reserve(length);
+		std::string out = std::string(indicatorsCount, '0') + '\0';
 
 		try {
-			this->socket.Recv(&out[0], length);
+			socket.Recv(&out[0], indicatorsCount + 1);
 			std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
-			out = std::string(length - 1, '0');
 
 			this->socketReconnect();
 		}
@@ -173,9 +170,7 @@ public:
 			indicators = std::string(indicatorsCount, '0'),
 			switches = std::string(switchesCount, '0');
 		}
-		else {
-			std::cerr << "Couldn't open config file! Using default parameters.\n";
-		}
+		else std::cerr << "Couldn't open config file! Using previously set parameters.\n";
 
 		std::string metrostroiDataPath;
 		getline(config, metrostroiDataPath);
@@ -214,18 +209,18 @@ public:
 			//---
 			if (!pause)
 			{
-				std::string indicators_t = '{' + this->indicators + '}';
-				std::cout << "Serial wrt " << indicators_t << " " << this->serial.WriteSerialPort(indicators_t) << "\n";
+				std::string indicators_t = '{' + indicators + '}';
+				std::cout << "Serial wrt " << indicators_t << " " << serial.WriteSerialPort(indicators_t) << "\n";
 
 
-				std::string switches_t = this->serial.ReadSerialPort(35);
+				std::string switches_t = serial.ReadSerialPort(35);
 				std::cout << "Serial rec {" << switches_t << "}\n";
 
-				if (switches_t.length()) this->switches = switches_t;
+				if (switches_t.length() == switchesCount) switches = switches_t;
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
-			if (deltaTime < this->interval) std::this_thread::sleep_for(std::chrono::milliseconds(this->interval - deltaTime));
+			if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
 		}
 	}
 
@@ -238,13 +233,13 @@ public:
 			if (!pause) {
 				std::string indicators_t = ReceiveFromSocket();
 
-				if (indicators_t.length() == this->indicators.length()) this->indicators = indicators_t;
+				if (indicators_t.length() == indicatorsCount + 1) indicators = indicators_t;
 
-				SendToSocket(this->switches + '\0');
+				SendToSocket(switches + '\0');
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
-			if (deltaTime < this->interval) std::this_thread::sleep_for(std::chrono::milliseconds(this->interval - deltaTime));
+			if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
 		}
 	}
 };
@@ -267,7 +262,7 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Interval for stop check is 100 ms, but could be anything else. Needed for optimisation
+		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Interval for stop check is 100 ms, but could be anything else. Needed for optimisation
 
 		if (_kbhit()) {
 			switch (_getch()) {

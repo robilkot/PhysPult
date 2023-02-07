@@ -26,7 +26,7 @@ local function clientHanlder(tcpClient)
     tcpClient:settimeout(0.01)
 
     timer.Create(timerName, 1 / PhysPult.UpdateFrequency, 0, function()
-        tcpClient:send(PhysPult.SocketWrtData)
+        tcpClient:send(PhysPult.SocketWrtData.."\0")
         chat.AddText("wrt"..PhysPult.SocketWrtData)
 
         local data, error = tcpClient:receive(PhysPult.SwitchesNumber + 1)

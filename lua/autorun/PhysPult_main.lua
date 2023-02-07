@@ -289,8 +289,8 @@ end
 PhysPult = PhysPult or {}
 
 -- Количество переключателей и ламп (длины строк)
-PhysPult.SwitchesNumber = 64 --math.max(table.maxn(switches), table.maxn(buttons))
-PhysPult.IndicatorsNumber = 64 --table.maxn(indicators)
+PhysPult.SwitchesNumber = 64
+PhysPult.IndicatorsNumber = 64
 
 -- Частота обновления состояния (Гц).
 PhysPult.UpdateFrequency = 5
@@ -314,7 +314,7 @@ function PhysPult.SynchronizeIndicators(train)
 	currentState = string.SetChar(currentState, 1, math.floor(speed / 10))
 	currentState = string.SetChar(currentState, 2, math.floor(speed) % 10)
 
-	PhysPult.SocketWrtData = currentState.."\0"
+	PhysPult.SocketWrtData = currentState
 end
 
 -- Синхронизация тумблреров в поезде.
