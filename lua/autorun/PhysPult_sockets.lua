@@ -37,7 +37,7 @@ local function clientHanlder(tcpClient)
             PhysPult.SocketRecData = data
         else 
             errorCount = errorCount + 1
-            chat.AddText("rec failed:"..error)
+            chat.AddText("rec failed:") --..error)
             if(errorCount == 3) then 
                 tcpClient:close()
                 PhysPult.SocketRecData = nil

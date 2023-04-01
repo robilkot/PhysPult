@@ -61,14 +61,16 @@ private:
 	int socketPort = 61000,
 		frequency = 10,
 		interval = 100,
-		indicatorsCount = 64,
-		switchesCount = 64;
+		serialIndicatorsMessageLength = 9,
+		socketIndicatorsMessageLength = 64,
+		serialSwitchesMessageLength = 64,
+		socketSwitchesMessageLength = 64;
 	DWORD baudRate = 9600;
 
 	std::string configPath = "physpult_config.txt",
 				COMport = "\\\\.\\COM1",
-				indicators = std::string(indicatorsCount, '0'),
-				switches = std::string(switchesCount, '0');
+				indicators = std::string(socketIndicatorsMessageLength, '0'),
+				switches = std::string(socketSwitchesMessageLength, '0');
 
 	SimpleSerial serial;
 	TcpClient socket = *new TcpClient(LOCALHOST, socketPort);
@@ -120,24 +122,24 @@ private:
 
 // Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 
-	void SendToSocket(std::string msg) {
+	void SendToSocket(std::string msg)
+	{
 		try {
-			this->socket.Send(&msg[0], msg.length());
+			socket.Send(&msg[0], msg.length());
 			std::cout << "Socket wrt [" << msg << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket wrt: error code " << ex.GetWSErrorCode() << "\n";
-
-			this->socketReconnect();
+			socketReconnect();
 		}
 	}
 
-	std::string ReceiveFromSocket() {
-
-		std::string out = std::string(indicatorsCount, '0') + '\0';
+	std::string ReceiveFromSocket()
+	{
+		std::string out = std::string(socketIndicatorsMessageLength, '0') + '\0';
 
 		try {
-			socket.Recv(&out[0], indicatorsCount + 1);
+			socket.Recv(&out[0], socketIndicatorsMessageLength + 1);
 			std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
@@ -149,7 +151,29 @@ private:
 		return out;
 	}
 
+	std::string convertToBytes(std::string source) { // string of 2 digits speed and row of 0 and 1 converted to MSB first binary notation
+		std::string output;
+		
+		unsigned char speed = atoi(&source.substr(0, 2)[0]);
+		output += speed;
+		
+		unsigned char currentRegister = 0;
+		for (int i = 0; i < source.length() - 2; i++)
+		{
+			currentRegister |= source[i + 2] - '0' << 7 - (i % 8);
+			if ((i + 1) % 8 == 0) {
+				//std::cout << (unsigned)currentRegister << '\t';
+				output += currentRegister;
+				currentRegister = 0;
+			}
+		}
+		output += currentRegister;
+
+		return output;
+	}
+
 public:
+
 	PhysPult(std::string configPath) {
 		if (!configPath.empty()) this->configPath = configPath;
 
@@ -163,12 +187,14 @@ public:
 	{
 		std::ifstream config(configPath);
 		if (config.is_open()) {
-			config >> socketPort >> frequency >> baudRate >> indicatorsCount >> switchesCount; // Get values from config
+			config >> socketPort >> frequency >> baudRate >>
+				serialIndicatorsMessageLength >> socketIndicatorsMessageLength >>
+				serialSwitchesMessageLength >> socketSwitchesMessageLength; // Get values from config
 
 			interval = 1000 / frequency;
 
-			indicators = std::string(indicatorsCount, '0'),
-			switches = std::string(switchesCount, '0');
+			indicators = std::string(socketIndicatorsMessageLength, '0'),
+			switches = std::string(socketSwitchesMessageLength, '0');
 		}
 		else std::cerr << "Couldn't open config file! Using previously set parameters.\n";
 
@@ -180,10 +206,10 @@ public:
 		if (!config.is_open())
 			std::cerr << "Couldn't save config file to data!\n";
 
-		luaConfig << socketPort << " " << frequency << " " << indicatorsCount << " " << switchesCount; // Write values to lua config
+		luaConfig << socketPort << " " << frequency << " " << socketIndicatorsMessageLength << " " << socketSwitchesMessageLength; // Write values to lua config
 
-		std::cout << "Initialized!" << "\nPort: " << socketPort << "; Frequency: " << frequency << "; Baud rate: " << baudRate
-			<< "; Indicators: " << indicatorsCount << "; Switches: " << switchesCount << "\n\n";
+		//std::cout << "Initialized!" << "\nPort: " << socketPort << "; Frequency: " << frequency << "; Baud rate: " << baudRate
+		//	<< "; Indicators: " << indicatorsMessageLength << "; Switches: " << switchesMessageLength << "\n\n";
 	}
 
 	void serialReconnect() {
@@ -209,14 +235,14 @@ public:
 			//---
 			if (!pause)
 			{
-				std::string indicators_t = '{' + indicators + '}';
-				std::cout << "Serial wrt " << indicators_t << " " << serial.WriteSerialPort(indicators_t) << "\n";
+				std::string indicators_t = '{' + convertToBytes(indicators) + '}';
+				std::cout << "Serial wrt " << serial.WriteSerialPort(indicators_t + '\0') << "\n";
 
 
-				std::string switches_t = serial.ReadSerialPort(35);
-				std::cout << "Serial rec {" << switches_t << "}\n";
+				std::string switches_t; // = serial.ReadSerialPort(35);
+				//std::cout << "Serial rec {" << switches_t << "}\n";
 
-				if (switches_t.length() == switchesCount) switches = switches_t;
+				//if (switches_t.length() == serialSwitchesMessageLength) switches = switches_t;
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
@@ -231,9 +257,10 @@ public:
 			auto beginTime = std::chrono::high_resolution_clock::now();
 			//---
 			if (!pause) {
+
 				std::string indicators_t = ReceiveFromSocket();
 
-				if (indicators_t.length() == indicatorsCount + 1) indicators = indicators_t;
+				if (indicators_t.length() == socketIndicatorsMessageLength + 1) indicators = indicators_t;
 
 				SendToSocket(switches + '\0');
 			}

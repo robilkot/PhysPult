@@ -15,23 +15,24 @@ timer.Create("PhysPultInit", 0.5, 1, function()
 -- Список индикаторов с соответствующим номером бита.
 local indicators = {
 	-- 2 Блок
-	["AR0"] = 3,
-	["AR04"] = 4,
-	["AR40"] = 5,
-	["AR60"] = 6,
-	["AR70"] = 7,
-	["AR80"] = 8,
-	["SD"] = 9,
-	["VD"] = 10,
-	["RP"] = 11,
-	["SN"] = 12,
-	["HRK"] = 13,
-	["KVD"] = 14,
-	["ST"] = 15,
-	["KT"] = 16,
-	["LN"] = 17,
-	["KVC"] = 19,
-	["GLIB"] = 20, -- ЛЭКК
+	["AR0"] = 5,
+	["AR04"] = 6,
+	["AR40"] = 7,
+	["AR60"] = 8,
+	["AR70"] = 9,
+	["AR80"] = 10,
+	["SD"] = 15,
+	["VD"] = 13,
+	["RP"] = 16,
+	["SN"] = 3,
+	["HRK"] = 17,
+	["KVD"] = 12,
+	["ST"] = 19,
+	--["???"] = 20, -- ДВ
+	["KT"] = 11,
+	["LN"] = 18,
+	["KVC"] = 4,
+	["GLIB"] = 14, -- ЛЭКК
 
 	-- 5-6 Блоки
 	["GreenRP"] = 21,
@@ -346,10 +347,10 @@ function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
 
 	if(train and checkTrainType(train)) then
-		if(PhysPult.SocketRecData) then
-			PhysPult.SynchronizeSwitches(train)
-			PhysPult.SynchronizeButtons(train)
-		end
+		--if(PhysPult.SocketRecData) then
+		-- 	PhysPult.SynchronizeSwitches(train)
+		-- 	PhysPult.SynchronizeButtons(train)
+		-- end
 
 		PhysPult.SynchronizeIndicators(train)
 	end

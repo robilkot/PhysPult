@@ -131,8 +131,10 @@ std::string SimpleSerial::ReadSerialPort(int timeout)
 }
 
 bool SimpleSerial::WriteSerialPort(std::string data_sent)
-{
-	if (WriteFile(io_handler_, &data_sent[0], data_sent.length(), NULL, NULL)) return true;
+{	
+	//PurgeComm(io_handler_, PURGE_TXCLEAR);
+
+	if (WriteFile(io_handler_, data_sent.c_str(), data_sent.length(), NULL, NULL)) return true;
 	else {
 		DWORD err = GetLastError();
 		std::cout << "WriteFile error! " << err << "\n";
