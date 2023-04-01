@@ -24,95 +24,99 @@ byte rightdigit[10][2] = {
 {B10001111, B10000000}
 };
 
+#define BaudRate 9600
+
 void setup()
 {
   DDRB |= B11111111; // set 8-13 to output
   DDRD |= B11111110; // set 1-7 to output
 
-  Serial.begin(57600);
+  Serial.begin(BaudRate);
   Serial.setTimeout(5);
   
   digitalWrite(6, 1);
 }
 
-//AsyncStream<200> serial(&Serial, '}', 15); // Инициализация асинхронного считывателя
-
 void loop()
 {
-  if (Serial.available()) {     // Если данные получены
-  //char* command = serial.buf + 1; // Обрезка '{'
-  //String command = Serial.readString();
-  //Serial.print('{' + command + '}');
+  if(Serial.available()) {
 
-  byte command[9];
-  Serial.readBytes(command, 9);
+    byte command[64];
+    Serial.readBytesUntil('}', command, 64);
+    
+    updateIndicators(command);
+   
+    // while(Serial.available())
+    //   Serial.read();
+  }
+}
 
-  byte firstSpeedByte = leftdigit[(int)command[1] / 10][1] | rightdigit[(int)command[1] % 10][1]; 
-  byte secondSpeedByte = leftdigit[(int)command[1] / 10][0] | rightdigit[(int)command[1] % 10][0];
+void shiftOutSpeed(byte speed, int dataPin, int clockPin)
+{
+  byte firstSpeedByte = leftdigit[(int)speed / 10][1] | rightdigit[(int)speed % 10][1]; 
+  byte secondSpeedByte = leftdigit[(int)speed / 10][0] | rightdigit[(int)speed % 10][0];
 
+  shiftOut(dataPin, clockPin, MSBFIRST, secondSpeedByte);
+  shiftOut(dataPin, clockPin, MSBFIRST, firstSpeedByte);   
+}
+
+void updateIndicators(byte* command)
+{
   digitalWrite(6, 0);
 
-  for(int i = 2; i < 9-1; i++) { // Индексациия с 1 т.к. первый байт - скорость
-    //SPI.transfer(command[i]);
+  for(int i = 7; i > 1; i--) { // Индексациия с 1 т.к. первый байт - скорость
     shiftOut(4, 5, MSBFIRST, command[i]); // Пишем на регистры значения
   }
 
-  shiftOut(4, 5, MSBFIRST, secondSpeedByte); // Записываем скорость
-  shiftOut(4, 5, MSBFIRST, firstSpeedByte); 
+  shiftOutSpeed(command[0], 4, 5);
 
   digitalWrite(6, 1);
-
-  //registersWrite(command.substring(2, command.length() - 2) + secondSpeedByte + firstSpeedByte, 4, 6, 5);
-  //delay(100);
-  while(Serial.available())
-    Serial.read();
-  }
 }
 
-void registersWrite(String toSend, uint8_t data, uint8_t latch, uint8_t clock)
-{   
-  volatile uint8_t *DADDR = data > 7 ? &PORTB : &PORTD,
-                   *LADDR = latch > 7 ? &PORTB : &PORTD,
-                   *CADDR = clock > 7 ? &PORTB : &PORTD;
+// void registersWrite(String toSend, uint8_t data, uint8_t latch, uint8_t clock)
+// {   
+//   volatile uint8_t *DADDR = data > 7 ? &PORTB : &PORTD,
+//                    *LADDR = latch > 7 ? &PORTB : &PORTD,
+//                    *CADDR = clock > 7 ? &PORTB : &PORTD;
 
-  bool Dshift = DADDR == &PORTB,
-       Lshift = LADDR == &PORTB,
-       Cshift = CADDR == &PORTB;
+//   bool Dshift = DADDR == &PORTB,
+//        Lshift = LADDR == &PORTB,
+//        Cshift = CADDR == &PORTB;
 
-  *LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
+//   *LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
 
-  for (uint8_t i = 0; i < toSend.length(); i++)  {
-    for(int k = 0; k < 8; k++, toSend[i] >>= k) {
-      (toSend[i] & 1) ? *DADDR |= 1 << data - 8 * Dshift : *DADDR &= ~(1 << data - 8 * Dshift); // write 1 or 0 to corresponding bit
-      *CADDR |= 1 << clock - 8 * Cshift; // clock HIGH
-      *CADDR &= ~(1 << clock - 8 * Cshift); // clock LOW
-    }
-  }
+//   for (uint8_t i = 0; i < toSend.length(); i++)  {
+//     for(int k = 0; k < 8; k++, toSend[i] >>= k) {
+//       (toSend[i] & 1) ? *DADDR |= 1 << data - 8 * Dshift : *DADDR &= ~(1 << data - 8 * Dshift); // write 1 or 0 to corresponding bit
+//       *CADDR |= 1 << clock - 8 * Cshift; // clock HIGH
+//       *CADDR &= ~(1 << clock - 8 * Cshift); // clock LOW
+//     }
+//   }
 
-  *LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
-}
+//   *LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
+// }
 
-String registersRead(uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock)
-{
-  volatile uint8_t *DADDR = data > 7 ? &PINB : &PIND,
-                   *LADDR = latch > 7 ? &PORTB : &PORTD,
-                   *CADDR = clock > 7 ? &PORTB : &PORTD;
+// String registersRead(uint8_t totalRegisters, uint8_t data, uint8_t latch, uint8_t clock)
+// {
+//   volatile uint8_t *DADDR = data > 7 ? &PINB : &PIND,
+//                    *LADDR = latch > 7 ? &PORTB : &PORTD,
+//                    *CADDR = clock > 7 ? &PORTB : &PORTD;
 
-  bool Dshift = DADDR == &PINB,
-       Lshift = LADDR == &PORTB,
-       Cshift = CADDR == &PORTB;
+//   bool Dshift = DADDR == &PINB,
+//        Lshift = LADDR == &PORTB,
+//        Cshift = CADDR == &PORTB;
 
-  String ret;
+//   String ret;
 
-  *LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
-  *LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
+//   *LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
+//   *LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
 
-  for (uint8_t i = 0; i < totalRegisters * 8; i++) {
-    ret += *DADDR & (1 << data - 8 * Dshift) == 1 << data - 8 * Dshift;
+//   for (uint8_t i = 0; i < totalRegisters * 8; i++) {
+//     ret += *DADDR & (1 << data - 8 * Dshift) == 1 << data - 8 * Dshift;
   
-    *CADDR |= 1 << clock - 8 * Cshift; // clock HIGH
-    *CADDR &= ~(1 << clock - 8 * Cshift); // clock LOW
-  }
+//     *CADDR |= 1 << clock - 8 * Cshift; // clock HIGH
+//     *CADDR &= ~(1 << clock - 8 * Cshift); // clock LOW
+//   }
   
-  return ret;
-}
+//   return ret;
+// }

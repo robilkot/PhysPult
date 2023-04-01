@@ -12,7 +12,7 @@ SimpleSerial::SimpleSerial(char* com_port, DWORD COM_BAUD_RATE, std::string synt
 
 	io_handler_ = CreateFileA(static_cast<LPCSTR>(com_port),
 							GENERIC_READ | GENERIC_WRITE,
-							0,
+							FILE_SHARE_READ,
 							NULL,
 							OPEN_EXISTING,
 							FILE_ATTRIBUTE_NORMAL,
@@ -132,9 +132,8 @@ std::string SimpleSerial::ReadSerialPort(int timeout)
 
 bool SimpleSerial::WriteSerialPort(std::string data_sent)
 {	
-	//PurgeComm(io_handler_, PURGE_TXCLEAR);
-
-	if (WriteFile(io_handler_, data_sent.c_str(), data_sent.length(), NULL, NULL)) return true;
+	if (WriteFile(io_handler_, data_sent.c_str(), data_sent.length(), NULL, NULL))
+		return true;
 	else {
 		DWORD err = GetLastError();
 		std::cout << "WriteFile error! " << err << "\n";

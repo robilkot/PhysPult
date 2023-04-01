@@ -154,7 +154,7 @@ private:
 	std::string convertToBytes(std::string source) { // string of 2 digits speed and row of 0 and 1 converted to MSB first binary notation
 		std::string output;
 		
-		unsigned char speed = atoi(&source.substr(0, 2)[0]);
+		unsigned char speed = atoi(source.substr(0, 2).c_str());
 		output += speed;
 		
 		unsigned char currentRegister = 0;
@@ -235,11 +235,11 @@ public:
 			//---
 			if (!pause)
 			{
-				std::string indicators_t = '{' + convertToBytes(indicators) + '}';
-				std::cout << "Serial wrt " << serial.WriteSerialPort(indicators_t + '\0') << "\n";
+				std::string indicators_t = /* '{' + */ convertToBytes(indicators) + '}';
+				std::cout << "Serial wrt " /*<< indicators_t << " "*/ << serial.WriteSerialPort(indicators_t /*+ '\0'*/) << "\n";
 
 
-				std::string switches_t; // = serial.ReadSerialPort(35);
+				//std::string switches_t = serial.ReadSerialPort(10);
 				//std::cout << "Serial rec {" << switches_t << "}\n";
 
 				//if (switches_t.length() == serialSwitchesMessageLength) switches = switches_t;
