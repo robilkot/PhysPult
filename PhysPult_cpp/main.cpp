@@ -13,6 +13,7 @@
 constexpr const char* LOCALHOST = "127.0.0.1";
 
 //#define DEBUG
+#define PERFILE
 
 std::list<int> GetCOMports()
 {
@@ -68,9 +69,10 @@ private:
 	DWORD baudRate = 9600;
 
 	std::string configPath = "physpult_config.txt",
-				COMport = "\\\\.\\COM1",
-				indicators = std::string(socketIndicatorsMessageLength, '0'),
-				switches = std::string(socketSwitchesMessageLength, '0');
+		COMport = "\\\\.\\COM1",
+		metrostroiDataPath = "",
+		indicators = std::string(socketIndicatorsMessageLength, '0'),
+		switches = std::string(socketSwitchesMessageLength, '0');
 
 	SimpleSerial serial;
 	TcpClient socket = *new TcpClient(LOCALHOST, socketPort);
@@ -151,30 +153,34 @@ private:
 		return out;
 	}
 
-	std::string convertToBytes(std::string source) // string of 2 digits speed and row of 0 and 1 converted to MSB first binary notation
-	{ 
-		std::string output;
-		
-		output += (unsigned char) atoi(source.substr(0, 2).c_str()); // speed
-		output += (unsigned char) 0 | source[3] - '0' << 2 | source[2] - '0' << 3; // lkvc and lsn
+	std::string convertToBytes(std::string source)
+	{
+		static std::string output;
 
-		unsigned char currentRegister = 0;
-		short indexInByte = 0;
-		for (int i = 4; i < source.length(); i++)
+		if (source.size() > 4)
 		{
-			if(source[i] == '1')
-				currentRegister |=  1 << indexInByte;
+			output.clear();
 
-			if (indexInByte == 7) {
-				//std::cout << (unsigned)currentRegister << '\t';
-				output += currentRegister;
-				currentRegister = 0;
-				indexInByte = 0;
-			} else 
-				indexInByte++;
+			output += (unsigned char)atoi(source.substr(0, 2).c_str()); // speed
+			output += (unsigned char)0 | source[3] - '0' << 2 | source[2] - '0' << 3; // lkvc and lsn
+
+			unsigned char currentRegister = 0;
+			short indexInByte = 0;
+			for (int i = 4; i < source.length(); i++)
+			{
+				if (source[i] == '1')
+					currentRegister |= 1 << indexInByte;
+
+				if (indexInByte == 7) {
+					output += currentRegister;
+					currentRegister = 0;
+					indexInByte = 0;
+				}
+				else
+					indexInByte++;
+			}
+			output += currentRegister;
 		}
-		output += currentRegister;
-
 		return output;
 	}
 
@@ -185,7 +191,9 @@ public:
 
 		reloadConfig(this->configPath);
 
+#ifndef PERFILE
 		socketConnect();
+#endif
 		serialConnect();
 	};
 
@@ -207,6 +215,7 @@ public:
 		std::string metrostroiDataPath;
 		getline(config, metrostroiDataPath);
 		getline(config, metrostroiDataPath);
+		this->metrostroiDataPath = metrostroiDataPath;
 
 		std::ofstream luaConfig(metrostroiDataPath + "\\physpult.txt");
 		if (!config.is_open())
@@ -242,10 +251,12 @@ public:
 			if (!pause)
 			{
 				std::string indicators_t = /* '{' + */ convertToBytes(indicators) + '}';
-				std::cout << "Serial wrt ";
+				//std::cout << "Serial wrt ";
 				/*<< indicators_t << " "*/
 				//for (int m = 0; m < indicators_t.size() - 1; m++) std::cout << (unsigned int)indicators_t[m] << " ";
+
 				serial.WriteSerialPort(indicators_t);
+
 				//std::cout << serial.WriteSerialPort(indicators_t) << "\n";
 
 				//std::string switches_t = serial.ReadSerialPort(10);
@@ -266,12 +277,24 @@ public:
 			auto beginTime = std::chrono::high_resolution_clock::now();
 			//---
 			if (!pause) {
+				std::string indicators_t;
+#ifdef  PERFILE
+				std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
+				if (file1.is_open()) file1 >> indicators_t;
+				//std::cout << "fil rec [" << indicators_t << "]\n";
+#else
+				indicators_t = ReceiveFromSocket();
+#endif //  PERFILE
 
-				std::string indicators_t = ReceiveFromSocket();
+				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
 
-				if (indicators_t.length() == socketIndicatorsMessageLength + 1) indicators = indicators_t;
-
+#ifdef  PERFILE
+				std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
+				if (file2.is_open()) file2 << switches;
+				//std::cout << "fil wrt [" << switches << "]\n";
+#else
 				SendToSocket(switches + '\0');
+#endif //  PERFILE
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
@@ -322,7 +345,9 @@ int main(int argc, char* argv[])
 				pause = 1;
 				physpult.reloadConfig(arg);
 				physpult.serialReconnect();
+#ifndef PERFILE
 				physpult.socketReconnect();
+#endif
 				pause = 0;
 			}
 			if (stop) break; // Break from while(true) loop
