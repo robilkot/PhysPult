@@ -1,27 +1,27 @@
 byte leftdigit[10][2] = {
-{B00010000, B00101111},
-{B00010000, B00100000},
-{B00010000, B00011011},
-{B00010000, B00111010},
-{B00010000, B00110100},
-{B00000000, B00111110},
-{B00000000, B00111111},
-{B00010000, B00100010},
-{B00010000, B00111111},
-{B00010000, B00111110}
+{B00010000, B11101001},
+{B00010000, B00001000},
+{B00010000, B10110001},
+{B00010000, B10111000},
+{B00010000, B01011000},
+{B00000000, B11111000},
+{B00000000, B11111001},
+{B00010000, B10001000},
+{B00010000, B11111001},
+{B00010000, B11111000}
 };
 
 byte rightdigit[10][2] = {
-{B10001110, B11000000},
-{B00000110, B00000000},
-{B00001011, B11000000},
-{B00001111, B10000000},
-{B10000111, B00000000},
-{B10001101, B10000000},
-{B10001101, B11000000},
-{B00001110, B00000000},
-{B10001111, B11000000},
-{B10001111, B10000000}
+{B11100010, B00000110},
+{B11000000, B00000000},
+{B10100001, B00000110},
+{B11100001, B00000010},
+{B11000011, B00000000},
+{B01100011, B00000010},
+{B01100011, B00000110},
+{B11100000, B00000000},
+{B11100011, B00000110},
+{B11100011, B00000010}
 };
 
 #define BaudRate 9600
@@ -35,42 +35,58 @@ void setup()
   Serial.setTimeout(5);
   
   digitalWrite(6, 1);
+
+  byte on[5] = {88, 255, 255, 255, 255},
+      off[5] = {0, 0, 0, 0, 0};
+
+  updateIndicators(on, 4, 5, 6);
+  delay(500);
+  updateIndicators(off, 4, 5, 6);
+  delay(100);
 }
 
 void loop()
 {
-  if(Serial.available()) {
 
-    byte command[64];
+  if(Serial.available()) {
+    byte command[12];
+
+    for(int i = 0; i < 12; i++) command[i] = 0;
+
+    // String temp = Serial.readStringUntil(';');
+    // command[temp[0]-'0'] = atoi(temp.substring(1,temp.length()).c_str());
+    // Serial.print(command[temp[0]-'0'], DEC);
+    // Serial.print('\n');
+    
     Serial.readBytesUntil('}', command, 64);
     
-    updateIndicators(command);
-   
-    // while(Serial.available())
-    //   Serial.read();
+    updateIndicators(command, 4, 5, 6);
   }
 }
 
-void shiftOutSpeed(byte speed, int dataPin, int clockPin)
+void updateIndicators(byte* command, uint8_t data, uint8_t clock, uint8_t latch)
 {
-  byte firstSpeedByte = leftdigit[(int)speed / 10][1] | rightdigit[(int)speed % 10][1]; 
-  byte secondSpeedByte = leftdigit[(int)speed / 10][0] | rightdigit[(int)speed % 10][0];
+  volatile uint8_t *DADDR = data > 7 ? &PORTB : &PORTD,
+                   *LADDR = latch > 7 ? &PORTB : &PORTD,
+                   *CADDR = clock > 7 ? &PORTB : &PORTD;
 
-  shiftOut(dataPin, clockPin, MSBFIRST, secondSpeedByte);
-  shiftOut(dataPin, clockPin, MSBFIRST, firstSpeedByte);   
-}
+  bool Dshift = DADDR == &PORTB,
+       Lshift = LADDR == &PORTB,
+       Cshift = CADDR == &PORTB;
 
-void updateIndicators(byte* command)
-{
-  digitalWrite(6, 0);
+  char speed = command[0];
+  byte secondSpeedByte = leftdigit[speed / 10][0] | rightdigit[speed % 10][0] | command[1];
+  byte firstSpeedByte = leftdigit[speed / 10][1] | rightdigit[speed % 10][1]; 
 
-  for(int i = 7; i > 1; i--) { // Индексациия с 1 т.к. первый байт - скорость
-    shiftOut(4, 5, MSBFIRST, command[i]); // Пишем на регистры значения
-  }
+  *LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
 
-  shiftOutSpeed(command[0], 4, 5);
+  shiftOut(4, 5, LSBFIRST, command[2]);
+  shiftOut(4, 5, LSBFIRST, command[3]);
 
-  digitalWrite(6, 1);
+  shiftOut(4, 5, LSBFIRST, secondSpeedByte); // Регистр 2
+  shiftOut(4, 5, LSBFIRST, firstSpeedByte); // Регистр 1 
+
+  *LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
 }
 
 // void registersWrite(String toSend, uint8_t data, uint8_t latch, uint8_t clock)

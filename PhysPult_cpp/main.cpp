@@ -151,21 +151,27 @@ private:
 		return out;
 	}
 
-	std::string convertToBytes(std::string source) { // string of 2 digits speed and row of 0 and 1 converted to MSB first binary notation
+	std::string convertToBytes(std::string source) // string of 2 digits speed and row of 0 and 1 converted to MSB first binary notation
+	{ 
 		std::string output;
 		
-		unsigned char speed = atoi(source.substr(0, 2).c_str());
-		output += speed;
-		
+		output += (unsigned char) atoi(source.substr(0, 2).c_str()); // speed
+		output += (unsigned char) 0 | source[3] - '0' << 2 | source[2] - '0' << 3; // lkvc and lsn
+
 		unsigned char currentRegister = 0;
-		for (int i = 0; i < source.length() - 2; i++)
+		short indexInByte = 0;
+		for (int i = 4; i < source.length(); i++)
 		{
-			currentRegister |= source[i + 2] - '0' << 7 - (i % 8);
-			if ((i + 1) % 8 == 0) {
+			if(source[i] == '1')
+				currentRegister |=  1 << indexInByte;
+
+			if (indexInByte == 7) {
 				//std::cout << (unsigned)currentRegister << '\t';
 				output += currentRegister;
 				currentRegister = 0;
-			}
+				indexInByte = 0;
+			} else 
+				indexInByte++;
 		}
 		output += currentRegister;
 
@@ -236,8 +242,11 @@ public:
 			if (!pause)
 			{
 				std::string indicators_t = /* '{' + */ convertToBytes(indicators) + '}';
-				std::cout << "Serial wrt " /*<< indicators_t << " "*/ << serial.WriteSerialPort(indicators_t /*+ '\0'*/) << "\n";
-
+				std::cout << "Serial wrt ";
+				/*<< indicators_t << " "*/
+				//for (int m = 0; m < indicators_t.size() - 1; m++) std::cout << (unsigned int)indicators_t[m] << " ";
+				serial.WriteSerialPort(indicators_t);
+				//std::cout << serial.WriteSerialPort(indicators_t) << "\n";
 
 				//std::string switches_t = serial.ReadSerialPort(10);
 				//std::cout << "Serial rec {" << switches_t << "}\n";
