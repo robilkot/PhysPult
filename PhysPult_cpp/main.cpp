@@ -146,11 +146,11 @@ private:
 
 	std::string ReceiveFromSocket()
 	{
-		std::string out(socketIndicatorsMessageLength + 1, '0');
+		std::string out = std::string(socketIndicatorsMessageLength, '0') + '\0';
 
 		try {
 			socket.Recv(&out[0], socketIndicatorsMessageLength + 1);
-			//std::cout << "Socket rec [" << out << "]\n";
+			std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
@@ -174,9 +174,9 @@ private:
 
 			unsigned char currentRegister = 0;
 			short indexInByte = 0;
-			for (const char& c : source)
+			for (short i = 4; i < source.size(); i++)
 			{
-				if (c == '1')
+				if (source[i] == '1')
 					currentRegister |= 1 << indexInByte;
 
 				if (indexInByte == 7) {
@@ -211,7 +211,7 @@ public:
 	{
 		std::ifstream config(configPath);
 		if (config.is_open()) {
-			config >> socketPort >> serialFrequency >> socketIndicatorsMessageLength >> baudRate >>
+			config >> socketPort >> serialFrequency >> socketFrequency >> baudRate >>
 				serialIndicatorsMessageLength >> socketIndicatorsMessageLength >>
 				serialSwitchesMessageLength >> socketSwitchesMessageLength; // Get values from config
 
@@ -297,6 +297,7 @@ public:
 				std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
 				if (file1.is_open()) file1 >> indicators_t;
 				//std::cout << "fil rec [" << indicators_t << "]\n";
+				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
 
 				std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
 				if (file2.is_open()) file2 << switches;
