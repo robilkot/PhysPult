@@ -12,8 +12,9 @@
 
 constexpr const char* LOCALHOST = "127.0.0.1";
 
-//#define DEBUG
-#define PERFILE
+//#define PERFILE // Directive for usage of data transmission per file instead of sockets
+//#define NOSOCKET // Directive for disabling connection via sockets
+//#define NOSERIAL // Directive for disabling connection via serial
 
 std::list<int> GetCOMports()
 {
@@ -60,12 +61,17 @@ std::string SelectCOMport()
 class PhysPult {
 private:
 	int socketPort = 61000,
-		frequency = 10,
-		interval = 100,
+
+		serialFrequency = 30,
+		serialInterval = 33,
 		serialIndicatorsMessageLength = 9,
-		socketIndicatorsMessageLength = 64,
 		serialSwitchesMessageLength = 64,
+
+		socketFrequency = 60,
+		socketInterval = 15,
+		socketIndicatorsMessageLength = 64,
 		socketSwitchesMessageLength = 64;
+
 	DWORD baudRate = 9600;
 
 	std::string configPath = "physpult_config.txt",
@@ -101,7 +107,8 @@ private:
 	void socketConnect() {
 		socket = *new TcpClient(LOCALHOST, socketPort);
 
-#ifndef DEBUG
+#ifndef NOSOCKET
+#ifndef PERFILE
 		do {
 			try
 			{
@@ -119,7 +126,8 @@ private:
 				}
 			}
 		} while (true);
-#endif // !DEBUG 
+#endif // !PERFILE
+#endif // !NOSOCKET 
 	}
 
 // Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
@@ -127,8 +135,8 @@ private:
 	void SendToSocket(std::string msg)
 	{
 		try {
-			socket.Send(&msg[0], msg.length());
-			std::cout << "Socket wrt [" << msg << "]\n";
+			socket.Send(msg.c_str(), msg.length());
+			//std::cout << "Socket wrt [" << msg << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket wrt: error code " << ex.GetWSErrorCode() << "\n";
@@ -138,16 +146,16 @@ private:
 
 	std::string ReceiveFromSocket()
 	{
-		std::string out = std::string(socketIndicatorsMessageLength, '0') + '\0';
+		std::string out(socketIndicatorsMessageLength + 1, '0');
 
 		try {
 			socket.Recv(&out[0], socketIndicatorsMessageLength + 1);
-			std::cout << "Socket rec [" << out << "]\n";
+			//std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
 
-			this->socketReconnect();
+			socketReconnect();
 		}
 
 		return out;
@@ -162,13 +170,13 @@ private:
 			output.clear();
 
 			output += (unsigned char)atoi(source.substr(0, 2).c_str()); // speed
-			output += (unsigned char)0 | source[3] - '0' << 2 | source[2] - '0' << 3; // lkvc and lsn
+			output += (unsigned char)(0 | source[3] - '0' << 2 | source[2] - '0' << 3); // lkvc and lsn
 
 			unsigned char currentRegister = 0;
 			short indexInByte = 0;
-			for (int i = 4; i < source.length(); i++)
+			for (const char& c : source)
 			{
-				if (source[i] == '1')
+				if (c == '1')
 					currentRegister |= 1 << indexInByte;
 
 				if (indexInByte == 7) {
@@ -194,18 +202,21 @@ public:
 #ifndef PERFILE
 		socketConnect();
 #endif
+#ifndef NOSERIAL
 		serialConnect();
+#endif
 	};
 
 	void reloadConfig(std::string configPath)
 	{
 		std::ifstream config(configPath);
 		if (config.is_open()) {
-			config >> socketPort >> frequency >> baudRate >>
+			config >> socketPort >> serialFrequency >> socketIndicatorsMessageLength >> baudRate >>
 				serialIndicatorsMessageLength >> socketIndicatorsMessageLength >>
 				serialSwitchesMessageLength >> socketSwitchesMessageLength; // Get values from config
 
-			interval = 1000 / frequency;
+			serialInterval = 1000 / serialFrequency;
+			socketInterval = 1000 / socketFrequency;
 
 			indicators = std::string(socketIndicatorsMessageLength, '0'),
 			switches = std::string(socketSwitchesMessageLength, '0');
@@ -221,9 +232,10 @@ public:
 		if (!config.is_open())
 			std::cerr << "Couldn't save config file to data!\n";
 
-		luaConfig << socketPort << " " << frequency << " " << socketIndicatorsMessageLength << " " << socketSwitchesMessageLength; // Write values to lua config
+		luaConfig << socketPort << " " << socketFrequency << " " << socketIndicatorsMessageLength << " " << socketSwitchesMessageLength
+			<< " \nDo not change these parameters! There are being updated automatically."; // Write values to lua config
 
-		//std::cout << "Initialized!" << "\nPort: " << socketPort << "; Frequency: " << frequency << "; Baud rate: " << baudRate
+		//std::cout << "Initialized!" << "\nPort: " << socketPort << "; serialFrequency: " << serialFrequency << "; Baud rate: " << baudRate
 		//	<< "; Indicators: " << indicatorsMessageLength << "; Switches: " << switchesMessageLength << "\n\n";
 	}
 
@@ -244,6 +256,7 @@ public:
 
 	void updateSerial(bool& stop, bool& pause)
 	{
+#ifndef NOSERIAL
 		while (!stop)
 		{
 			auto beginTime = std::chrono::high_resolution_clock::now();
@@ -266,12 +279,14 @@ public:
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
-			if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
+			if (deltaTime < serialInterval) std::this_thread::sleep_for(std::chrono::milliseconds(serialInterval - deltaTime));
 		}
+#endif
 	}
 
 	void updateSocket(bool& stop, bool& pause)
 	{
+#ifndef NOSOCKET
 		while (!stop)
 		{
 			auto beginTime = std::chrono::high_resolution_clock::now();
@@ -282,25 +297,23 @@ public:
 				std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
 				if (file1.is_open()) file1 >> indicators_t;
 				//std::cout << "fil rec [" << indicators_t << "]\n";
-#else
-				indicators_t = ReceiveFromSocket();
-#endif //  PERFILE
 
-				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
-
-#ifdef  PERFILE
 				std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
 				if (file2.is_open()) file2 << switches;
 				//std::cout << "fil wrt [" << switches << "]\n";
 #else
+				indicators_t = ReceiveFromSocket();
+				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
+
 				SendToSocket(switches + '\0');
 #endif //  PERFILE
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
-			if (deltaTime < interval) std::this_thread::sleep_for(std::chrono::milliseconds(interval - deltaTime));
+			if (deltaTime < socketInterval) std::this_thread::sleep_for(std::chrono::milliseconds(socketInterval - deltaTime));
 		}
 	}
+#endif //  NOSOCKET
 };
 
 
@@ -321,7 +334,7 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Interval for stop check is 100 ms, but could be anything else. Needed for optimisation
+		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // serialInterval for stop check is 100 ms, but could be anything else. Needed for optimisation
 
 		if (_kbhit()) {
 			switch (_getch()) {
@@ -344,7 +357,9 @@ int main(int argc, char* argv[])
 				reload = 0;
 				pause = 1;
 				physpult.reloadConfig(arg);
+#ifndef NOSERIAL
 				physpult.serialReconnect();
+#endif
 #ifndef PERFILE
 				physpult.socketReconnect();
 #endif

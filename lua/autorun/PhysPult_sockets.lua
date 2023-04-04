@@ -54,39 +54,39 @@ end
 function PhysPult.StartServer(host, port)
     local tcpServer = socket.tcp4()
 
-    -- tcpServer:settimeout(0.01)
-    -- tcpServer:setoption("reuseaddr", true)
-    -- tcpServer:bind(host, port)
-    -- tcpServer:listen(2)
+    tcpServer:settimeout(0.01)
+    tcpServer:setoption("reuseaddr", true)
+    tcpServer:bind(host, port)
+    tcpServer:listen(2)
 
     -- Нижнеидушая хрень для чтения из файла, временно
-    if file.Exists("metrostroi_data/physpult.txt", "DATA") then
-        local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
-        local params = string.Split(paramsString, " ")
+    -- if file.Exists("metrostroi_data/physpult.txt", "DATA") then
+    --     local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
+    --     local params = string.Split(paramsString, " ")
         
-        PhysPult.SocketPort = tonumber(params[1])
-        PhysPult.UpdateFrequency = tonumber(params[2])
-        PhysPult.IndicatorsNumber = tonumber(params[3])
-        PhysPult.SwitchesNumber = tonumber(params[4])
-    else
-        chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
-    end
+    --     PhysPult.SocketPort = tonumber(params[1])
+    --     PhysPult.UpdateFrequency = tonumber(params[2])
+    --     PhysPult.IndicatorsNumber = tonumber(params[3])
+    --     PhysPult.SwitchesNumber = tonumber(params[4])
+    -- else
+    --     chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
+    -- end
+    
+    -- timer.Create("physpult_files", 1 / PhysPult.UpdateFrequency, 0, function()
+    --     file.Write("metrostroi_data/physpult_indicators.txt", PhysPult.SocketWrtData)
+    --     --chat.AddText("wrt"..PhysPult.SocketWrtData)
 
-    timer.Create("physpult_files", 1 / PhysPult.UpdateFrequency, 0, function()
-        file.Write("metrostroi_data/physpult_indicators.txt", PhysPult.SocketWrtData)
-        --chat.AddText("wrt"..PhysPult.SocketWrtData)
-
-        local data = file.Read("physpult_switches.txt", "DATA")
-        PhysPult.SocketRecData = data
-    end) 
+    --     local data = file.Read("physpult_switches.txt", "DATA")
+    --     PhysPult.SocketRecData = data
+    -- end) 
     ---- ВОТ ПО СЮДА
 
-    -- timer.Create("tcp-server-physpult", 0.1, 0, function()
-    --     PhysPult.tcpClient = tcpServer:accept()
+    timer.Create("tcp-server-physpult", 0.1, 0, function()
+        PhysPult.tcpClient = tcpServer:accept()
 
-    --     if (PhysPult.tcpClient) then
-    --         chat.AddText("PhysPult: Client connected!")
-    --         clientHanlder(PhysPult.tcpClient)
-    --     end
-    -- end)
+        if (PhysPult.tcpClient) then
+            chat.AddText("PhysPult: Client connected!")
+            clientHanlder(PhysPult.tcpClient)
+        end
+    end)
 end
