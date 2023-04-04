@@ -12,10 +12,9 @@ local function clientHanlder(tcpClient)
         local params = string.Split(paramsString, " ")
         
         PhysPult.SocketPort = tonumber(params[1])
-        PhysPult.UpdateFrequency = tonumber(params[2])
+        PhysPult.UpdateInterval = tonumber(params[2])
         PhysPult.IndicatorsNumber = tonumber(params[3])
         PhysPult.SwitchesNumber = tonumber(params[4])
-        chat.AddText("operation on "..PhysPult.UpdateFrequency)
     else
         chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
     end
@@ -26,7 +25,7 @@ local function clientHanlder(tcpClient)
     if(PhysPult.SocketWrtData) then tcpClient:send(PhysPult.SocketWrtData) end
     tcpClient:settimeout(0.01)
 
-    timer.Create(timerName, 1 / PhysPult.UpdateFrequency, 0, function()
+    timer.Create(timerName, PhysPult.UpdateInterval / 1000, 0, function()
         tcpClient:send(PhysPult.SocketWrtData.."\0")
         chat.AddText("wrt"..PhysPult.SocketWrtData)
 
@@ -66,14 +65,14 @@ function PhysPult.StartServer(host, port)
     --     local params = string.Split(paramsString, " ")
         
     --     PhysPult.SocketPort = tonumber(params[1])
-    --     PhysPult.UpdateFrequency = tonumber(params[2])
+    --     PhysPult.UpdateInterval = tonumber(params[2])
     --     PhysPult.IndicatorsNumber = tonumber(params[3])
     --     PhysPult.SwitchesNumber = tonumber(params[4])
     -- else
     --     chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
     -- end
     
-    -- timer.Create("physpult_files", 1 / PhysPult.UpdateFrequency, 0, function()
+    -- timer.Create("physpult_files", 1 / PhysPult.UpdateInterval, 0, function()
     --     file.Write("metrostroi_data/physpult_indicators.txt", PhysPult.SocketWrtData)
     --     --chat.AddText("wrt"..PhysPult.SocketWrtData)
 

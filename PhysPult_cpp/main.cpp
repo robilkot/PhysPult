@@ -18,19 +18,17 @@ constexpr const char* LOCALHOST = "127.0.0.1";
 
 std::list<int> GetCOMports()
 {
-	wchar_t lpTargetPath[5000]; // buffer to store the path of the COM PORTS
 	std::list<int> portList;
-
 	for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
 	{
-		std::wstring str = L"COM" + std::to_wstring(i); // converting to COM0, COM1, COM2
-
-		if (QueryDosDeviceW(str.c_str(), lpTargetPath, 5000)) //QueryDosDeviceW returns zero if it didn't find an object
+		std::wstring portName = L"\\\\.\\COM" + std::to_wstring(i); // add \\\\.\\ prefix to port name
+		HANDLE hPort = CreateFileW(portName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (hPort != INVALID_HANDLE_VALUE)
 		{
+			CloseHandle(hPort); // close the handle to release the port
 			portList.push_back(i);
-			std::cout << std::string(str.begin(), str.end()) << "\n";
+			std::wcout << portName << std::endl; // print the port name
 		}
-		//if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER) NULL;
 	}
 	return portList;
 }
@@ -146,10 +144,11 @@ private:
 
 	std::string ReceiveFromSocket()
 	{
-		std::string out = std::string(socketIndicatorsMessageLength, '0') + '\0';
+		std::string out = std::string(socketIndicatorsMessageLength * 2 + 2, '\0'); // Чтобы два сообщения влезли (защита от переполнения)
 
 		try {
-			socket.Recv(&out[0], socketIndicatorsMessageLength + 1);
+			socket.Recv(&out[0], socketIndicatorsMessageLength * 2 + 2);
+			out = out.substr(0, socketIndicatorsMessageLength);
 			std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
@@ -232,7 +231,7 @@ public:
 		if (!config.is_open())
 			std::cerr << "Couldn't save config file to data!\n";
 
-		luaConfig << socketPort << " " << socketFrequency << " " << socketIndicatorsMessageLength << " " << socketSwitchesMessageLength
+		luaConfig << socketPort << " " << socketInterval << " " << socketIndicatorsMessageLength << " " << socketSwitchesMessageLength
 			<< " \nDo not change these parameters! There are being updated automatically."; // Write values to lua config
 
 		//std::cout << "Initialized!" << "\nPort: " << socketPort << "; serialFrequency: " << serialFrequency << "; Baud rate: " << baudRate
@@ -304,7 +303,8 @@ public:
 				//std::cout << "fil wrt [" << switches << "]\n";
 #else
 				indicators_t = ReceiveFromSocket();
-				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
+				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/
+					indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
 
 				SendToSocket(switches + '\0');
 #endif //  PERFILE

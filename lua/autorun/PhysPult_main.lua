@@ -294,7 +294,7 @@ PhysPult.SwitchesNumber = 64
 PhysPult.IndicatorsNumber = 64
 
 -- Частота обновления состояния (Гц).
-PhysPult.UpdateFrequency = 5
+PhysPult.UpdateInterval = 5
 
 -- Порт для подключения по сокетам
 PhysPult.SocketPort = 61000
@@ -360,7 +360,7 @@ end
 function PhysPult.StartSynchronize()
 	PhysPult.StartServer("127.0.0.1", PhysPult.SocketPort)
 
-	timer.Create("stateStringUpdate", 1 / PhysPult.UpdateFrequency, 0, function()
+	timer.Create("stateStringUpdate", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
 	end)
 	if(timer.Exists("stateStringUpdate")) then chat.AddText("PhysPult by MetroPack started!") end
