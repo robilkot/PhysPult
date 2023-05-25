@@ -1,8 +1,8 @@
-61000 30 10 9600 9 64 64 64
-E:\SteamLibrary\steamapps\common\GarrysMod\garrysmod\data\metrostroi_data
+61000 30 30 38400 9 64 64 48
 C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\metrostroi_data
+E:\SteamLibrary\steamapps\common\GarrysMod\garrysmod\data\metrostroi_data
 
 Port - serial frequency - socket frequency - Baud rate - serialIndicatorsMessageLength - socketIndicatorsMessageLength - serialSwitchesMessageLength - socketSwitchesMessageLength
 Path to metrostroi_data
 
-Examples of baud rate: 9600 57600 28800
+Examples of baud rate: 9600 19200 28800 57600 115200

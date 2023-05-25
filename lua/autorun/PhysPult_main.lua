@@ -35,87 +35,88 @@ local indicators = {
 	["GLIB"] = 10, -- ЛЭКК
 
 	-- 5-6 Блоки
-	-- ["GreenRP"] = 8,
-	-- ["DoorsLeftL"] = 7,
-	-- ["L1"] = 5,
-	-- ["LSP"] = 6,
-	-- ["AVU"] = 9,
-	-- ["LKVP"] = 26,
-	-- ["RZP"] = 27,
+	["GreenRP"] = 27,
+	--["DoorsLeftL"] = ???,
+	["L1"] = 20,
+	["LSP"] = 21,
+	["AVU"] = 22,
+	["LKVP"] = 23,
+	-- ["RZP"] = 25,
 
 	-- 7 Блок
 	--["???"] = 28, -- Контроль печи
-	-- ["PN"] = 29,
-	-- ["DoorsRightR"] = 30,
+	--["PN"] = 26,
+	-- ["DoorsRightR"] = ??,
 }
 
 -- Список тумблеров с соответствующим номером бита.
 -- [Номер бита] = { "Имя кнопки", инвертировать ли(по стандарту false) } 
 local switches = {
 	-- 1 блок
-	[0] = { "VMKToggle" },
-	[1] = { "BPSNonToggle" }, -- Инвертировать?
+	[33] = { "VMKToggle" },
+	[34] = { "BPSNonToggle" },
 
 	-- 5 блок
-	[4] = { "R_UNchToggle" },
-	[5] = { "R_ZSToggle" },
-	[6] = { "R_GToggle" },
-	[7] = { "R_RadioToggle" },
-	[10] = { "VUD1Toggle" },
-	[11] = { "R_VPRToggle" },
-	[15] = { "DoorSelectToggle" },
+	[5] = { "R_UNchToggle" },
+	[6] = { "R_ZSToggle" },
+	[7] = { "R_GToggle" },
+	[8] = { "R_RadioToggle" },
+	[13] = { "VUD1Toggle" },
+	-- [11] = { "R_VPRToggle" },
+	-- [15] = { "DoorSelectToggle" },
 
 	-- 6 блок
-	[19] = { "V13Toggle" },
-	[43] = { "V11Toggle" },
-	[44] = { "V12Toggle" },
+	[20] = { "V13Toggle" },
+	[17] = { "V11Toggle" },
+	[19] = { "V12Toggle" },
 
-	[20] = { "OtklAVUToggle"},
-	--[22] = "", -- Двери торцевые
-	--[23] = "", -- Вентиляция кабины
-	[24] = { "ARSToggle" },
-	[25] = { "ALSToggle" },
-	[26] = { "ARSRToggle" },
-	[30] = { "OVTToggle" } ,
-	[31] = { "ALSFreqToggle" },
-	[32] = { "L_1Toggle" },
-	[33] = { "L_2Toggle" }, 
-	[34] = { "L_3Toggle" },
-	[35] = { "VPToggle" },
+	--[18] = { "OtklAVUToggle"},
+	--[22] = "???", -- Двери торцевые
+	--[23] = "???", -- Вентиляция кабины
+	[9] = { "ARSToggle" },
+	[10] = { "ALSToggle" },
+	--[26] = { "ARSRToggle" },
+	[11] = { "OVTToggle" } ,
+	--[34] = { "ALSFreqToggle" },
+	-- [32] = { "L_1Toggle" },
+	[31] = { "L_2Toggle" }, 
+	--[30] = { "L_3Toggle" },
+	-- [35] = { "VPToggle" },
 	
 	-- 7 блок
-	[39] = { "L_4Toggle" },
-	[40] = { "VUSToggle" }, 
-	[41] = { "VADToggle" },
-	[42] = { "VAHToggle" },
+	-- [39] = { "L_4Toggle" },
+	-- [40] = { "VUSToggle" }, 
+	-- [41] = { "VADToggle" },
+	-- [42] = { "VAHToggle" },
 }
 
 -- Список кнопок для снхронизации, с соответствующим номером бита.
 local buttons = {
 	-- 1 блок
-	[2] = "RezMKSet",
-	[3] = "ARS13Set",
+	-- [2] = "RezMKSet",
+	-- [3] = "ARS13Set",
 
 	-- 5 блок
-	[8] = "R_Program1Set",
-	[9] = "R_Program2Set",
-	[12] = "KRZDSet",
-	[13] = "VozvratRPSet" ,
-	[14] =  "KDLSet" ,
+	[4] = "R_Program1Set",
+	[3] = "R_Program2Set",
+	[15] = "KRZDSet",
+	[14] = "VozvratRPSet" ,
+	[1] =  "KDLSet" ,
+	--[2] =  "KDLSet" , -- сделать or
 
 	-- 6 блок
-	[16] =  "1:KVTSet" ,
-	[17] =  "1:KVTRSet" ,
+	[21] =  "1:KVTSet" ,
+	[24] =  "1:KVTRSet" ,
 	[18] =  "VZ1Set" ,
-	[21] = "OtklBVSet",
-	[27] = "ConverterProtectionSet",
-	[28] =  "KSNSet" ,
-	[29] =  "RingSet" ,
+	[23] = "OtklBVSet",
+	[12] = "ConverterProtectionSet",
+	[29] =  "KSNSet" ,
+	[30] =  "RingSet" ,
 
 	-- 7 блок
-	[36] =  "KRPSet" ,
-	[37] =  "KAHSet" ,
-	[38] =  "KDPSet" ,
+	--[36] =  "KRPSet" ,
+	--[37] =  "KAHSet" ,
+	--[38] =  "KDPSet" ,
 }
 
 -- Возращает поезд а котором сидит игрок.
@@ -321,7 +322,7 @@ end
 -- Синхронизация тумблреров в поезде.
 function PhysPult.SynchronizeSwitches(train)
 	for k, v in pairs(switches) do
-		local stage = PhysPult.SocketRecData[k + 1] == '1'
+		local stage = PhysPult.SocketRecData[k] == '1'
 
 		if (v[2]) then
 			stage = not stage
@@ -347,10 +348,10 @@ function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
 
 	if(train and checkTrainType(train)) then
-		--if(PhysPult.SocketRecData) then
-		-- 	PhysPult.SynchronizeSwitches(train)
-		-- 	PhysPult.SynchronizeButtons(train)
-		-- end
+		if(PhysPult.SocketRecData) then
+			PhysPult.SynchronizeSwitches(train)
+			PhysPult.SynchronizeButtons(train)
+		end
 
 		PhysPult.SynchronizeIndicators(train)
 	end

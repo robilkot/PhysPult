@@ -62,7 +62,7 @@ private:
 
 		serialFrequency = 30,
 		serialInterval = 33,
-		serialIndicatorsMessageLength = 9,
+		serialIndicatorsMessageLength = 64,
 		serialSwitchesMessageLength = 64,
 
 		socketFrequency = 60,
@@ -87,7 +87,7 @@ private:
 		do {
 			serial.~SimpleSerial(); // Close previous connection
 
-			serial = *new SimpleSerial(&COMport[0], baudRate, "json");
+			serial = *new SimpleSerial((char*)COMport.c_str(), baudRate, "json");
 
 			if (serial.connected_) {
 				break;
@@ -128,7 +128,7 @@ private:
 #endif // !NOSOCKET 
 	}
 
-// Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
+	// Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 
 	void SendToSocket(std::string msg)
 	{
@@ -147,9 +147,9 @@ private:
 		std::string out = std::string(socketIndicatorsMessageLength * 2 + 2, '\0'); // Чтобы два сообщения влезли (защита от переполнения)
 
 		try {
-			socket.Recv(&out[0], socketIndicatorsMessageLength * 2 + 2);
+			socket.Recv((char*)out.c_str(), socketIndicatorsMessageLength * 2 + 2);
 			out = out.substr(0, socketIndicatorsMessageLength);
-			std::cout << "Socket rec [" << out << "]\n";
+			//std::cout << "Socket rec [" << out << "]\n";
 		}
 		catch (SocketException& ex) {
 			std::cout << "Socket rec: error code " << ex.GetWSErrorCode() << "\n";
@@ -173,6 +173,7 @@ private:
 
 			unsigned char currentRegister = 0;
 			short indexInByte = 0;
+
 			for (short i = 4; i < source.size(); i++)
 			{
 				if (source[i] == '1')
@@ -188,6 +189,25 @@ private:
 			}
 			output += currentRegister;
 		}
+		return output;
+	}
+
+	// this inverts bits !
+	std::string convertFromBytes(std::string source)
+	{
+		static std::string output;
+
+		if (!source.empty())
+		{
+			output.clear();
+
+			for (short i = 0; i < source.size(); i++)
+			{
+				for (short k = 0; k < 8; k++)
+					output += source[i] >> k & 1 ? '0' : '1';
+			}
+		}
+		output = output.substr(0, socketSwitchesMessageLength);
 		return output;
 	}
 
@@ -218,7 +238,7 @@ public:
 			socketInterval = 1000 / socketFrequency;
 
 			indicators = std::string(socketIndicatorsMessageLength, '0'),
-			switches = std::string(socketSwitchesMessageLength, '0');
+				switches = std::string(socketSwitchesMessageLength, '0');
 		}
 		else std::cerr << "Couldn't open config file! Using previously set parameters.\n";
 
@@ -248,7 +268,7 @@ public:
 			serialConnect();
 		}
 	}
-	
+
 	void socketReconnect() {
 		socketConnect();
 	}
@@ -262,18 +282,15 @@ public:
 			//---
 			if (!pause)
 			{
-				std::string indicators_t = /* '{' + */ convertToBytes(indicators) + '}';
-				//std::cout << "Serial wrt ";
-				/*<< indicators_t << " "*/
-				//for (int m = 0; m < indicators_t.size() - 1; m++) std::cout << (unsigned int)indicators_t[m] << " ";
-
+				std::string indicators_t = '{' + convertToBytes(indicators) + '}';
+				//std::cout << "Serial wrt " /*<< indicators_t << ' ' */<< serial.WriteSerialPort(indicators_t) << "\n";
 				serial.WriteSerialPort(indicators_t);
 
-				//std::cout << serial.WriteSerialPort(indicators_t) << "\n";
-
-				//std::string switches_t = serial.ReadSerialPort(10);
+				std::string switches_t = serial.ReadSerialPort(10);
 				//std::cout << "Serial rec {" << switches_t << "}\n";
 
+				switches = convertFromBytes(switches_t);
+				std::cout << "Serial rec {" << switches << "}\n";
 				//if (switches_t.length() == serialSwitchesMessageLength) switches = switches_t;
 			}
 			//---
@@ -294,17 +311,26 @@ public:
 				std::string indicators_t;
 #ifdef  PERFILE
 				std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
-				if (file1.is_open()) file1 >> indicators_t;
-				//std::cout << "fil rec [" << indicators_t << "]\n";
+				if (file1.is_open()) {
+					file1 >> indicators_t;
+					//std::cout << "fil rec [" << indicators_t << "]\n";
+				}
+				else std::cout << "fil rec failed\n";
+				
 				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
 
 				std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
-				if (file2.is_open()) file2 << switches;
-				//std::cout << "fil wrt [" << switches << "]\n";
+				if (file2.is_open()) {
+					file2 << switches;
+					//std::cout << "fil wrt [" << switches << "]\n";
+				}
+				else {
+					std::cout << "fil wrt failed\n";
+				}
 #else
 				indicators_t = ReceiveFromSocket();
 				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/
-					indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
+				indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
 
 				SendToSocket(switches + '\0');
 #endif //  PERFILE
@@ -313,13 +339,13 @@ public:
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
 			if (deltaTime < socketInterval) std::this_thread::sleep_for(std::chrono::milliseconds(socketInterval - deltaTime));
 		}
-	}
 #endif //  NOSOCKET
+	}
+
 };
 
-
 int main(int argc, char* argv[])
-{   
+{
 	std::string arg = argv[1] == NULL ? "physpult_config.txt" : argv[1];
 	PhysPult physpult(arg);
 
@@ -328,8 +354,8 @@ int main(int argc, char* argv[])
 	bool stop = 0, pause = 0, reload = 0;
 
 	std::thread socketThread([&]() { physpult.updateSocket(stop, pause); }),
-				serialThread([&]() { physpult.updateSerial(stop, pause); });
-   
+		serialThread([&]() { physpult.updateSerial(stop, pause); });
+
 	socketThread.detach();
 	serialThread.detach();
 
@@ -367,6 +393,6 @@ int main(int argc, char* argv[])
 				pause = 0;
 			}
 			if (stop) break; // Break from while(true) loop
-		} 
+		}
 	}
 }

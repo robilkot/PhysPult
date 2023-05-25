@@ -27,17 +27,17 @@ local function clientHanlder(tcpClient)
 
     timer.Create(timerName, PhysPult.UpdateInterval / 1000, 0, function()
         tcpClient:send(PhysPult.SocketWrtData.."\0")
-        chat.AddText("wrt"..PhysPult.SocketWrtData)
+        --chat.AddText("wrt"..PhysPult.SocketWrtData)
 
         local data, error = tcpClient:receive(PhysPult.SwitchesNumber + 1)
 
         if (data) then
             errorCount = 0
-            chat.AddText("rec"..data)
+            --chat.AddText("rec"..data)
             PhysPult.SocketRecData = data
         else 
             errorCount = errorCount + 1
-            chat.AddText("rec failed: "..error)
+            --chat.AddText("rec failed: "..error)
             if(errorCount == 3) then 
                 tcpClient:close()
                 PhysPult.SocketRecData = nil
