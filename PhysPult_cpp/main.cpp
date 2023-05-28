@@ -21,7 +21,7 @@ std::list<int> GetCOMports()
 	std::list<int> portList;
 	for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
 	{
-		std::wstring portName = L"\\\\.\\COM" + std::to_wstring(i); // add \\\\.\\ prefix to port name
+		std::wstring portName = L"\\\\.\\COM" + std::to_wstring(i);
 		HANDLE hPort = CreateFileW(portName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (hPort != INVALID_HANDLE_VALUE)
 		{
@@ -66,7 +66,7 @@ private:
 		serialSwitchesMessageLength = 64,
 
 		socketFrequency = 60,
-		socketInterval = 15,
+		socketInterval = 33,
 		socketIndicatorsMessageLength = 64,
 		socketSwitchesMessageLength = 64;
 
@@ -164,17 +164,21 @@ private:
 	{
 		static std::string output;
 
-		if (source.size() > 4)
+		if (source.size() > 8)
 		{
 			output.clear();
 
-			output += (unsigned char)atoi(source.substr(0, 2).c_str()); // speed
-			output += (unsigned char)(0 | source[3] - '0' << 2 | source[2] - '0' << 3); // lkvc and lsn
+			output += source[0]; // speed
+			output += source[1]; // battery voltage
+			output += source[2]; // tm
+			output += source[3]; // тm
+			output += source[4]; // tс
+			output += (unsigned char)(0 | (source[6] - '0') << 2 | (source[5] - '0') << 3); // lkvc and lsn
 
 			unsigned char currentRegister = 0;
 			short indexInByte = 0;
 
-			for (short i = 4; i < source.size(); i++)
+			for (short i = 7; i < source.size(); i++)
 			{
 				if (source[i] == '1')
 					currentRegister |= 1 << indexInByte;
@@ -283,7 +287,7 @@ public:
 			if (!pause)
 			{
 				std::string indicators_t = '{' + convertToBytes(indicators) + '}';
-				//std::cout << "Serial wrt " /*<< indicators_t << ' ' */<< serial.WriteSerialPort(indicators_t) << "\n";
+				//std::cout << "Serial wrt " << indicators_t << ' ' << serial.WriteSerialPort(indicators_t) << "\n";
 				serial.WriteSerialPort(indicators_t);
 
 				std::string switches_t = serial.ReadSerialPort(10);
@@ -361,7 +365,7 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // serialInterval for stop check is 100 ms, but could be anything else. Needed for optimisation
+		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // serialInterval for stop check is 100 ms, but could be anything else. Needed for optimisation
 
 		if (_kbhit()) {
 			switch (_getch()) {
@@ -387,8 +391,10 @@ int main(int argc, char* argv[])
 #ifndef NOSERIAL
 				physpult.serialReconnect();
 #endif
+#ifndef NOSOCKET
 #ifndef PERFILE
 				physpult.socketReconnect();
+#endif
 #endif
 				pause = 0;
 			}

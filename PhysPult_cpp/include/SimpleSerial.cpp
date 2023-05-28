@@ -157,6 +157,5 @@ bool SimpleSerial::CloseSerialPort()
 
 SimpleSerial::~SimpleSerial()
 {
-	//std::cout << connected_ << ' ' << io_handler_ << ' ' << "destr\n";
 	CloseSerialPort();
 }

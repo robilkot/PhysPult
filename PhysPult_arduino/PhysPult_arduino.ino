@@ -27,9 +27,11 @@ uint8_t rightdigit[10][2] = {
 {B11100011, B00000010}
 };
 
-const int pulseWidth = 10; // pulse width for work with registers (prevents from getting trash input)
+const uint8_t pulseWidth = 10; // pulse width for work with registers (prevents from getting trash input)
 
 const long BaudRate = 38400;
+
+const uint32_t idlemode_delay = 1050; // delay before going into idle mode
 
 const uint8_t out_datapin = 2; // 71hc595 registers
 const uint8_t out_clockpin = 4;
@@ -75,10 +77,10 @@ void setup()
     switches[i] = 0;
 
   pinMode(voltmeter_pwmpin, OUTPUT);
-  voltmetershow(75);
+  voltmeterShow(75);
 
   pinMode(tm_pwmpin, OUTPUT);
-  tm_servo.attach(tm_pwmpin);
+  //tm_servo.attach(tm_pwmpin);
 
   pinMode(lighting_datapin, OUTPUT);
 
@@ -90,14 +92,9 @@ void setup()
   
   FastLED.show();
 
-  uint8_t on[5] = {88, 255, 255, 255, 255},
-          off[5] = {0, 0, 0, 0, 0};
-
-  updateIndicators(on);
+  updateIndicatorsOn();
   delay(500);
-  updateIndicators(off);
-  //FastLED.setBrightness(0);
-  delay(100);
+  updateIndicatorsOff();
 
   Serial.begin(BaudRate);
   Serial.setTimeout(15);
@@ -105,106 +102,121 @@ void setup()
   while(Serial.available()) Serial.read();
 }
 
-uint32_t timer = 0;
 int pos = 0; 
 bool direction = 0;
 
 void loop()
 {
+  static bool idlemode = 0;
+  static uint32_t timer_idlemode = 0;
+  static uint32_t timer_switches = 0;
+
+  //--- OPERATING MODE ---
   if(Serial.available()) 
   {
     if(Serial.read() != '{') return;
-    
-    // indicators[temp[0]-'0'] = atoi(temp.substring(1,temp.length()).c_str());
-    // Serial.print(indicators[temp[0]-'0'], DEC);
-    // Serial.print('\n');
-
+  
     Serial.readBytesUntil('}', indicators, out_registerscount);
 
-    //updateSwitches(switches);
+    idlemode = false;
+    timer_idlemode = millis();
+
+    updateSwitches(switches);
     updateIndicators(indicators);
+    voltmeterShow(indicators[1]);
 
     Serial.write('{');
-
     Serial.write(switches, in_registerscount);
-    //Serial.write(indicators, out_registerscount);
-  
     Serial.write('}');
   }
+  //--- OPERATING MODE ---
+
+  //--- PULT LIGHTING ---
+  if(switches[5] >> 4 & 1) FastLED.setBrightness(0);
+  else
+    FastLED.setBrightness(lighting_color[3]);  
 
   FastLED.show();
+  //--- PULT LIGHTING ---
 
-  // long davn = 
-  // //Serial.parseInt(); 
-  // //map(Serial.parseInt(), 0, 55, 0, 180);
-  // map(Serial.parseInt(), 0, 153, 0, 180);
-  // if(davn > 180 || davn < 0) return;
+  //--- IDLE MODE ---
+  if(idlemode) {
+    updateIndicatorsIdle();
 
-  //analogWrite(voltmeter_pwmpin, voltmeterpwm(150));
-
-  if (millis() - timer >= 25)
-  {
-    updateSwitches(switches);
-
-    if(switches[5] >> 4 & 1) FastLED.setBrightness(0);
-    else {
-      FastLED.setBrightness(lighting_color[3]);
-    if(pos > 90) direction = 1;
-    if(pos < 1) direction = 0;
-    pos += direction ? -1 : 1;
+    if(!(switches[0] >> 3 & 1)) {
+    if(lighting_color[3] < 254)
+      lighting_color[3] += 2;
     }
-    
-    tm_servo.write(pos); 
+    if(!(switches[0] >> 2 & 1)) {
+      if(lighting_color[3] > 1)
+        lighting_color[3] -= 2;
+    }
 
-    do {
-      timer += 25;
-      if (timer < 25) break;  // переполнение uint32_t
-    } while (timer < millis() - 25); // защита от пропуска шага
+    if (millis() - timer_switches >= 25)
+    {
+      updateSwitches(switches);
+
+      if(pos > 90) direction = 1;
+      else if(pos < 1) direction = 0;
+      pos += direction ? -1 : 1;
+      //tm_servo.write(pos); 
+
+      do {
+        timer_switches += 25;
+        if (timer_switches < 25) break;
+      } while (timer_switches < millis() - 25);
+    }
   }
+  //--- IDLE MODE ---
+
+  //--- ENTER IDLE MODE ---
+  else if(millis() - timer_idlemode >= idlemode_delay)
+    idlemode = true;
+  //--- ENTER IDLE MODE ---
 }
 
-void voltmetershow(uint8_t voltage) {
-  voltage %= 151;
-  analogWrite(voltmeter_pwmpin, map(voltage, 0, 151, 0, 26));
+void voltmeterShow(uint8_t voltage) {
+  voltage %= 151; // Overflow protection
+  //analogWrite(voltmeter_pwmpin, map(voltage, 0, 151, 0, 26));
+  analogWrite(voltmeter_pwmpin, map(voltage, 0, 150, 0, 255));
 }
 
-byte read165(uint8_t data, uint8_t clock)
+uint8_t read165(uint8_t data, uint8_t clock)
 {
-  byte ret = 0;
+  uint8_t output = 0;
 
   // The first one that is read is the highest bit (input D7 of the 74HC165).
   for(int i = 7; i >= 0; i--)
   {
     if(digitalRead(data) == HIGH)
-      bitSet(ret, i);
+      bitSet(output, i);
 
     digitalWrite(clock, HIGH);
     delayMicroseconds(pulseWidth);
     digitalWrite(clock, LOW);
   }
 
-  return ret;
+  return output;
 }
 
 void updateIndicators(byte* command)
 {
   char speed = command[0];
-  byte secondSpeedByte = leftdigit[speed / 10][0] | rightdigit[speed % 10][0] | command[1];
+  byte secondSpeedByte = leftdigit[speed / 10][0] | rightdigit[speed % 10][0] | command[5];
   byte firstSpeedByte = leftdigit[speed / 10][1] | rightdigit[speed % 10][1]; 
 
   digitalWrite(out_latchpin, 0);
   //*LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
-  delayMicroseconds(pulseWidth);
+  //delayMicroseconds(pulseWidth);
 
-  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[4]); // Регистр 5
-
-  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[2]); // Регистр 4
-  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[3]); // Регистр 3
+  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[8]); // Регистр 5
+  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[6]); // Регистр 4
+  shiftOut(out_datapin, out_clockpin, LSBFIRST, command[7]); // Регистр 3
 
   shiftOut(out_datapin, out_clockpin, LSBFIRST, secondSpeedByte); // Регистр 2
   shiftOut(out_datapin, out_clockpin, LSBFIRST, firstSpeedByte); // Регистр 1 
 
-  delayMicroseconds(pulseWidth);
+  //delayMicroseconds(pulseWidth);
   //*LADDR |= 1 << latch - 8 * Lshift; // latch HIGH
   digitalWrite(out_latchpin, 1);
 }
@@ -215,12 +227,50 @@ void updateSwitches(byte* output) {
   digitalWrite(in_latchpin, HIGH);
 
   for(int i = 0; i < in_registerscount; i++)
-    output[i] = read165(in_datapin, in_clockpin);
- 
-  //for(int k = 0; k < in_registerscount; k++) for(int i = 0; i < 8; i++) Serial.print(output[k] >> (7 - i) & 1);
-  //Serial.println();            
+    output[i] = read165(in_datapin, in_clockpin);           
 }
 
+void updateIndicatorsOn()
+{
+  uint8_t on[5] = {88, 255, 255, 255, 255},
+  updateIndicators(on);
+}
+
+void updateIndicatorsOff()
+{
+  uint8_t off[5] = {0, 0, 0, 0, 0};
+  updateIndicators(off);
+}
+
+void updateIndicatorsIdle()
+{
+  static uint32_t stateTimer = 0;
+  static uint8_t state = 0;
+
+  if (millis() - stateTimer >= 250)
+  {
+    state = (state + 1) % 4;
+
+    digitalWrite(out_latchpin, 0);
+
+    for(int i = 0; i < 3; i++)
+      shiftOut(out_datapin, out_clockpin, LSBFIRST, 0);
+
+    uint8_t random1 = random(0, 8),
+            random2 = random(0, 8);
+    while (random1 == 2 || random1 == 3) random1 = random(0, 8);
+
+    shiftOut(out_datapin, out_clockpin, LSBFIRST, 1 << random1);
+    shiftOut(out_datapin, out_clockpin, LSBFIRST, 1 << random2);
+
+    digitalWrite(out_latchpin, 1);
+
+    do {
+      stateTimer += 250;
+      if (stateTimer < 250) break; 
+    } while (stateTimer < millis() - 250); // защита от пропуска шага
+  }
+}
 
 // volatile uint8_t *DADDR = data > 7 ? &PORTB : &PORTD,
 //                  *LADDR = latch > 7 ? &PORTB : &PORTD,

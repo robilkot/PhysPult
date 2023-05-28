@@ -45,9 +45,11 @@ local indicators = {
 
 	-- 7 Блок
 	--["???"] = 28, -- Контроль печи
-	--["PN"] = 26,
+	["PN"] = 26,
 	-- ["DoorsRightR"] = ??,
 }
+
+local indicatorsMaximumIndex = indicators[table.GetWinningKey(indicators)]
 
 -- Список тумблеров с соответствующим номером бита.
 -- [Номер бита] = { "Имя кнопки", инвертировать ли(по стандарту false) } 
@@ -84,17 +86,17 @@ local switches = {
 	-- [35] = { "VPToggle" },
 	
 	-- 7 блок
-	-- [39] = { "L_4Toggle" },
-	-- [40] = { "VUSToggle" }, 
-	-- [41] = { "VADToggle" },
-	-- [42] = { "VAHToggle" },
+	[25] = { "L_4Toggle" },
+	[26] = { "VUSToggle" }, 
+	[27] = { "VADToggle" },
+	[28] = { "VAHToggle" },
 }
 
 -- Список кнопок для снхронизации, с соответствующим номером бита.
 local buttons = {
 	-- 1 блок
-	-- [2] = "RezMKSet",
-	-- [3] = "ARS13Set",
+	[37] = "RezMKSet",
+	[36] = "ARS13Set",
 
 	-- 5 блок
 	[4] = "R_Program1Set",
@@ -114,9 +116,9 @@ local buttons = {
 	[30] =  "RingSet" ,
 
 	-- 7 блок
-	--[36] =  "KRPSet" ,
+	[38] =  "KRPSet" ,
 	--[37] =  "KAHSet" ,
-	--[38] =  "KDPSet" ,
+	[46] =  "KDPSet" ,
 }
 
 -- Возращает поезд а котором сидит игрок.
@@ -306,15 +308,21 @@ function PhysPult.SynchronizeIndicators(train)
 
 	for k, v in pairs(indicators) do
 		if Metrostroi.GetTrainIndicatorStage(train, k) == true then
-			currentState = string.SetChar(currentState, v + 1, '1')
+			currentState = string.SetChar(currentState, v + 4, '1')
 		else 
-			currentState = string.SetChar(currentState, v + 1, '0')
+			currentState = string.SetChar(currentState, v + 4, '0')
 		end
 	end
 
 	local speed = train:GetPackedRatio("speed") * 100
-	currentState = string.SetChar(currentState, 1, math.floor(speed / 10))
-	currentState = string.SetChar(currentState, 2, math.floor(speed) % 10)
+	currentState = string.SetChar(currentState, 1, string.char(speed))
+
+	local batteryVoltage = train:GetPackedRatio("BatteryVoltage") * 100 * 1.6
+	currentState = string.SetChar(currentState, 2, string.char(batteryVoltage)) 
+
+	-- tm 3
+	-- nm 4 
+	-- tc 5
 
 	PhysPult.SocketWrtData = currentState
 end
