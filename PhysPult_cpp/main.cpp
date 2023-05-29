@@ -12,10 +12,6 @@
 
 constexpr const char* LOCALHOST = "127.0.0.1";
 
-//#define PERFILE // Directive for usage of data transmission per file instead of sockets
-//#define NOSOCKET // Directive for disabling connection via sockets
-//#define NOSERIAL // Directive for disabling connection via serial
-
 std::list<int> GetCOMports()
 {
 	std::list<int> portList;
@@ -58,6 +54,10 @@ std::string SelectCOMport()
 
 class PhysPult {
 private:
+	bool perFile = 0,
+		noSocket = 0,
+		noSerial = 0;
+
 	int socketPort = 61000,
 
 		serialFrequency = 30,
@@ -222,13 +222,22 @@ public:
 
 		reloadConfig(this->configPath);
 
-#ifndef PERFILE
-		socketConnect();
-#endif
-#ifndef NOSERIAL
-		serialConnect();
-#endif
+		if (!this->perFile && !this->noSocket)
+			socketConnect();
+
+		if (!this->noSerial)
+			serialConnect();
 	};
+
+	bool isPerFile() {
+		return this->perFile;
+	}
+	bool isNoSerial() {
+		return this->noSerial;
+	}
+	bool isNoSocket() {
+		return this->noSocket;
+	}
 
 	void reloadConfig(std::string configPath)
 	{
@@ -246,10 +255,16 @@ public:
 		}
 		else std::cerr << "Couldn't open config file! Using previously set parameters.\n";
 
-		std::string metrostroiDataPath;
+		std::string metrostroiDataPath,
+					arguments;
 		getline(config, metrostroiDataPath);
 		getline(config, metrostroiDataPath);
 		this->metrostroiDataPath = metrostroiDataPath;
+
+		getline(config, arguments);
+		this->perFile = arguments.find("perfile") != std::string::npos;
+		this->noSerial = arguments.find("noserial") != std::string::npos;
+		this->noSocket = arguments.find("nosocket") != std::string::npos;
 
 		std::ofstream luaConfig(metrostroiDataPath + "\\physpult.txt");
 		if (!config.is_open())
@@ -277,9 +292,10 @@ public:
 		socketConnect();
 	}
 
-	void updateSerial(bool& stop, bool& pause)
+	void updateSerial(PhysPult& physpult, bool& stop, bool& pause)
 	{
-#ifndef NOSERIAL
+		if (physpult.isNoSerial()) return;
+
 		while (!stop)
 		{
 			auto beginTime = std::chrono::high_resolution_clock::now();
@@ -301,51 +317,51 @@ public:
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
 			if (deltaTime < serialInterval) std::this_thread::sleep_for(std::chrono::milliseconds(serialInterval - deltaTime));
 		}
-#endif
 	}
 
-	void updateSocket(bool& stop, bool& pause)
+	void updateSocket(PhysPult& physpult, bool& stop, bool& pause)
 	{
-#ifndef NOSOCKET
+		if (physpult.isNoSocket()) return;
+
 		while (!stop)
 		{
 			auto beginTime = std::chrono::high_resolution_clock::now();
 			//---
 			if (!pause) {
 				std::string indicators_t;
-#ifdef  PERFILE
-				std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
-				if (file1.is_open()) {
-					file1 >> indicators_t;
-					//std::cout << "fil rec [" << indicators_t << "]\n";
-				}
-				else std::cout << "fil rec failed\n";
-				
-				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
 
-				std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
-				if (file2.is_open()) {
-					file2 << switches;
-					//std::cout << "fil wrt [" << switches << "]\n";
+				if (physpult.isPerFile()) {
+					std::ifstream file1(metrostroiDataPath + "\\physpult_indicators.txt");
+					if (file1.is_open()) {
+						file1 >> indicators_t;
+						//std::cout << "fil rec [" << indicators_t << "]\n";
+					}
+					else std::cout << "fil rec failed\n";
+
+					/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/ indicators = indicators_t;
+
+					std::ofstream file2(metrostroiDataPath + "\\physpult_switches.txt");
+					if (file2.is_open()) {
+						file2 << switches;
+						//std::cout << "fil wrt [" << switches << "]\n";
+					}
+					else {
+						std::cout << "fil wrt failed\n";
+					}
 				}
 				else {
-					std::cout << "fil wrt failed\n";
-				}
-#else
-				indicators_t = ReceiveFromSocket();
-				/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/
-				indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
+					indicators_t = ReceiveFromSocket();
+					/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/
+					indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
 
-				SendToSocket(switches + '\0');
-#endif //  PERFILE
+					SendToSocket(switches + '\0');
+				}
 			}
 			//---
 			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
 			if (deltaTime < socketInterval) std::this_thread::sleep_for(std::chrono::milliseconds(socketInterval - deltaTime));
 		}
-#endif //  NOSOCKET
 	}
-
 };
 
 int main(int argc, char* argv[])
@@ -357,8 +373,8 @@ int main(int argc, char* argv[])
 
 	bool stop = 0, pause = 0, reload = 0;
 
-	std::thread socketThread([&]() { physpult.updateSocket(stop, pause); }),
-		serialThread([&]() { physpult.updateSerial(stop, pause); });
+	std::thread socketThread([&]() { physpult.updateSocket(physpult, stop, pause); }),
+		serialThread([&]() { physpult.updateSerial(physpult, stop, pause); });
 
 	socketThread.detach();
 	serialThread.detach();
@@ -388,14 +404,13 @@ int main(int argc, char* argv[])
 				reload = 0;
 				pause = 1;
 				physpult.reloadConfig(arg);
-#ifndef NOSERIAL
-				physpult.serialReconnect();
-#endif
-#ifndef NOSOCKET
-#ifndef PERFILE
-				physpult.socketReconnect();
-#endif
-#endif
+
+				if(!physpult.isNoSerial())
+					physpult.serialReconnect();
+
+				if (!physpult.isNoSocket() && !physpult.isPerFile())
+					physpult.socketReconnect();
+
 				pause = 0;
 			}
 			if (stop) break; // Break from while(true) loop
