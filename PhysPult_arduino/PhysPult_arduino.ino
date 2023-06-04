@@ -1,4 +1,5 @@
-#include <FastLED.h>
+//#include <FastLED.h>
+#include <microLED.h> 
 #include <Servo.h>
 
 uint8_t leftdigit[10][2] = {
@@ -56,9 +57,10 @@ Servo tm_servo;
 
 const uint8_t lighting_datapin = 3; // pult lighting
 const uint8_t lighting_ledcount = 8;
-uint8_t lighting_color[4] = { 30, 200, 255, 150 }; // HSV + brightness
+// uint8_t lighting_color[4] = { 30, 200, 255, 150 }; // HSV + brightness
+uint8_t lighting_color[4] = { 25, 200, 255, 50 }; // HSV + brightness
 
-CRGB leds[lighting_ledcount];
+microLED<lighting_ledcount, lighting_datapin, MLED_NO_CLOCK, LED_WS2812, ORDER_GRB, CLI_AVER, SAVE_MILLIS> pultLighting;
 
 void setup()
 {
@@ -80,24 +82,23 @@ void setup()
   voltmeterShow(75);
 
   pinMode(tm_pwmpin, OUTPUT);
-  //tm_servo.attach(tm_pwmpin);
+  tm_servo.attach(tm_pwmpin);
 
   pinMode(lighting_datapin, OUTPUT);
 
-  FastLED.addLeds<WS2812B, lighting_datapin, GRB>(leds, lighting_ledcount).setCorrection(TypicalLEDStrip);
-  FastLED.setBrightness(0);
-  // FastLED.setBrightness(lighting_color[3]);
-  for (int i = 0; i < lighting_ledcount; i++ )
-    leds[i] = CHSV(lighting_color[0], lighting_color[1], lighting_color[2]);
+  //pultLighting.setBrightness(0);
+  pultLighting.setBrightness(lighting_color[3]);
+  pultLighting.fill(mHSV(lighting_color[0], lighting_color[1], lighting_color[2]));
   
-  FastLED.show();
+  pultLighting.show();
+
+
+  Serial.begin(BaudRate);
+  Serial.setTimeout(15);
 
   updateIndicatorsOn();
   delay(500);
   updateIndicatorsOff();
-
-  Serial.begin(BaudRate);
-  Serial.setTimeout(15);
 
   while(Serial.available()) Serial.read();
 }
@@ -132,15 +133,19 @@ void loop()
   //--- OPERATING MODE ---
 
   //--- PULT LIGHTING ---
-  if(switches[5] >> 4 & 1) FastLED.setBrightness(0);
-  else
-    FastLED.setBrightness(lighting_color[3]);  
+  // if(switches[5] >> 4 & 1) pultLighting.setBrightness(0);
+  // else
+  //   pultLighting.setBrightness(lighting_color[3]);  
 
-  FastLED.show();
+  // FastLED.show();
   //--- PULT LIGHTING ---
 
   //--- IDLE MODE ---
   if(idlemode) {
+    // uint16_t volt = map(analogRead(A5), 0, 400, 0, 100);
+    // delay(100);
+    // Serial.println(volt);
+
     updateIndicatorsIdle();
 
     if(!(switches[0] >> 3 & 1)) {
@@ -152,19 +157,21 @@ void loop()
         lighting_color[3] -= 2;
     }
 
-    if (millis() - timer_switches >= 25)
+    const int del = 15; 
+
+    if (millis() - timer_switches >= del)
     {
+      pultLighting.show();
+
       updateSwitches(switches);
 
-      if(pos > 90) direction = 1;
-      else if(pos < 1) direction = 0;
-      pos += direction ? -1 : 1;
-      //tm_servo.write(pos); 
+      pos++;
+      tm_servo.write(90*(sin((double)pos/100)+1));
 
       do {
-        timer_switches += 25;
-        if (timer_switches < 25) break;
-      } while (timer_switches < millis() - 25);
+        timer_switches += del;
+        if (timer_switches < del) break;
+      } while (timer_switches < millis() - del);
     }
   }
   //--- IDLE MODE ---
@@ -177,7 +184,6 @@ void loop()
 
 void voltmeterShow(uint8_t voltage) {
   voltage %= 151; // Overflow protection
-  //analogWrite(voltmeter_pwmpin, map(voltage, 0, 151, 0, 26));
   analogWrite(voltmeter_pwmpin, map(voltage, 0, 150, 0, 255));
 }
 
@@ -264,6 +270,8 @@ void updateIndicatorsIdle()
     shiftOut(out_datapin, out_clockpin, LSBFIRST, 1 << random2);
 
     digitalWrite(out_latchpin, 1);
+
+    voltmeterShow(69);
 
     do {
       stateTimer += 250;
