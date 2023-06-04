@@ -12,10 +12,10 @@
 
 constexpr const char* LOCALHOST = "127.0.0.1";
 
-std::list<int> GetCOMports()
+std::list<uint8_t> GetCOMports()
 {
-	std::list<int> portList;
-	for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
+	std::list<uint8_t> portList;
+	for (uint8_t i = 0; i < 255; i++) // checking ports from COM0 to COM255
 	{
 		std::wstring portName = L"\\\\.\\COM" + std::to_wstring(i);
 		HANDLE hPort = CreateFileW(portName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
@@ -33,7 +33,7 @@ std::string SelectCOMport()
 {
 	std::string com_port = "\\\\.\\COM";
 	do {
-		std::list<int> COMports = GetCOMports();
+		std::list<uint8_t> COMports = GetCOMports();
 		if (COMports.empty()) {
 			std::cerr << "No COM ports available! Press q to exit or any other key to retry.\n\n";
 			if (_getch() == 'q') exit(EXIT_SUCCESS);
@@ -44,9 +44,9 @@ std::string SelectCOMport()
 		}
 		else {
 			std::cout << "Input COM port number and press Enter\n";
-			short number = 0;
+			uint8_t number = 0;
 			std::cin >> number;
-			com_port += std::to_string(number);
+			com_port += number;
 		}
 		return com_port;
 	} while (true);
@@ -54,9 +54,9 @@ std::string SelectCOMport()
 
 class PhysPult {
 private:
-	bool perFile = 0,
-		noSocket = 0,
-		noSerial = 0;
+	bool perFile = false,
+		noSocket = false,
+		noSerial = false;
 
 	int socketPort = 61000,
 
@@ -81,7 +81,19 @@ private:
 	SimpleSerial serial;
 	TcpClient socket = *new TcpClient(LOCALHOST, socketPort);
 
+	bool isPerFile() {
+		return this->perFile;
+	}
+	bool isNoSerial() {
+		return this->noSerial;
+	}
+	bool isNoSocket() {
+		return this->noSocket;
+	}
+
 	void serialConnect() {
+		if (this->noSerial) return;
+
 		COMport = SelectCOMport();
 
 		do {
@@ -103,10 +115,10 @@ private:
 	}
 
 	void socketConnect() {
+		if (this->noSocket || this->perFile) return;
+
 		socket = *new TcpClient(LOCALHOST, socketPort);
 
-#ifndef NOSOCKET
-#ifndef PERFILE
 		do {
 			try
 			{
@@ -124,8 +136,6 @@ private:
 				}
 			}
 		} while (true);
-#endif // !PERFILE
-#endif // !NOSOCKET 
 	}
 
 	// Check for socket error codes here: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
@@ -170,15 +180,16 @@ private:
 
 			output += source[0]; // speed
 			output += source[1]; // battery voltage
+
 			output += source[2]; // tm
-			output += source[3]; // тm
+			output += source[3]; // nm
 			output += source[4]; // tс
 			output += (unsigned char)(0 | (source[6] - '0') << 2 | (source[5] - '0') << 3); // lkvc and lsn
 
-			unsigned char currentRegister = 0;
-			short indexInByte = 0;
+			uint8_t currentRegister = 0,
+					indexInByte = 0;
 
-			for (short i = 7; i < source.size(); i++)
+			for (uint8_t i = 7; i < source.size(); i++)
 			{
 				if (source[i] == '1')
 					currentRegister |= 1 << indexInByte;
@@ -205,7 +216,7 @@ private:
 		{
 			output.clear();
 
-			for (short i = 0; i < source.size(); i++)
+			for (uint8_t i = 0; i < source.size(); i++)
 			{
 				for (short k = 0; k < 8; k++)
 					output += source[i] >> k & 1 ? '0' : '1';
@@ -222,22 +233,9 @@ public:
 
 		reloadConfig(this->configPath);
 
-		if (!this->perFile && !this->noSocket)
-			socketConnect();
-
-		if (!this->noSerial)
-			serialConnect();
+		socketConnect();
+		serialConnect();
 	};
-
-	bool isPerFile() {
-		return this->perFile;
-	}
-	bool isNoSerial() {
-		return this->noSerial;
-	}
-	bool isNoSocket() {
-		return this->noSocket;
-	}
 
 	void reloadConfig(std::string configPath)
 	{
@@ -280,6 +278,8 @@ public:
 	void serialReconnect() {
 		serial.~SimpleSerial(); // Close previous connection
 
+		if (this->noSerial) return;
+
 		serial = *new SimpleSerial(&COMport[0], baudRate, "json");
 
 		if (!serial.connected_) {
@@ -314,7 +314,7 @@ public:
 				//if (switches_t.length() == serialSwitchesMessageLength) switches = switches_t;
 			}
 			//---
-			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
+			auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
 			if (deltaTime < serialInterval) std::this_thread::sleep_for(std::chrono::milliseconds(serialInterval - deltaTime));
 		}
 	}
@@ -353,12 +353,13 @@ public:
 					indicators_t = ReceiveFromSocket();
 					/*if (indicators_t.length() == socketIndicatorsMessageLength + 1)*/
 					indicators = indicators_t.substr(0, socketIndicatorsMessageLength);
+					indicators = convertToBytes(indicators);
 
 					SendToSocket(switches + '\0');
 				}
 			}
 			//---
-			int deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
+			auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - beginTime).count();
 			if (deltaTime < socketInterval) std::this_thread::sleep_for(std::chrono::milliseconds(socketInterval - deltaTime));
 		}
 	}
@@ -369,12 +370,12 @@ int main(int argc, char* argv[])
 	std::string arg = argv[1] == NULL ? "physpult_config.txt" : argv[1];
 	PhysPult physpult(arg);
 
-	std::cout << "Starting. Press 'space' to stop or 'q' to exit.\n\n";
+	std::cout << "Starting. Press 'space' to pause or 'q' to exit.\n\n";
 
 	bool stop = 0, pause = 0, reload = 0;
 
 	std::thread socketThread([&]() { physpult.updateSocket(physpult, stop, pause); }),
-		serialThread([&]() { physpult.updateSerial(physpult, stop, pause); });
+				serialThread([&]() { physpult.updateSerial(physpult, stop, pause); });
 
 	socketThread.detach();
 	serialThread.detach();
@@ -403,13 +404,10 @@ int main(int argc, char* argv[])
 			if (reload) {
 				reload = 0;
 				pause = 1;
+
 				physpult.reloadConfig(arg);
-
-				if(!physpult.isNoSerial())
-					physpult.serialReconnect();
-
-				if (!physpult.isNoSocket() && !physpult.isPerFile())
-					physpult.socketReconnect();
+				physpult.serialReconnect();
+				physpult.socketReconnect();
 
 				pause = 0;
 			}

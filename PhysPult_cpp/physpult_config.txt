@@ -1,6 +1,6 @@
 61000 30 30 38400 9 64 64 48
 C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\data\metrostroi_data
-perfile nosocket noserial
+nosocket
 
 Port - serial frequency - socket frequency - Baud rate - serialIndicatorsMessageLength - socketIndicatorsMessageLength - serialSwitchesMessageLength - socketSwitchesMessageLength
 Path to metrostroi_data
