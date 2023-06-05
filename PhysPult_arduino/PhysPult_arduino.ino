@@ -1,6 +1,6 @@
-//#include <FastLED.h>
-#include <microLED.h> 
-#include <Servo.h>
+#include <microLED.h>
+#include <ServoSmooth.h>
+#include <TimerMs.h>
 
 uint8_t leftdigit[10][2] = {
 {B00010000, B11101001},
@@ -28,11 +28,12 @@ uint8_t rightdigit[10][2] = {
 {B11100011, B00000010}
 };
 
+const uint32_t BaudRate = 38400;
+
 const uint8_t pulseWidth = 10; // pulse width for work with registers (prevents from getting trash input)
 
-const long BaudRate = 38400;
-
-const uint32_t idlemode_delay = 1050; // delay before going into idle mode
+const uint16_t idlemode_delay = 1050; // delay before going into idle mode
+const uint16_t switches_delay = 30; // interval for updating switches state
 
 const uint8_t out_datapin = 2; // 71hc595 registers
 const uint8_t out_clockpin = 4;
@@ -53,14 +54,18 @@ const uint8_t tm_pwmpin = 9;
 //const uint8_t nm_pwmpin = 9;
 //const uint8_t tc_pwmpin = 9;
 
-Servo tm_servo;
+ServoSmooth tm_servo;
 
 const uint8_t lighting_datapin = 3; // pult lighting
 const uint8_t lighting_ledcount = 8;
-// uint8_t lighting_color[4] = { 30, 200, 255, 150 }; // HSV + brightness
-uint8_t lighting_color[4] = { 25, 200, 255, 50 }; // HSV + brightness
+// uint8_t lighting_color[4] = { 30, 200, 255, 150 }; // HSV + brightness (FastLED)
+uint8_t lighting_color[4] = { 25, 200, 255, 50 }; // HSV + brightness (MicroLED)
 
 microLED<lighting_ledcount, lighting_datapin, MLED_NO_CLOCK, LED_WS2812, ORDER_GRB, CLI_AVER, SAVE_MILLIS> pultLighting;
+
+TimerMs idleModeTimer(idlemode_delay, 1, 1);
+TimerMs switchesTimer(switches_delay, 1, 0);
+TimerMs pultLightingTimer(50, 1, 0); // must be >40 mks
 
 void setup()
 {
@@ -72,26 +77,24 @@ void setup()
   pinMode(in_clockpin, OUTPUT);
   pinMode(in_latchpin, OUTPUT);
 
-  for(int i = 0; i < out_registerscount; i++)
-    indicators[i] = 0;
-
-  for(int i = 0; i < in_registerscount; i++)
-    switches[i] = 0;
+  for(uint8_t i = 0; i < out_registerscount; i++) indicators[i] = 0;
+  for(uint8_t i = 0; i < in_registerscount; i++) switches[i] = 0;
 
   pinMode(voltmeter_pwmpin, OUTPUT);
   voltmeterShow(75);
 
   pinMode(tm_pwmpin, OUTPUT);
   tm_servo.attach(tm_pwmpin);
+  tm_servo.setSpeed(150);
+  tm_servo.setAccel(0.25);
 
   pinMode(lighting_datapin, OUTPUT);
 
-  //pultLighting.setBrightness(0);
-  pultLighting.setBrightness(lighting_color[3]);
+  pultLighting.setBrightness(0);
+  // pultLighting.setBrightness(lighting_color[3]);
   pultLighting.fill(mHSV(lighting_color[0], lighting_color[1], lighting_color[2]));
   
   pultLighting.show();
-
 
   Serial.begin(BaudRate);
   Serial.setTimeout(15);
@@ -103,14 +106,18 @@ void setup()
   while(Serial.available()) Serial.read();
 }
 
-int pos = 0; 
-bool direction = 0;
-
 void loop()
-{
-  static bool idlemode = 0;
-  static uint32_t timer_idlemode = 0;
-  static uint32_t timer_switches = 0;
+{ 
+  static int pos = 0;
+  static bool direction = 0;
+
+  if(++pos > 180) {
+    pos = 0;
+    direction = !direction;
+    tm_servo.setTargetDeg(180*direction);
+  }
+  
+  tm_servo.tick();
 
   //--- OPERATING MODE ---
   if(Serial.available()) 
@@ -119,8 +126,7 @@ void loop()
   
     Serial.readBytesUntil('}', indicators, out_registerscount);
 
-    idlemode = false;
-    timer_idlemode = millis();
+    idleModeTimer.start();
 
     updateSwitches(switches);
     updateIndicators(indicators);
@@ -133,53 +139,34 @@ void loop()
   //--- OPERATING MODE ---
 
   //--- PULT LIGHTING ---
-  // if(switches[5] >> 4 & 1) pultLighting.setBrightness(0);
-  // else
-  //   pultLighting.setBrightness(lighting_color[3]);  
+  if(pultLightingTimer.tick()) {
+    if(switches[5] >> 4 & 1) pultLighting.setBrightness(0);
+    else
+      pultLighting.setBrightness(lighting_color[3]);  
 
-  // FastLED.show();
+    pultLighting.show();
+  }
   //--- PULT LIGHTING ---
 
   //--- IDLE MODE ---
-  if(idlemode) {
-    // uint16_t volt = map(analogRead(A5), 0, 400, 0, 100);
-    // delay(100);
-    // Serial.println(volt);
+  if(idleModeTimer.elapsed()) {
 
     updateIndicatorsIdle();
 
-    if(!(switches[0] >> 3 & 1)) {
-    if(lighting_color[3] < 254)
-      lighting_color[3] += 2;
-    }
-    if(!(switches[0] >> 2 & 1)) {
-      if(lighting_color[3] > 1)
-        lighting_color[3] -= 2;
-    }
-
-    const int del = 15; 
-
-    if (millis() - timer_switches >= del)
-    {
-      pultLighting.show();
-
+    if(switchesTimer.tick()) {
       updateSwitches(switches);
 
-      pos++;
-      tm_servo.write(90*(sin((double)pos/100)+1));
-
-      do {
-        timer_switches += del;
-        if (timer_switches < del) break;
-      } while (timer_switches < millis() - del);
+      if(!(switches[0] >> 3 & 1)) {
+        if(lighting_color[3] < 254)
+          lighting_color[3] += 2;
+      }
+      if(!(switches[0] >> 2 & 1)) {
+        if(lighting_color[3] > 1)
+          lighting_color[3] -= 2;
+      }
     }
   }
   //--- IDLE MODE ---
-
-  //--- ENTER IDLE MODE ---
-  else if(millis() - timer_idlemode >= idlemode_delay)
-    idlemode = true;
-  //--- ENTER IDLE MODE ---
 }
 
 void voltmeterShow(uint8_t voltage) {
@@ -187,29 +174,11 @@ void voltmeterShow(uint8_t voltage) {
   analogWrite(voltmeter_pwmpin, map(voltage, 0, 150, 0, 255));
 }
 
-uint8_t read165(uint8_t data, uint8_t clock)
-{
-  uint8_t output = 0;
-
-  // The first one that is read is the highest bit (input D7 of the 74HC165).
-  for(int i = 7; i >= 0; i--)
-  {
-    if(digitalRead(data) == HIGH)
-      bitSet(output, i);
-
-    digitalWrite(clock, HIGH);
-    delayMicroseconds(pulseWidth);
-    digitalWrite(clock, LOW);
-  }
-
-  return output;
-}
-
 void updateIndicators(byte* command)
 {
   char speed = command[0];
-  byte secondSpeedByte = leftdigit[speed / 10][0] | rightdigit[speed % 10][0] | command[5];
-  byte firstSpeedByte = leftdigit[speed / 10][1] | rightdigit[speed % 10][1]; 
+  uint8_t secondSpeedByte = leftdigit[speed / 10][0] | rightdigit[speed % 10][0] | command[5];
+  uint8_t firstSpeedByte = leftdigit[speed / 10][1] | rightdigit[speed % 10][1]; 
 
   digitalWrite(out_latchpin, 0);
   //*LADDR &= ~(1 << latch - 8 * Lshift); // latch LOW
@@ -232,8 +201,17 @@ void updateSwitches(byte* output) {
   delayMicroseconds(pulseWidth);
   digitalWrite(in_latchpin, HIGH);
 
-  for(int i = 0; i < in_registerscount; i++)
-    output[i] = read165(in_datapin, in_clockpin);           
+  for(uint8_t i = 0; i < in_registerscount; i++) {
+    for(uint8_t k = 7; k >= 0; k--)
+    {
+      if(digitalRead(in_datapin) == HIGH)
+        bitSet(output[i], k);
+
+      digitalWrite(in_clockpin, HIGH);
+      delayMicroseconds(pulseWidth);
+      digitalWrite(in_clockpin, LOW);
+    }
+  }           
 }
 
 void updateIndicatorsOn()
@@ -250,16 +228,16 @@ void updateIndicatorsOff()
 
 void updateIndicatorsIdle()
 {
-  static uint32_t stateTimer = 0;
+  static TimerMs stateTimer(250, 1, 0);
   static uint8_t state = 0;
 
-  if (millis() - stateTimer >= 250)
+  if (stateTimer.tick())
   {
     state = (state + 1) % 4;
 
     digitalWrite(out_latchpin, 0);
 
-    for(int i = 0; i < 3; i++)
+    for(uint8_t i = 0; i < 3; i++)
       shiftOut(out_datapin, out_clockpin, LSBFIRST, 0);
 
     uint8_t random1 = random(0, 8),
@@ -272,11 +250,6 @@ void updateIndicatorsIdle()
     digitalWrite(out_latchpin, 1);
 
     voltmeterShow(69);
-
-    do {
-      stateTimer += 250;
-      if (stateTimer < 250) break; 
-    } while (stateTimer < millis() - 250); // защита от пропуска шага
   }
 }
 
