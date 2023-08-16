@@ -11,6 +11,7 @@ local function clientHanlder(tcpClient)
         local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
         local params = string.Split(paramsString, " ")
         
+        -- Update connection parameters received from c++ program
         PhysPult.SocketPort = tonumber(params[1])
         PhysPult.UpdateInterval = tonumber(params[2])
         PhysPult.IndicatorsNumber = tonumber(params[3])
@@ -22,6 +23,7 @@ local function clientHanlder(tcpClient)
     local timerName = "tcp-client-handler"..tcpClient:getsockname()
     local errorCount = 0
 
+    -- мб это вызывается несколько раз
     if(PhysPult.SocketWrtData) then tcpClient:send(PhysPult.SocketWrtData) end
     tcpClient:settimeout(0.01)
 

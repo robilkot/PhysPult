@@ -12,27 +12,27 @@ if(SERVER) then return end
 
 timer.Create("PhysPultInit", 0.5, 1, function()
 
--- Список индикаторов с соответствующим номером бита.
+-- Список индикаторов с соответствующим индексом в строке (Индексация с нуля, символы 0 и 1 завезервированы скоростью).
 local indicators = {
 	-- 2 Блок
-	["KVC"] = 3, --
+	["SN"] = 2,
+	["KVC"] = 3,
+	["HRK"] = 4, 
+	["LN"] = 5,
+	["ST"] = 6, 
+	--["???"] = 7, -- ДВ
+	["RP"] = 8, 
+	["SD"] = 9, 
+	["GLIB"] = 10, -- ЛЭКК
+	["VD"] = 11, 
+	["AR70"] = 12, 
+	["AR40"] = 13, 
+	["KT"] = 14,
+	["KVD"] = 15, 
 	["AR0"] = 16, 
 	["AR04"] = 17, 
-	["AR40"] = 13, 
-	["AR60"] = 19, 
-	["AR70"] = 12, 
 	["AR80"] = 18, 
-	["SD"] = 9, 
-	["VD"] = 11, 
-	["RP"] = 8, 
-	["SN"] = 2, --
-	["HRK"] = 4, 
-	["KVD"] = 15, 
-	["ST"] = 6, 
-	--["???"] = 8, -- ДВ
-	["KT"] = 14,
-	["LN"] = 5,
-	["GLIB"] = 10, -- ЛЭКК
+	["AR60"] = 19, 
 
 	-- 5-6 Блоки
 	["GreenRP"] = 27,
@@ -296,8 +296,8 @@ PhysPult = PhysPult or {}
 PhysPult.SwitchesNumber = 64
 PhysPult.IndicatorsNumber = 64
 
--- Частота обновления состояния (Гц).
-PhysPult.UpdateInterval = 5
+-- Интервал обновления состояния (миллисекунды).
+PhysPult.UpdateInterval = 15
 
 -- Порт для подключения по сокетам
 PhysPult.SocketPort = 61000
@@ -323,6 +323,8 @@ function PhysPult.SynchronizeIndicators(train)
 	-- tm 3
 	-- nm 4 
 	-- tc 5
+
+	currentState = string.SetChar(currentState, 11, '1') -- set LEKK to 1
 
 	PhysPult.SocketWrtData = currentState
 end
