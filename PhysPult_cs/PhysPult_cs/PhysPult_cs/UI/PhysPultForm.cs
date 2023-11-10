@@ -1,5 +1,4 @@
 using PhysPult.Logic;
-using System.IO.Ports;
 using System.Timers;
 
 namespace PhysPult.UI
@@ -16,6 +15,8 @@ namespace PhysPult.UI
 
             _statusLabelHandler.StatusLabel = statusLabel;
             _ports.Notifier = _statusLabelHandler;
+            _ports.Logger = new DummyLogger();
+            _ports.Logger.LogEvent += LogMessage;
 
             _statusLabelUpdateTimer = new()
             {
@@ -25,7 +26,12 @@ namespace PhysPult.UI
             };
             _statusLabelUpdateTimer.Elapsed += new ElapsedEventHandler(_statusLabelHandler.Update);
 
-            _ports.Update += UpdateComPortsComboBox;
+            _ports.Refresh += UpdateComPortsComboBox;
+        }
+
+        public void LogMessage(string message, MessageTypes messageTypes)
+        {
+            logListBox.Items.Add($"{messageTypes} - {message}");
         }
 
         public void UpdateComPortsComboBox()
@@ -40,35 +46,18 @@ namespace PhysPult.UI
 
             comPortsComboBox.SelectedItem = oldSelectedPort;
 
-            if(oldSelectedPort == null && comPortsComboBox.Items.Count > 0 || comPortsComboBox.Items.Count == 1)
+            if (oldSelectedPort == null && comPortsComboBox.Items.Count > 0 || comPortsComboBox.Items.Count == 1)
             {
                 comPortsComboBox.SelectedItem = comPortsComboBox.Items[0];
             }
         }
         private void UpdateComPortsList()
         {
-            _ports.Update();
+            _ports.Refresh();
         }
         private void PhysPultForm_Load(object sender, EventArgs e)
         {
             UpdateComPortsList();
-
-            //SerialPort sp = new()
-            //{
-            //    PortName = "COM5",
-            //    BaudRate = 57600
-            //};
-
-            //try
-            //{
-            //    sp.Open();
-            //    sp.WriteLine("125");
-            //    _statusLabelHandler.Notify(sp.ReadLine());
-            //}
-            //catch (Exception ex)
-            //{
-            //    _statusLabelHandler.Notify(ex.Message);
-            //}
         }
 
         private void connectButton_Click(object sender, EventArgs e)
@@ -84,6 +73,13 @@ namespace PhysPult.UI
         private void comPortsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             _ports.SelectPort((string)comPortsComboBox.SelectedItem);
+        }
+
+        private void setHueButton_Click(object sender, EventArgs e)
+        {
+            byte hue = 0;
+            _ = byte.TryParse(hueTextBox.Text, out hue);
+            _ports.SetHue(hue);
         }
     }
 }

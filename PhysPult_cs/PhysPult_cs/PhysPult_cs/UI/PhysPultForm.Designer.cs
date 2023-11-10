@@ -89,8 +89,8 @@
             // statusLabel
             // 
             this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(49, 20);
-            this.statusLabel.Text = "Status";
+            this.statusLabel.Size = new System.Drawing.Size(50, 20);
+            this.statusLabel.Text = "Idling.";
             // 
             // splitContainer1
             // 
@@ -144,6 +144,7 @@
             // 
             this.valueTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.valueTextBox.Enabled = false;
             this.valueTextBox.Location = new System.Drawing.Point(15, 126);
             this.valueTextBox.MaxLength = 3;
             this.valueTextBox.Name = "valueTextBox";
@@ -161,6 +162,7 @@
             this.hueTextBox.PlaceholderText = "0-255";
             this.hueTextBox.Size = new System.Drawing.Size(138, 27);
             this.hueTextBox.TabIndex = 1;
+            this.hueTextBox.Text = "128";
             // 
             // setHueButton
             // 
@@ -172,6 +174,7 @@
             this.setHueButton.TabIndex = 2;
             this.setHueButton.Text = "Set Hue";
             this.setHueButton.UseVisualStyleBackColor = true;
+            this.setHueButton.Click += new System.EventHandler(this.setHueButton_Click);
             // 
             // redoButton
             // 
@@ -210,6 +213,7 @@
             // 
             this.setValueButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.setValueButton.Enabled = false;
             this.setValueButton.Location = new System.Drawing.Point(159, 126);
             this.setValueButton.Name = "setValueButton";
             this.setValueButton.Size = new System.Drawing.Size(94, 27);
@@ -245,6 +249,7 @@
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.statusStrip1);
             this.Name = "PhysPultForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Async COM controller";
             this.Load += new System.EventHandler(this.PhysPultForm_Load);
             this.statusStrip1.ResumeLayout(false);

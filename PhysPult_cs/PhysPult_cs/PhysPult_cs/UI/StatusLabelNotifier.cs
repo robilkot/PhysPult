@@ -5,7 +5,7 @@ namespace PhysPult.UI
     public class StatusLabelNotifier : Logic.INotifier
     {
         private static readonly int s_messagesInterval = 1000;
-        private static readonly string s_defaultStatus = "Waiting for actions...";
+        private static readonly string s_defaultStatus = "Idling.";
 
         private Queue<string> _messages = new();
         private ToolStripStatusLabel _statusLabel;
