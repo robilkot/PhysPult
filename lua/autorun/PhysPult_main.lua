@@ -320,9 +320,14 @@ function PhysPult.SynchronizeIndicators(train)
 	local batteryVoltage = train:GetPackedRatio("BatteryVoltage") * 100 * 1.6
 	currentState = string.SetChar(currentState, 2, string.char(batteryVoltage)) 
 
-	-- tm 3
-	-- nm 4 
-	-- tc 5
+	local pressureTM = train:GetPackedRatio("BLPressure") * 100 * 8 / 5
+	currentState = string.SetChar(currentState, 3, string.char(pressureTM)) 
+
+	local pressureNM = train:GetPackedRatio("TLPressure") * 100 * 8 / 5
+	currentState = string.SetChar(currentState, 4, string.char(pressureNM)) 
+
+	local pressureBC = train:GetPackedRatio("BCPressure") * 100 * 5 / 8
+	currentState = string.SetChar(currentState, 5, string.char(pressureBC)) 
 
 	currentState = string.SetChar(currentState, 11, '1') -- set LEKK to 1
 
