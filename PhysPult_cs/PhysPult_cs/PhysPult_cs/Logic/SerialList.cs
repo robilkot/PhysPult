@@ -3,7 +3,7 @@ using System.Management;
 
 namespace PhysPult.Logic
 {
-    public class SerialList
+    public class SerialList : IDisposable
     {
         public List<SerialPort> Ports = new();
 
@@ -15,7 +15,8 @@ namespace PhysPult.Logic
         {
             Update = UpdateComPortsList;
 
-            Task.Run(StartComPortsWatcher);
+            StartComPortsWatcher();
+            //Task.Run(StartComPortsWatcher);
         }
 
         private void StartComPortsWatcher()
@@ -32,47 +33,82 @@ namespace PhysPult.Logic
         }
         public void Open()
         {
-            ActivePort?.Open();
-            Notifier?.Notify("Opened connection");
+            if (ActivePort == null)
+            {
+                Notifier?.Notify("No port is active");
+                return;
+            }
+
+            try
+            {
+            ActivePort.Open();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.Notify(ex.Message);
+            }
+
+            if (ActivePort.IsOpen)
+            {
+                Notifier?.Notify("Connection opened");
+            }
         }
         public void Close()
         {
-            ActivePort?.Close();
-            Notifier?.Notify("Closed connection");
-        }
-        public void UpdateComPortsList()
-        {
-            var newItems = SerialPort.GetPortNames();
-
-            Ports.RemoveAll(p => !newItems.Contains(p.PortName));
-
-            foreach (var item in newItems)
+            if (ActivePort == null)
             {
-                if (Ports.FirstOrDefault(p => p.PortName == item) == null)
+                Notifier?.Notify("No port is active");
+                return;
+            }
+
+            try
+            {
+                ActivePort.Close();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.Notify(ex.Message);
+            }
+
+            if (!ActivePort.IsOpen)
+            {
+                Notifier?.Notify("Connection closed");
+            }
+        }
+        private void UpdateComPortsList()
+        {
+            var newPorts = SerialPort.GetPortNames();
+
+            Ports.RemoveAll(p => !newPorts.Contains(p.PortName));
+
+            foreach (var portName in newPorts)
+            {
+                if (Ports.FirstOrDefault(p => p.PortName == portName) == null)
                 {
                     Ports.Add(new()
                     {
-                        PortName = item,
                         BaudRate = 115200,
-                        ReadTimeout = 5,
-                        WriteTimeout = 5
+                        ReadTimeout = 500,
+                        WriteTimeout = 500,
+                        PortName = portName
                     });
                 }
             }
 
-            if (Ports.Count > 0)
-            {
-                if (ActivePort == null)
-                {
-                    ActivePort = Ports[0];
-                }
-            }
-            else
-            {
-                ActivePort = null;
-            }
-
             Notifier?.Notify("Updated COM ports list");
+
+            if (ActivePort == null && Ports.Count > 0 || Ports.Count == 1)
+            {
+                ActivePort = Ports[0];
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach(var port in Ports)
+            {
+                port.Dispose();
+            }
         }
     }
 }

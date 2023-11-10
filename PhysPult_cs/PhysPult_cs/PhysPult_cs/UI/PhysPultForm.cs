@@ -1,11 +1,12 @@
 using PhysPult.Logic;
+using System.IO.Ports;
 using System.Timers;
 
 namespace PhysPult.UI
 {
     public partial class PhysPultForm : Form
     {
-        private StatusLabelHandler _statusLabelHandler = new();
+        private StatusLabelNotifier _statusLabelHandler = new();
         private System.Timers.Timer _statusLabelUpdateTimer;
 
         private SerialList _ports = new();
@@ -29,7 +30,7 @@ namespace PhysPult.UI
 
         public void UpdateComPortsComboBox()
         {
-            var oldSelectedPort = comPortsComboBox.SelectedItem; // Exception with threading
+            var oldSelectedPort = comPortsComboBox.SelectedItem; // Exception with threading?
 
             comPortsComboBox.Items.Clear();
             foreach (var port in _ports.Ports)
@@ -39,7 +40,7 @@ namespace PhysPult.UI
 
             comPortsComboBox.SelectedItem = oldSelectedPort;
 
-            if(oldSelectedPort == null && comPortsComboBox.Items.Count > 0)
+            if(oldSelectedPort == null && comPortsComboBox.Items.Count > 0 || comPortsComboBox.Items.Count == 1)
             {
                 comPortsComboBox.SelectedItem = comPortsComboBox.Items[0];
             }
@@ -51,6 +52,23 @@ namespace PhysPult.UI
         private void PhysPultForm_Load(object sender, EventArgs e)
         {
             UpdateComPortsList();
+
+            //SerialPort sp = new()
+            //{
+            //    PortName = "COM5",
+            //    BaudRate = 57600
+            //};
+
+            //try
+            //{
+            //    sp.Open();
+            //    sp.WriteLine("125");
+            //    _statusLabelHandler.Notify(sp.ReadLine());
+            //}
+            //catch (Exception ex)
+            //{
+            //    _statusLabelHandler.Notify(ex.Message);
+            //}
         }
 
         private void connectButton_Click(object sender, EventArgs e)
@@ -65,7 +83,7 @@ namespace PhysPult.UI
 
         private void comPortsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            _ports.SelectPort(comPortsComboBox.SelectedText);
+            _ports.SelectPort((string)comPortsComboBox.SelectedItem);
         }
     }
 }
