@@ -4,14 +4,13 @@ using System.Management;
 
 namespace PhysPult.Logic
 {
-    public class SerialList : IDisposable
+    public class SerialList
     {
         public List<SerialPort> Ports = new();
 
         public SerialPort? ActivePort = null;
         public INotifier? Notifier = null;
         public ILogger? Logger = null;
-        //public Invoker Invoker = new();
 
         public Action Refresh;
         public SerialList()
@@ -53,7 +52,15 @@ namespace PhysPult.Logic
 
         public void SetHue(byte hue)
         {
-            TryExecute(() => ActivePort.Write(hue.ToString()));
+            TryExecute(() => ActivePort.Write($"h;{hue}"));
+        }
+        public void SetValue(byte value)
+        {
+            TryExecute(() => ActivePort.Write($"v;{value}"));
+        }
+        public void RequestUpdate()
+        {
+            TryExecute(() => ActivePort.Write("r;"));
         }
 
         private void TryExecute(Action action)
@@ -111,8 +118,7 @@ namespace PhysPult.Logic
 
         private void ParseReceivedData(object sender, SerialDataReceivedEventArgs e)
         {
-            var serialPort = sender as SerialPort;
-            if (serialPort == null)
+            if (sender is not SerialPort serialPort)
             {
                 return;
             }
@@ -122,14 +128,6 @@ namespace PhysPult.Logic
             string[] tokens = receivedData.Split(';');
 
             Logger?.Log(tokens[1], (MessageTypes)tokens[0][0]);
-        }
-
-        public void Dispose()
-        {
-            foreach (var port in Ports)
-            {
-                port.Dispose();
-            }
         }
     }
 }

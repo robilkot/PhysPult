@@ -27,6 +27,8 @@ namespace PhysPult.UI
             _statusLabelUpdateTimer.Elapsed += new ElapsedEventHandler(_statusLabelHandler.Update);
 
             _ports.Refresh += UpdateComPortsComboBox;
+
+            UpdateComPortsList();
         }
 
         public void LogMessage(string message, MessageTypes messageTypes)
@@ -36,7 +38,7 @@ namespace PhysPult.UI
 
         public void UpdateComPortsComboBox()
         {
-            var oldSelectedPort = comPortsComboBox.SelectedItem; // Exception with threading?
+            var oldSelectedPort = comPortsComboBox.SelectedItem;
 
             comPortsComboBox.Items.Clear();
             foreach (var port in _ports.Ports)
@@ -54,10 +56,6 @@ namespace PhysPult.UI
         private void UpdateComPortsList()
         {
             _ports.Refresh();
-        }
-        private void PhysPultForm_Load(object sender, EventArgs e)
-        {
-            UpdateComPortsList();
         }
 
         private void connectButton_Click(object sender, EventArgs e)
@@ -77,9 +75,37 @@ namespace PhysPult.UI
 
         private void setHueButton_Click(object sender, EventArgs e)
         {
-            byte hue = 0;
-            _ = byte.TryParse(hueTextBox.Text, out hue);
+            _ = byte.TryParse(hueTextBox.Text, out byte hue);
             _ports.SetHue(hue);
         }
+        private void setHueButton_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                setHueButton_Click(this, new EventArgs());
+                e.Handled = e.SuppressKeyPress = true;
+            }
+        }
+
+        private void requestUpdateButton_Click(object sender, EventArgs e)
+        {
+            _ports.RequestUpdate();
+        }
+
+        private void setValueButton_Click(object sender, EventArgs e)
+        {
+            _ = byte.TryParse(valueTextBox.Text, out byte value);
+            _ports.SetValue(value);
+        }
+
+        private void valueTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                setValueButton_Click(this, new EventArgs());
+                e.Handled = e.SuppressKeyPress = true;
+            }
+        }
+
     }
 }

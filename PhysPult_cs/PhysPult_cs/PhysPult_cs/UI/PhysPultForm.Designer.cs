@@ -38,9 +38,7 @@
             this.valueTextBox = new System.Windows.Forms.TextBox();
             this.hueTextBox = new System.Windows.Forms.TextBox();
             this.setHueButton = new System.Windows.Forms.Button();
-            this.redoButton = new System.Windows.Forms.Button();
             this.requestUpdateButton = new System.Windows.Forms.Button();
-            this.undoButton = new System.Windows.Forms.Button();
             this.setValueButton = new System.Windows.Forms.Button();
             this.disconnectButton = new System.Windows.Forms.Button();
             this.connectButton = new System.Windows.Forms.Button();
@@ -95,6 +93,7 @@
             // splitContainer1
             // 
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer1.IsSplitterFixed = true;
             this.splitContainer1.Location = new System.Drawing.Point(0, 0);
             this.splitContainer1.Name = "splitContainer1";
             // 
@@ -119,14 +118,12 @@
             this.panel1.Controls.Add(this.valueTextBox);
             this.panel1.Controls.Add(this.hueTextBox);
             this.panel1.Controls.Add(this.setHueButton);
-            this.panel1.Controls.Add(this.redoButton);
             this.panel1.Controls.Add(this.requestUpdateButton);
-            this.panel1.Controls.Add(this.undoButton);
             this.panel1.Controls.Add(this.setValueButton);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel1.Location = new System.Drawing.Point(0, 96);
+            this.panel1.Location = new System.Drawing.Point(0, 79);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(266, 328);
+            this.panel1.Size = new System.Drawing.Size(266, 345);
             this.panel1.TabIndex = 10;
             // 
             // cancelButton
@@ -142,20 +139,17 @@
             // 
             // valueTextBox
             // 
-            this.valueTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.valueTextBox.Enabled = false;
             this.valueTextBox.Location = new System.Drawing.Point(15, 126);
             this.valueTextBox.MaxLength = 3;
             this.valueTextBox.Name = "valueTextBox";
             this.valueTextBox.PlaceholderText = "0-255";
             this.valueTextBox.Size = new System.Drawing.Size(138, 27);
             this.valueTextBox.TabIndex = 4;
+            this.valueTextBox.Text = "128";
+            this.valueTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.valueTextBox_KeyDown);
             // 
             // hueTextBox
             // 
-            this.hueTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.hueTextBox.Location = new System.Drawing.Point(15, 93);
             this.hueTextBox.MaxLength = 3;
             this.hueTextBox.Name = "hueTextBox";
@@ -163,11 +157,11 @@
             this.hueTextBox.Size = new System.Drawing.Size(138, 27);
             this.hueTextBox.TabIndex = 1;
             this.hueTextBox.Text = "128";
+            this.hueTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.setHueButton_KeyDown);
             // 
             // setHueButton
             // 
-            this.setHueButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.setHueButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.setHueButton.Location = new System.Drawing.Point(159, 93);
             this.setHueButton.Name = "setHueButton";
             this.setHueButton.Size = new System.Drawing.Size(94, 27);
@@ -175,17 +169,6 @@
             this.setHueButton.Text = "Set Hue";
             this.setHueButton.UseVisualStyleBackColor = true;
             this.setHueButton.Click += new System.EventHandler(this.setHueButton_Click);
-            // 
-            // redoButton
-            // 
-            this.redoButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.redoButton.Location = new System.Drawing.Point(159, 27);
-            this.redoButton.Name = "redoButton";
-            this.redoButton.Size = new System.Drawing.Size(94, 27);
-            this.redoButton.TabIndex = 7;
-            this.redoButton.Text = "Redo";
-            this.redoButton.UseVisualStyleBackColor = true;
             // 
             // requestUpdateButton
             // 
@@ -197,29 +180,18 @@
             this.requestUpdateButton.TabIndex = 3;
             this.requestUpdateButton.Text = "Request Update";
             this.requestUpdateButton.UseVisualStyleBackColor = true;
-            // 
-            // undoButton
-            // 
-            this.undoButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.undoButton.Location = new System.Drawing.Point(15, 27);
-            this.undoButton.Name = "undoButton";
-            this.undoButton.Size = new System.Drawing.Size(94, 27);
-            this.undoButton.TabIndex = 6;
-            this.undoButton.Text = "Undo";
-            this.undoButton.UseVisualStyleBackColor = true;
+            this.requestUpdateButton.Click += new System.EventHandler(this.requestUpdateButton_Click);
             // 
             // setValueButton
             // 
-            this.setValueButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.setValueButton.Enabled = false;
+            this.setValueButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.setValueButton.Location = new System.Drawing.Point(159, 126);
             this.setValueButton.Name = "setValueButton";
             this.setValueButton.Size = new System.Drawing.Size(94, 27);
             this.setValueButton.TabIndex = 5;
             this.setValueButton.Text = "Set Value";
             this.setValueButton.UseVisualStyleBackColor = true;
+            this.setValueButton.Click += new System.EventHandler(this.setValueButton_Click);
             // 
             // disconnectButton
             // 
@@ -251,7 +223,6 @@
             this.Name = "PhysPultForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Async COM controller";
-            this.Load += new System.EventHandler(this.PhysPultForm_Load);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
@@ -279,8 +250,6 @@
         private TextBox valueTextBox;
         private Button disconnectButton;
         private Button connectButton;
-        private Button redoButton;
-        private Button undoButton;
         private Panel panel1;
         private Button cancelButton;
     }
