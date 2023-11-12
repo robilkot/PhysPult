@@ -33,7 +33,14 @@ namespace PhysPult.UI
 
         public void LogMessage(string message, MessageTypes messageTypes)
         {
-            logListBox.Items.Add($"{messageTypes} - {message}");
+            if (InvokeRequired)
+            {
+                Invoke(() => logListBox.Items.Add($"{messageTypes} - {message}"));
+            }
+            else
+            {
+                logListBox.Items.Add($"{messageTypes} - {message}");
+            }
         }
 
         public void UpdateComPortsComboBox()

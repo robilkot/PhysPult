@@ -65,7 +65,7 @@ namespace PhysPult.Logic
 
         private void TryExecute(Action action)
         {
-            if (ActivePort == null)
+            if (ActivePort == null || action == null)
             {
                 Notifier?.Notify("No port is selected.");
                 return;
@@ -123,11 +123,18 @@ namespace PhysPult.Logic
                 return;
             }
 
+            try
+            {
             // todo: split parser to another class?
             string receivedData = serialPort.ReadTo("\0");
             string[] tokens = receivedData.Split(';');
 
             Logger?.Log(tokens[1], (MessageTypes)tokens[0][0]);
+            }
+            catch(Exception ex)
+            {
+                Notifier?.Notify(ex.Message);
+            }
         }
     }
 }
