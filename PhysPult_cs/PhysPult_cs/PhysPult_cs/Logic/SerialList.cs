@@ -1,5 +1,4 @@
-﻿using PhysPult.Commands;
-using System.IO.Ports;
+﻿using System.IO.Ports;
 using System.Management;
 
 namespace PhysPult.Logic
@@ -9,7 +8,8 @@ namespace PhysPult.Logic
         public List<SerialPort> Ports = new();
 
         private SerialPort? _activePort = null;
-        public SerialPort? ActivePort {
+        public SerialPort? ActivePort
+        {
             get
             {
                 return _activePort;
@@ -45,25 +45,27 @@ namespace PhysPult.Logic
         }
         public void Open()
         {
-            TryExecute(ActivePort.Open);
+                TryExecute(() => {
+                    ActivePort.Open();
 
-            if (ActivePort.IsOpen)
-            {
-                Notifier?.Notify("Connection opened.");
-            }
-
-            OnActivePortChanged();
+                    if (ActivePort.IsOpen)
+                    {
+                        Notifier?.Notify("Connection opened.");
+                    }
+                    OnActivePortChanged();
+                });
         }
         public void Close()
         {
-            TryExecute(ActivePort.Close);
+            TryExecute(() => {
+                ActivePort.Close();
 
-            if (!ActivePort.IsOpen)
-            {
-                Notifier?.Notify("Connection closed.");
-            }
-
-            OnActivePortChanged();
+                if (!ActivePort.IsOpen)
+                {
+                    Notifier?.Notify("Connection closed.");
+                }
+                OnActivePortChanged();
+            });
         }
 
         public void SetHue(byte hue)
@@ -145,13 +147,13 @@ namespace PhysPult.Logic
 
             try
             {
-            // todo: split parser to another class?
-            string receivedData = serialPort.ReadTo("\0");
-            string[] tokens = receivedData.Split(';');
+                // todo: split parser to another class?
+                string receivedData = serialPort.ReadTo("\0");
+                string[] tokens = receivedData.Split(';');
 
-            Logger?.Log(tokens[1], (MessageTypes)tokens[0][0]);
+                Logger?.Log(tokens[1], (MessageTypes)tokens[0][0]);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Notifier?.Notify(ex.Message);
             }
