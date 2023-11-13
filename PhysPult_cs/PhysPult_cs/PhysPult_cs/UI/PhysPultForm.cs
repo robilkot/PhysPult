@@ -5,6 +5,8 @@ namespace PhysPult.UI
 {
     public partial class PhysPultForm : Form
     {
+        private readonly string _windowName = "Multicontrol";
+
         private StatusLabelNotifier _statusLabelHandler = new();
         private System.Timers.Timer _statusLabelUpdateTimer;
 
@@ -14,6 +16,7 @@ namespace PhysPult.UI
             InitializeComponent();
 
             _statusLabelHandler.StatusLabel = statusLabel;
+
             _ports.Notifier = _statusLabelHandler;
             _ports.Logger = new DummyLogger();
             _ports.Logger.LogEvent += LogMessage;
@@ -24,47 +27,90 @@ namespace PhysPult.UI
                 Enabled = true,
                 AutoReset = true
             };
-            _statusLabelUpdateTimer.Elapsed += new ElapsedEventHandler(_statusLabelHandler.Update);
+            _statusLabelUpdateTimer.Elapsed += new ElapsedEventHandler(
+                (object? sender, ElapsedEventArgs e) => _statusLabelHandler.Update()
+                );
 
             _ports.Refresh += UpdateComPortsComboBox;
+            _ports.OnActivePortChanged += UpdateWindowTitle;
 
             UpdateComPortsList();
         }
 
         public void LogMessage(string message, MessageTypes messageTypes)
         {
+            var logMessageFunc = () =>
+            {
+                comLogListBox.Items.Insert(0, $"{DateTime.Now.ToString("HH:mm:ss")}:\t {messageTypes} - {message}");
+            };
+
             if (InvokeRequired)
             {
-                Invoke(() => logListBox.Items.Add($"{messageTypes} - {message}"));
+                Invoke(logMessageFunc);
             }
             else
             {
-                logListBox.Items.Add($"{messageTypes} - {message}");
+                logMessageFunc();
             }
         }
 
+        private void UpdateWindowTitle()
+        {
+            var changeTextFunc = () =>
+            {
+                if (_ports.ActivePort == null)
+                {
+                    Text = _windowName;
+                }
+                else
+                {
+                    Text = String.Format("{0} ({1}) - {2}", _ports.ActivePort.PortName, _ports.ActivePort.IsOpen ? "Opened" : "Closed", _windowName);
+                }
+            };
+
+
+            if (InvokeRequired)
+            {
+                Invoke(changeTextFunc);
+            }
+            else
+            {
+                changeTextFunc();
+            }
+        }
         public void UpdateComPortsComboBox()
         {
-            var oldSelectedPort = comPortsComboBox.SelectedItem;
-
-            comPortsComboBox.Items.Clear();
-            foreach (var port in _ports.Ports)
+            var UpdateCOMPortsComboBoxFunc = () =>
             {
-                comPortsComboBox.Items.Add(port.PortName.ToString());
+                var oldSelectedPort = comPortsComboBox.SelectedItem;
+
+                comPortsComboBox.Items.Clear();
+                foreach (var port in _ports.Ports)
+                {
+                    comPortsComboBox.Items.Add(port.PortName.ToString());
+                }
+
+                comPortsComboBox.SelectedItem = oldSelectedPort;
+
+                if (oldSelectedPort == null && comPortsComboBox.Items.Count > 0 || comPortsComboBox.Items.Count == 1)
+                {
+                    comPortsComboBox.SelectedItem = comPortsComboBox.Items[0];
+                }
+            };
+
+            if (InvokeRequired)
+            {
+                Invoke(UpdateCOMPortsComboBoxFunc);
             }
-
-            comPortsComboBox.SelectedItem = oldSelectedPort;
-
-            if (oldSelectedPort == null && comPortsComboBox.Items.Count > 0 || comPortsComboBox.Items.Count == 1)
+            else
             {
-                comPortsComboBox.SelectedItem = comPortsComboBox.Items[0];
+                UpdateCOMPortsComboBoxFunc();
             }
         }
         private void UpdateComPortsList()
         {
             _ports.Refresh();
         }
-
         private void connectButton_Click(object sender, EventArgs e)
         {
             _ports.Open();
@@ -114,5 +160,24 @@ namespace PhysPult.UI
             }
         }
 
+        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                setSensitivityButton_Click(this, new EventArgs());
+                e.Handled = e.SuppressKeyPress = true;
+            }
+        }
+
+        private void setSensitivityButton_Click(object sender, EventArgs e)
+        {
+            _ = float.TryParse(sensitivityTextBox.Text, out float value);
+            _ports.SetSensitity(value);
+        }
+
+        private void clearLogButton_Click(object sender, EventArgs e)
+        {
+            comLogListBox.Items.Clear();
+        }
     }
 }

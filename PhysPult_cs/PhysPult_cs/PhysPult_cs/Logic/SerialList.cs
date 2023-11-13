@@ -8,19 +8,31 @@ namespace PhysPult.Logic
     {
         public List<SerialPort> Ports = new();
 
-        public SerialPort? ActivePort = null;
+        private SerialPort? _activePort = null;
+        public SerialPort? ActivePort {
+            get
+            {
+                return _activePort;
+            }
+            set
+            {
+                _activePort = value;
+                OnActivePortChanged();
+            }
+        }
         public INotifier? Notifier = null;
         public ILogger? Logger = null;
 
         public Action Refresh;
+        public Action OnActivePortChanged;
         public SerialList()
         {
             Refresh = RefreshComPortsList;
 
-            StartDevicesEvenetsWatcher();
+            StartDevicesEventsWatcher();
         }
 
-        private void StartDevicesEvenetsWatcher()
+        private void StartDevicesEventsWatcher()
         {
             var watcher = new ManagementEventWatcher();
             watcher.EventArrived += new EventArrivedEventHandler((object sender, EventArrivedEventArgs e) => Refresh());
@@ -39,6 +51,8 @@ namespace PhysPult.Logic
             {
                 Notifier?.Notify("Connection opened.");
             }
+
+            OnActivePortChanged();
         }
         public void Close()
         {
@@ -48,6 +62,8 @@ namespace PhysPult.Logic
             {
                 Notifier?.Notify("Connection closed.");
             }
+
+            OnActivePortChanged();
         }
 
         public void SetHue(byte hue)
@@ -57,6 +73,10 @@ namespace PhysPult.Logic
         public void SetValue(byte value)
         {
             TryExecute(() => ActivePort.Write($"v;{value}"));
+        }
+        public void SetSensitity(float sensitivity)
+        {
+            TryExecute(() => ActivePort.Write($"s;{sensitivity}"));
         }
         public void RequestUpdate()
         {

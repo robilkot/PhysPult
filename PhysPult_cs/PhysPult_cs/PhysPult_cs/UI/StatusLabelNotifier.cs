@@ -15,7 +15,7 @@ namespace PhysPult.UI
         {
             _messages.Enqueue(message);
         }
-        public void Update(object? sender, ElapsedEventArgs e)
+        public void Update()
         {
             if ((DateTime.Now - _lastUpdateTime).TotalMilliseconds > s_messagesInterval)
             {
