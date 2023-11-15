@@ -47,6 +47,8 @@ namespace PhysPult.Logic
         {
                 TryExecute(() => {
                     ActivePort.Open();
+					ActivePort.DiscardInBuffer();
+					ActivePort.DiscardOutBuffer();
 
                     if (ActivePort.IsOpen)
                     {
@@ -68,6 +70,10 @@ namespace PhysPult.Logic
             });
         }
 
+        public void ToggleDebug()
+        {
+            TryExecute(() => ActivePort.Write($"d;"));
+        }
         public void SetHue(byte hue)
         {
             TryExecute(() => ActivePort.Write($"h;{hue}"));

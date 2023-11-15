@@ -1,4 +1,5 @@
 using PhysPult.Logic;
+using System.Reflection;
 using System.Timers;
 
 namespace PhysPult.UI
@@ -140,9 +141,10 @@ namespace PhysPult.UI
             }
         }
 
-        private void requestUpdateButton_Click(object sender, EventArgs e)
+        private void toggleDebugButton_Click(object sender, EventArgs e)
         {
-            _ports.RequestUpdate();
+            //_ports.RequestUpdate();
+            _ports.ToggleDebug();
         }
 
         private void setValueButton_Click(object sender, EventArgs e)

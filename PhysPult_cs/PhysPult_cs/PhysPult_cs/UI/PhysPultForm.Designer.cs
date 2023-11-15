@@ -36,7 +36,7 @@
             this.connectButton = new System.Windows.Forms.Button();
             this.disconnectButton = new System.Windows.Forms.Button();
             this.setValueButton = new System.Windows.Forms.Button();
-            this.requestUpdateButton = new System.Windows.Forms.Button();
+            this.toggleDebugButton = new System.Windows.Forms.Button();
             this.setHueButton = new System.Windows.Forms.Button();
             this.hueTextBox = new System.Windows.Forms.TextBox();
             this.valueTextBox = new System.Windows.Forms.TextBox();
@@ -128,16 +128,16 @@
             this.setValueButton.UseVisualStyleBackColor = true;
             this.setValueButton.Click += new System.EventHandler(this.setValueButton_Click);
             // 
-            // requestUpdateButton
+            // toggleDebugButton
             // 
-            this.requestUpdateButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.requestUpdateButton.Location = new System.Drawing.Point(138, 202);
-            this.requestUpdateButton.Name = "requestUpdateButton";
-            this.requestUpdateButton.Size = new System.Drawing.Size(129, 29);
-            this.requestUpdateButton.TabIndex = 3;
-            this.requestUpdateButton.Text = "Request state";
-            this.requestUpdateButton.UseVisualStyleBackColor = true;
-            this.requestUpdateButton.Click += new System.EventHandler(this.requestUpdateButton_Click);
+            this.toggleDebugButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.toggleDebugButton.Location = new System.Drawing.Point(138, 202);
+            this.toggleDebugButton.Name = "toggleDebugButton";
+            this.toggleDebugButton.Size = new System.Drawing.Size(129, 29);
+            this.toggleDebugButton.TabIndex = 3;
+            this.toggleDebugButton.Text = "ToggleDebug";
+            this.toggleDebugButton.UseVisualStyleBackColor = true;
+            this.toggleDebugButton.Click += new System.EventHandler(this.toggleDebugButton_Click);
             // 
             // setHueButton
             // 
@@ -206,7 +206,7 @@
             this.groupBox1.Controls.Add(this.disconnectButton);
             this.groupBox1.Controls.Add(this.connectButton);
             this.groupBox1.Controls.Add(this.sensitivityTextBox);
-            this.groupBox1.Controls.Add(this.requestUpdateButton);
+            this.groupBox1.Controls.Add(this.toggleDebugButton);
             this.groupBox1.Controls.Add(this.setSensitivityButton);
             this.groupBox1.Controls.Add(this.setHueButton);
             this.groupBox1.Controls.Add(this.hueTextBox);
@@ -249,7 +249,7 @@
         private Button connectButton;
         private Button disconnectButton;
         private Button setValueButton;
-        private Button requestUpdateButton;
+        private Button toggleDebugButton;
         private Button setHueButton;
         private TextBox hueTextBox;
         private TextBox valueTextBox;
