@@ -1,10 +1,19 @@
 *.*
 !*.cpp
 !*.h
+!*.c
 !*.sln
 !*.vcxproj
 !*.txt
 !*.ino
 !*.lua
 !*.xlsx
+<<<<<<< Updated upstream
 */x64/
+=======
+!*.cs
+!*.xaml
+!*.csproj
+*/x64/
+PhysPult_esp32/src/WifiConstants.h
+>>>>>>> Stashed changes

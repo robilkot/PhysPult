@@ -370,9 +370,12 @@ function PhysPult.Synchronize()
 	end
 end
 
+PhysPult.Host = "192.168.1.69"
+-- PhysPult.Host = "127.0.0.1"
+
 -- Старт синхронизации физического пульта и виртуального поезда, в котром сидит игрок.
 function PhysPult.StartSynchronize()
-	PhysPult.StartServer("127.0.0.1", PhysPult.SocketPort)
+	PhysPult.StartServer(PhysPult.Host, PhysPult.SocketPort)
 
 	timer.Create("stateStringUpdate", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
