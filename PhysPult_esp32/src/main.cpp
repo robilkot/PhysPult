@@ -30,7 +30,6 @@ void loop()
 State(HardwareInitialization)
 {
   Serial.begin(BaudRate);
-  WiFi.begin(WifiSsid, WifiPassword);
 
   pinMode(InDataPin, INPUT);
   pinMode(InLatchPin, OUTPUT);
@@ -68,13 +67,12 @@ State(HardwareInitialization)
 
 State(NetworkInitialization)
 {
+  WiFi.begin(WifiSsid, WifiPassword);
+  
   while(WiFi.status() != WL_CONNECTED)
   {
       Serial.print(".");
-      SetIndicatorsOn();
-      delay(500);
-      SetIndicatorsOff();
-      delay(500);
+      delay(200);
   }
 
   auto ip = WiFi.localIP().toString(); 
@@ -129,8 +127,8 @@ State(Work)
     Serial.print("Got Message: ");
     Serial.println(msg.data());
 
-    // physPult.Client.send("Echo: " + msg.data());
-    physPult.Client.send((char*)physPult.Input);
+    physPult.Client.send("Echo: " + msg.data());
+    // physPult.Client.send((char*)physPult.Input);
   }
   else
   {

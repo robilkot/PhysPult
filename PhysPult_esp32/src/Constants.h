@@ -31,8 +31,7 @@ const uint8_t RightDigit[10][2] = {
 const uint32_t BaudRate = 115200;
 const uint16_t NetworkPort = 80;
 
-// const uint16_t idlemode_delay = 1050; // Delay before going into idle mode
-// const uint16_t SwitchesUpdateInterval = 30; // Interval for updating switches state
+const uint8_t PulseWidth = 10;
 
 const uint8_t OutDataPin = 19; // 74hc595 registers
 const uint8_t OutClockPin = 26; // 74hc595 registers clock pin

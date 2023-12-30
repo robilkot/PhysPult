@@ -13,42 +13,47 @@ void WriteOutRegisters(uint8_t* command)
   uint8_t firstSpeedByte = LeftDigit[speed / 10][1] | RightDigit[speed % 10][1]; 
 
   digitalWrite(OutLatchPin, 0);
-  delayMicroseconds(20);
+  delayMicroseconds(PulseWidth);
 
   // shiftOut(OutDataPin, OutClockPin, LSBFIRST, command[8]); // Register 5
   // shiftOut(OutDataPin, OutClockPin, LSBFIRST, command[6]); 
   // shiftOut(OutDataPin, OutClockPin, LSBFIRST, command[7]); 
+  for(uint8_t i = 1; i < OutRegistersCount; i++)
+  {
+    shiftOut(OutDataPin, OutClockPin, LSBFIRST, command[i]); 
+  }
 
   shiftOut(OutDataPin, OutClockPin, LSBFIRST, secondSpeedByte);
   shiftOut(OutDataPin, OutClockPin, LSBFIRST, firstSpeedByte); // Register 1 
 
-  delayMicroseconds(20);
+  delayMicroseconds(PulseWidth);
   digitalWrite(OutLatchPin, 1);
 }
 
 void ReadInRegisters(uint8_t* output)
 {
-  digitalWrite(InLatchPin, 0);    
-  delayMicroseconds(50);
-  digitalWrite(InLatchPin, 1);
-  delayMicroseconds(50);
+  digitalWrite(InLatchPin, LOW);    
+  delayMicroseconds(PulseWidth);
+  digitalWrite(InLatchPin, HIGH);
 
-  for(uint8_t j = 0; j < InRegistersCount; j++)
-  {    
-    output[j] = shiftIn(InDataPin, InClockPin, LSBFIRST);
-  }
-}
+  for(uint8_t i = 0; i < InRegistersCount; i++)
+  {
+    for(uint8_t k = 0; k < 8; k++)
+    {
+      if(digitalRead(InDataPin) == 1)
+      {
+        bitSet(output[i], k);
+      }
+      else
+      {
+        bitClear(output[i], k);
+      }
 
-void SetIndicatorsOn()
-{
-  uint8_t on[OutRegistersCount] = {88, 255, 255, 255, 255};
-  WriteOutRegisters(on);
-}
-
-void SetIndicatorsOff()
-{
-  uint8_t off[OutRegistersCount] = {0, 0, 0, 0, 0};
-  WriteOutRegisters(off);
+      digitalWrite(InClockPin, HIGH);
+      delayMicroseconds(PulseWidth);
+      digitalWrite(InClockPin, LOW);
+    }
+  }    
 }
 
 // This function must be an infinite loop or terminate itself at the end with vTaskDelete();
@@ -56,28 +61,35 @@ void BackgroundHardwareFunction(void *pvParameters)
 {
   PhysPult& physPult = *((PhysPult*)pvParameters);
   bool flag = 0;
+  uint8_t cnt = 0;
 
-  BackgroundHardwareRepeat:
-
-  delay(10);
-  ReadInRegisters(physPult.Input);
-
-  // flag = !flag;
-  // if(flag) {
-  //   SetIndicatorsOn();
-  // } else {
-  //   SetIndicatorsOff();
-  // }
-
-  for(uint8_t i = 0; i < InRegistersCount; i++)
+  while(true)
   {
-    for(uint8_t k = 0; k < 8; k++)
-    {
-      Serial.print(physPult.Input[i] >> k & 1);
-    }
-    Serial.print(' ');
-  }
-  Serial.println();
+    delay(50);
 
-  goto BackgroundHardwareRepeat;
+    ReadInRegisters(physPult.Input);
+
+    fill_rainbow(physPult.LightingLeds, LightingLedCount, cnt++);
+    FastLED.show();
+
+    uint8_t command[] = {11, 0, 0, 0, 0};
+    WriteOutRegisters(command);
+      
+
+    flag = !flag;
+    if(flag) {
+    
+    }
+
+
+    for(uint8_t i = 0; i < InRegistersCount; i++)
+    {
+      for(uint8_t k = 0; k < 8; k++)
+      {
+        Serial.print(physPult.Input[i] >> k & 1);
+      }
+      Serial.print(' ');
+    }
+    Serial.println();
+  }
 }

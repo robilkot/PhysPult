@@ -6,7 +6,5 @@
 
 void WriteVoltmeter(uint8_t voltage);
 void WriteOutRegisters(uint8_t* command);
-void ReadInRegisters(uint8_t* const output);
-void SetIndicatorsOn();
-void SetIndicatorsOff();
+void ReadInRegisters(uint8_t* output);
 void BackgroundHardwareFunction(void*);
