@@ -18,6 +18,6 @@ public:
 
     CRGB LightingLeds[LightingLedCount];
 
-    uint8_t Indicators[OutRegistersCount];
-    uint8_t Switches[InRegistersCount];
+    uint8_t Output[OutRegistersCount];
+    uint8_t Input[InRegistersCount];
 };

@@ -17,8 +17,6 @@ State(NetworkInitialization);
 State(WaitingForClient);
 State(Work);
 
-void BackgroundHardwareFunction(void*);
-
 void setup() { }
 
 void loop()
@@ -33,6 +31,14 @@ State(HardwareInitialization)
 {
   Serial.begin(BaudRate);
   WiFi.begin(WifiSsid, WifiPassword);
+
+  pinMode(InDataPin, INPUT);
+  pinMode(InLatchPin, OUTPUT);
+  pinMode(InClockPin, OUTPUT);
+
+  pinMode(OutDataPin, OUTPUT);
+  pinMode(OutLatchPin, OUTPUT);
+  pinMode(OutClockPin, OUTPUT);
 
   FastLED.addLeds<WS2812B, LightingDataPin, RGB>(physPult.LightingLeds, LightingLedCount);
   FastLED.setBrightness(120);
@@ -51,7 +57,7 @@ State(HardwareInitialization)
   xTaskCreatePinnedToCore(
     BackgroundHardwareFunction,
     "BackgroundHardwareTask",
-    15000,  /* Stack size */
+    20000,  /* Stack size */
     &physPult,
     0,  /* Priority of the task */
     &BackgroundHardwareTask,
@@ -123,29 +129,12 @@ State(Work)
     Serial.print("Got Message: ");
     Serial.println(msg.data());
 
-    physPult.Client.send("Echo: " + msg.data());
+    // physPult.Client.send("Echo: " + msg.data());
+    physPult.Client.send((char*)physPult.Input);
   }
   else
   {
     Serial.println("Client disconnected.");
     SetState(WaitingForClient)
-  }
-}
-
-// This function must be an infinite loop or terminate itself at the end with vTaskDelete();
-void BackgroundHardwareFunction(void *pvParameters)
-{
-  PhysPult& physPult = *((PhysPult*)pvParameters);
-
-  unsigned long previousMillis = millis();
-
-  while(1)
-  {
-    // todo: Hardware update logic here
-    if(millis() - previousMillis > 2000)
-    {
-      Serial.println("BG Task");
-      previousMillis = millis();
-    }
   }
 }
