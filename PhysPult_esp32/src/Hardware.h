@@ -1,10 +1,18 @@
-#include <Arduino.h>
-#include "Constants.h"
-#include "PhysPult.h"
-
 #pragma once
 
-void WriteVoltmeter(uint8_t voltage);
-void WriteOutRegisters(uint8_t* command);
-void ReadInRegisters(uint8_t* output);
+#include <Arduino.h>
+#include <FastLED.h>
+#include <ESP32Servo.h>
+#include <TimerMs.h>
+
+#include "Constants.h"
+#include "States.h"
+#include "PhysPult.h"
+
+void InitializeHardware(PhysPult&);
+void DisplayState(PhysPult&);
+void UpdateInput(PhysPult&);
+void UpdateServos(PhysPult&);
+void UpdateLeds(PhysPult&);
+void ReadInRegisters(uint8_t*);
 void BackgroundHardwareFunction(void*);
