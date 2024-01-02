@@ -10,53 +10,68 @@ PhysPult::PhysPult(void (*state)(PhysPult&)) : State(state)
 
 void PhysPult::AcceptMessage(PhysPultMessage msg)
 {
-    if(msg.NumericData.length() < 6)
+    if(msg.Type != PhysPultMessageTypes::WORKING)
     {
-        Serial.println("Error: not enough numeric data for output. Skipping update.");
-    }
-    else
-    {
-        Speed           = (uint8_t)msg.NumericData[0];
-
-        TmValue         = (uint8_t)msg.NumericData[1];
-        NmValue         = (uint8_t)msg.NumericData[2];
-        TcValue         = (uint8_t)msg.NumericData[3];
-
-        BatteryVoltage  = (uint8_t)msg.NumericData[4];
-        SupplyVoltage   = (uint8_t)msg.NumericData[5];
-
-        // EnginesCurrent  = msg.NumericData[???]; // todo: implement
+        return;
     }
 
-    if(msg.BinaryData.length() < OutRegistersCount)
-    {
-        Serial.println("Error: not enough binary data for output registers. Skipping update.");
-    }
-    else
-    {
-        // memcpy(OutRegisters, msg.BinaryData.c_str(), OutRegistersCount);
-        for(uint8_t i = 0; i < OutRegistersCount; i++)
-        {
-            OutRegisters[i] = msg.BinaryData[i];
-        }
-    }
+    msg.NumericData.reserve(6);
+    
+    Speed           = msg.NumericData[0];
 
-    Serial.println("Message accepted");
+    TmValue         = msg.NumericData[1];
+    NmValue         = msg.NumericData[2];
+    TcValue         = msg.NumericData[3];
+
+    BatteryVoltage  = msg.NumericData[4];
+    SupplyVoltage   = msg.NumericData[5];
+
+    // EnginesCurrent  = msg.NumericData[???] - 1; // todo: implement
+    
+    msg.NumericData.reserve(OutRegistersCount);
+
+    for(uint8_t i = 0; i < OutRegistersCount; i++)
+    {
+        OutRegisters[i] = msg.BinaryData[i];
+    }
+    
+    // Serial.println("Message accepted");
 }
 
 PhysPultMessage PhysPult::MessageToSend()
 {
     PhysPultMessage msg;
     
-    msg.NumericData += CranePosition;
+    msg.Type == PhysPultMessageTypes::WORKING;
+
+    msg.NumericData.emplace_back(CranePosition);
     
     msg.BinaryData.reserve(InRegistersCount);
-    // memcpy((char*)msg.BinaryData.c_str(), InRegisters, InRegistersCount);
 
     for(uint8_t i = 0; i < InRegistersCount; i++)
     {
-        msg.BinaryData += InRegisters[i];
+        msg.BinaryData.emplace_back(InRegisters[i]);
     }
 
     return msg;
+}
+
+void PhysPult::Reset()
+{
+    Speed = 0;
+    BatteryVoltage = 0;
+    TmValue = 0;
+    NmValue = 0;
+    TcValue = 0;
+    SupplyVoltage = 0;
+    EnginesCurrent = 0;
+
+    for(auto& r : OutRegisters)
+    {
+        r = 0;
+    }
+    for(auto& r : InRegisters)
+    {
+        r = 0;
+    }
 }

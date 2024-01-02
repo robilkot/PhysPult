@@ -42,8 +42,6 @@ struct PhysPult
 
     // Input variables
 
-    // Commented out since controller position is determined by 3 contacts connected to 74hc165 registers
-    // uint8_t ControllerPosition = 4; // 1..7
     uint8_t CranePosition = 0; // 0..255 to allow setting intermediate position like irl
 
     uint8_t InRegisters[InRegistersCount];
@@ -54,4 +52,6 @@ struct PhysPult
     void AcceptMessage(PhysPultMessage);
 
     PhysPultMessage MessageToSend();
+
+    void Reset();
 };

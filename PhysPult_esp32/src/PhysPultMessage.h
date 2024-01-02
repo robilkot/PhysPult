@@ -1,20 +1,22 @@
 #pragma once
 
 #include <Arduino.h>
+#include <vector>
 
 enum PhysPultMessageTypes {
-    WORKING = 'W',
-    ERROR = 'E',
-    INFO = 'I',
-    SETTINGS = 'S'
+    INFO = 'I', // Information message sent
+    WORKING = 'W', // Operating mode. Exchanging indicators and switches states
+    REQUEST = 'R' // Update of switches state requsted. No data parsing required
+    // ERROR = 'E', // Error message sent
+    // SETTINGS = 'S', // Settings sent
 };
 
 struct PhysPultMessage {
     const char Delimiter = ';'; 
 
-    char Type = PhysPultMessageTypes::WORKING;
-    String NumericData;
-    String BinaryData;
+    char Type = PhysPultMessageTypes::INFO;
+    std::vector<uint8_t> NumericData;
+    std::vector<uint8_t> BinaryData;
 
     String ToString();
 

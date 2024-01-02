@@ -32,6 +32,7 @@ State(NetworkInitialization)
     }
 
     Serial.print(".");
+    // todo: don't use delay
     delay(100);
   }
 
@@ -67,6 +68,7 @@ State(WaitingForClient)
   // todo: create taskhandle and pass to hardware thread to make it possible to terminate this task. Or repalce with non-blocking version (how?)
   physPult.Client = physPult.Server.accept();
 
+  physPult.Reset();
   Serial.println("Client accepted.");
 
   SetState(Work);
@@ -91,14 +93,15 @@ State(Work)
 
     PhysPultMessage msgToSend = physPult.MessageToSend();
 
-    if(msgToSend.ToString() != previousMsg)
-    {
+    // if(msgToSend.ToString() != previousMsg)
+    // {
       physPult.Client.send(msgToSend.ToString());
       previousMsg = msgToSend.ToString();
-    }
+    // }
   }
   else
   {
+    physPult.Reset();
     Serial.println("Client disconnected.");
     SetState(WaitingForClient)
   }

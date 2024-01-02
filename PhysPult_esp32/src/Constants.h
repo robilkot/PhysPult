@@ -64,10 +64,11 @@ const uint8_t LightingDataPin = 18; // Pult lighting
 // const uint8_t LightingLedCount2 = 4; // LED count on 1st block
 const uint8_t LightingLedCountTotal = 8; // Max LED count in single strip
 
+const uint8_t CranePin = 32; // 013 crane pin
+
 const uint8_t PotentiometerPin1 = 34; // Lighting potentiometer on 3rd block
 // const uint8_t PotentiometerPin2 = 35; // Lighting potentiometer on 1st block
 
-// Imitates light bulbs' color
 const uint8_t LightingColorHue = 20;
 const uint8_t LightingColorSat = 200; 
 const uint8_t LightingColorvalue = 255;

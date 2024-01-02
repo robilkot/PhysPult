@@ -79,13 +79,13 @@ void DisplayState(PhysPult& physPult)
   }
   else if(physPult.State == WaitingForClient)
   {
-    if(blinkNow == false)
-    {
+    // if(blinkNow == false)
+    // {
       uint8_t displayNumber = physPult.DeviceNumber;
 
       secondDigitByte = LeftDigit[displayNumber / 10][0] | RightDigit[displayNumber % 10][0];
       firstDigitByte = LeftDigit[displayNumber / 10][1] | RightDigit[displayNumber % 10][1]; 
-    }
+    // }
 
     for(uint8_t i = 2; i < OutRegistersCount; i++)
     {
@@ -102,11 +102,17 @@ void DisplayState(PhysPult& physPult)
 
     // Starting with 2 because 0 and 1 are registers working with speedometer.
     // Last 2 bits of 2nd register are responcible for LKVC and LSN and have been taken into account above. 
-    for(uint8_t i = 2; i < OutRegistersCount; i++)
+    for(uint8_t i = OutRegistersCount - 1; i >= 2; i--)
     {
       shiftOut(OutDataPin, OutClockPin, LSBFIRST, physPult.OutRegisters[i]);  
     }
   }
+
+  // for(uint8_t i = 0; i < InRegistersCount; i++) {
+  //     for(uint8_t k = 0; k < 8; k++) Serial.print(physPult.InRegisters[i] >> (7 - k) & 1);
+  //     Serial.print(' ');
+  //   }
+  //   Serial.println();
 
   shiftOut(OutDataPin, OutClockPin, LSBFIRST, secondDigitByte);
   shiftOut(OutDataPin, OutClockPin, LSBFIRST, firstDigitByte); 
@@ -137,7 +143,7 @@ void UpdateServos(PhysPult& physPult)
   static uint8_t nmCurrentValue = 0;
   static uint8_t tcCurrentValue = 0;
   
-  static TimerMs servoUpdateTimer(30, true, false);
+  static TimerMs servoUpdateTimer(20, true, false);
 
   if(servoUpdateTimer.tick())
   {
@@ -145,14 +151,16 @@ void UpdateServos(PhysPult& physPult)
     AdjustValue(nmCurrentValue, physPult.NmValue);
     AdjustValue(tcCurrentValue, physPult.TcValue);
     
-    physPult.TmServo.write(tmCurrentValue);
-    physPult.NmServo.write(nmCurrentValue);
+    // Adjustments caused by physical behaviour of servos
+    physPult.TmServo.write(map(tmCurrentValue, 0, 255, 0, 180));
+    physPult.NmServo.write(255 - map(nmCurrentValue, 0, 255, 80, 255));
     physPult.TcServo.write(tcCurrentValue);
   }
 }
 
 void UpdateLeds(PhysPult& physPult)
 {
+
   // Commented out since both blocks are connected to the same potentiometer and data pin
   // 3rd block
   // for(uint8_t i = 0; i < LightingLedCountTotal; i++)
@@ -165,7 +173,15 @@ void UpdateLeds(PhysPult& physPult)
   //   physPult.LightingLeds[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness2);
   // }
 
-  FastLED.setBrightness(physPult.LightingBrightness1);
+  if(physPult.InRegisters[5] >> 3 & 1) 
+  {
+    FastLED.setBrightness(physPult.LightingBrightness1);
+  }
+  else
+  {
+    FastLED.setBrightness(0);  
+  }
+
   FastLED.show();
 }
 
@@ -185,7 +201,10 @@ uint16_t StableRead(uint8_t pin, uint8_t iterations)
 
 void UpdateInput(PhysPult& physPult)
 {
-  physPult.LightingBrightness1 = map(StableRead(PotentiometerPin1, 20), 0, 4096, 255, 0);
+  physPult.LightingBrightness1 = map(StableRead(PotentiometerPin1, 30), 0, 4096, 255, 0);
+
+  // todo: implement
+  // physPult.CranePosition = map(StableRead(CranePin, 20), 0, 4096, 0, 255);
 
   // Commented out since second potentiometer is not used
   // physPult.LightingBrightness2 = physPult.LightingBrightness1; // map(analogRead(PotentiometerPin2), 0, 4096, 0, 255);
@@ -202,21 +221,6 @@ void ReadInRegisters(uint8_t* output)
   for(uint8_t i = 0; i < InRegistersCount; i++)
   {
     output[i] = shiftIn(InDataPin, InClockPin, LSBFIRST);
-    // for(uint8_t k = 0; k < 8; k++)
-    // {
-    //   if(digitalRead(InDataPin) == 1)
-    //   {
-    //     bitSet(output[i], k);
-    //   }
-    //   else
-    //   {
-    //     bitClear(output[i], k);
-    //   }
-
-    //   digitalWrite(InClockPin, HIGH);
-    //   delayMicroseconds(PulseWidth);
-    //   digitalWrite(InClockPin, LOW);
-    // }
   }    
 }
 
@@ -227,15 +231,7 @@ void BackgroundHardwareFunction(void *pvParameters)
   
   while(true)
   {
-    delay(10);
-
     UpdateInput(physPult);
     DisplayState(physPult);
-
-    // for(uint8_t i = 0; i < InRegistersCount; i++) {
-    //   for(uint8_t k = 0; k < 8; k++) Serial.print(physPult.InRegisters[i] >> k & 1);
-    //   Serial.print(' ');
-    // }
-    // Serial.println();
   }
 }
