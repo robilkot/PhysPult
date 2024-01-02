@@ -318,7 +318,6 @@ function PhysPult.SynchronizeIndicators(train)
 
 	msg = string.SetChar(msg, -1, ';')
 
-
 	PhysPult.SocketWrtData = msg
 end
 
