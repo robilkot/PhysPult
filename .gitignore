@@ -1,10 +1,15 @@
 *.*
 !*.cpp
 !*.h
+!*.c
 !*.sln
 !*.vcxproj
 !*.txt
 !*.ino
 !*.lua
 !*.xlsx
+!*.cs
+!*.xaml
+!*.csproj
 */x64/
+PhysPult_esp32/src/WifiConstants.h

@@ -2,93 +2,30 @@ if(SERVER) then return end
 
 PhysPult = PhysPult or {}
 
-local socket = require("socket.core") or socket
+local url = "ws://192.168.1.41:80"
 
-local function clientHanlder(tcpClient)
-    timer.Pause("tcp-server-physpult")
+require("gwsockets")
+PhysPult.Socket = GWSockets.createWebSocket(url)
 
-    if file.Exists("metrostroi_data/physpult.txt", "DATA") then
-        local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
-        local params = string.Split(paramsString, " ")
-        
-        -- Update connection parameters received from c++ program
-        PhysPult.SocketPort = tonumber(params[1])
-        PhysPult.UpdateInterval = tonumber(params[2])
-        PhysPult.IndicatorsNumber = tonumber(params[3])
-        PhysPult.SwitchesNumber = tonumber(params[4])
-    else
-        chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
-    end
-
-    local timerName = "tcp-client-handler"..tcpClient:getsockname()
-    local errorCount = 0
-
-    -- мб это вызывается несколько раз
-    if(PhysPult.SocketWrtData) then tcpClient:send(PhysPult.SocketWrtData) end
-    tcpClient:settimeout(0.01)
-
-    timer.Create(timerName, PhysPult.UpdateInterval / 1000, 0, function()
-        tcpClient:send(PhysPult.SocketWrtData.."\0")
-        --chat.AddText("wrt"..PhysPult.SocketWrtData)
-
-        local data, error = tcpClient:receive(PhysPult.SwitchesNumber + 1)
-
-        if (data) then
-            errorCount = 0
-            --chat.AddText("rec"..data)
-            PhysPult.SocketRecData = data
-        else 
-            errorCount = errorCount + 1
-            --chat.AddText("rec failed: "..error)
-            if(errorCount == 3) then 
-                tcpClient:close()
-                PhysPult.SocketRecData = nil
-                chat.AddText("PhysPult: Client disconnected!")
-                timer.UnPause("tcp-server-physpult")
-                timer.Remove(timerName)
-            end
-        end
-    end) 
+function PhysPult.Socket:onMessage(txt)
+    -- chat.AddText("Received: ", txt)
+    PhysPult.SocketRecData = txt
 end
 
-----   API definition   ----
+function PhysPult.Socket:onError(txt)
+    chat.AddText("Error: ", txt)
+end
 
-function PhysPult.StartServer(host, port)
-    local tcpServer = socket.tcp4()
+function PhysPult.Socket:onConnected()
+    chat.AddText("PhysPult: Connected to device.")
 
-    tcpServer:settimeout(0.01)
-    tcpServer:setoption("reuseaddr", true)
-    tcpServer:bind(host, port)
-    tcpServer:listen(2)
-
-    -- Нижнеидушая хрень для чтения из файла, временно
-    -- if file.Exists("metrostroi_data/physpult.txt", "DATA") then
-    --     local paramsString = file.Read("metrostroi_data/physpult.txt", "DATA")
-    --     local params = string.Split(paramsString, " ")
-        
-    --     PhysPult.SocketPort = tonumber(params[1])
-    --     PhysPult.UpdateInterval = tonumber(params[2])
-    --     PhysPult.IndicatorsNumber = tonumber(params[3])
-    --     PhysPult.SwitchesNumber = tonumber(params[4])
-    -- else
-    --     chat.AddText("PhysPult: Couldn't load config for current connection! Using default parameters.")
-    -- end
-    
-    -- timer.Create("physpult_files", 1 / PhysPult.UpdateInterval, 0, function()
-    --     file.Write("metrostroi_data/physpult_indicators.txt", PhysPult.SocketWrtData)
-    --     --chat.AddText("wrt"..PhysPult.SocketWrtData)
-
-    --     local data = file.Read("physpult_switches.txt", "DATA")
-    --     PhysPult.SocketRecData = data
-    -- end) 
-    ---- ВОТ ПО СЮДА
-
-    timer.Create("tcp-server-physpult", 0.1, 0, function()
-        PhysPult.tcpClient = tcpServer:accept()
-
-        if (PhysPult.tcpClient) then
-            chat.AddText("PhysPult: Client connected!")
-            clientHanlder(PhysPult.tcpClient)
+    timer.Create("PhysPultUpdate", PhysPult.UpdateInterval / 1000, 0, function()
+        if(PhysPult.SocketWrtData) then
+            PhysPult.Socket:write(PhysPult.SocketWrtData)
         end
-    end)
+	end)
+end
+
+function PhysPult.Socket:onDisconnected()
+    chat.AddText("PhysPult: Disconnected.")
 end

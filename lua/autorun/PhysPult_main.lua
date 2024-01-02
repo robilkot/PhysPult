@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------------------
 --                          Творческое объединение "MetroPack"
---	Скрипт написан в 2022 году для тренажёра 81-717.5 на основе Arduino UNO.
+--	Скрипт написан в 2022 году для тренажёра 81-717 на основе ESP32.
 --	Инициализация рабочих файлов для тренажёра.
 --	Автор: 	robilkot
 --	Steam: 	https://steamcommunity.com/id/metropacker/
@@ -12,47 +12,45 @@ if(SERVER) then return end
 
 timer.Create("PhysPultInit", 0.5, 1, function()
 
--- Список индикаторов с соответствующим индексом в строке (Индексация с нуля, символы 0 и 1 завезервированы скоростью).
+-- Список индикаторов с соответствующим номером бита. Биты 1-12, 15-16 зарезервированы под скорость.
 local indicators = {
 	-- 2 Блок
-	["SN"] = 2,
-	["KVC"] = 3,
-	["HRK"] = 4, 
-	["LN"] = 5,
-	["ST"] = 6, 
-	--["???"] = 7, -- ДВ
-	["RP"] = 8, 
-	["SD"] = 9, 
-	["GLIB"] = 10, -- ЛЭКК
-	["VD"] = 11, 
-	["AR70"] = 12, 
-	["AR40"] = 13, 
-	["KT"] = 14,
-	["KVD"] = 15, 
-	["AR0"] = 16, 
-	["AR04"] = 17, 
-	["AR80"] = 18, 
-	["AR60"] = 19, 
+	["KVC"] = 14, --
+	["AR0"] = 20, --23
+	["AR04"] = 19, 
+	["AR40"] = 23, 
+	["AR60"] = 17,  -- 26
+	["AR70"] = 24, 
+	["AR80"] = 18,
+	["SD"] = 27, 
+	["VD"] = 25, 
+	["RP"] = 28, 
+	["SN"] = 13, --
+	["HRK"] = 32, 
+	["KVD"] = 21, 
+	["ST"] = 30, 
+	--["???"] = 29, -- ДВ
+	["KT"] = 22,
+	["LN"] = 31,
+	["GLIB"] = 26, -- ЛЭКК
 
 	-- 5-6 Блоки
-	["GreenRP"] = 27,
-	--["DoorsLeftL"] = ???,
-	["L1"] = 20,
-	["LSP"] = 21,
-	["AVU"] = 22,
-	["LKVP"] = 23,
-	-- ["RZP"] = 25,
+	["GreenRP"] = 33,
+	-- ["DoorsLeftL"] = ???,
+	["L1"] = 40,
+	["LSP"] = 39,
+	["AVU"] = 38,
+	["LKVP"] = 37,
+	-- ["RZP"] = ???,
 
 	-- 7 Блок
-	--["???"] = 28, -- Контроль печи
-	["PN"] = 26,
-	-- ["DoorsRightR"] = ??,
+	--["???"] = ???, -- Контроль печи
+	["PN"] = 34,
+	-- ["DoorsRightR"] = ???,
 }
 
-local indicatorsMaximumIndex = indicators[table.GetWinningKey(indicators)]
-
 -- Список тумблеров с соответствующим номером бита.
--- [Номер бита] = { "Имя кнопки", инвертировать ли(по стандарту false) } 
+-- [Номер бита] = { "Имя тумблера", инвертировать ли(по стандарту false) } 
 local switches = {
 	-- 1 блок
 	[33] = { "VMKToggle" },
@@ -72,17 +70,17 @@ local switches = {
 	[17] = { "V11Toggle" },
 	[19] = { "V12Toggle" },
 
-	--[18] = { "OtklAVUToggle"},
+	-- [18] = { "OtklAVUToggle"},
 	--[22] = "???", -- Двери торцевые
 	--[23] = "???", -- Вентиляция кабины
 	[9] = { "ARSToggle" },
 	[10] = { "ALSToggle" },
-	--[26] = { "ARSRToggle" },
+	[26] = { "ARSRToggle" },
 	[11] = { "OVTToggle" } ,
-	--[34] = { "ALSFreqToggle" },
-	-- [32] = { "L_1Toggle" },
+	-- [34] = { "ALSFreqToggle" },
+	[35] = { "L_1Toggle" },
 	[31] = { "L_2Toggle" }, 
-	--[30] = { "L_3Toggle" },
+	-- [30] = { "L_3Toggle" },
 	-- [35] = { "VPToggle" },
 	
 	-- 7 блок
@@ -95,30 +93,29 @@ local switches = {
 -- Список кнопок для снхронизации, с соответствующим номером бита.
 local buttons = {
 	-- 1 блок
-	[37] = "RezMKSet",
-	[36] = "ARS13Set",
+	[37] = { "RezMKSet", true },
+	-- [36] = { "ARS13Set", false },
 
 	-- 5 блок
-	[4] = "R_Program1Set",
-	[3] = "R_Program2Set",
-	[15] = "KRZDSet",
-	[14] = "VozvratRPSet" ,
-	[1] =  "KDLSet" ,
-	--[2] =  "KDLSet" , -- сделать or
+	[4] = { "R_Program1Set", false },
+	[3] = { "R_Program2Set", false },
+	[15] = { "KRZDSet", false },
+	[14] = { "VozvratRPSet", false },
+	-- [1] =  { "KDLSet", false },
+	-- [2] =  { "KDLSet", false }, -- сделать or
 
 	-- 6 блок
-	[21] =  "1:KVTSet" ,
-	[24] =  "1:KVTRSet" ,
-	[18] =  "VZ1Set" ,
-	[23] = "OtklBVSet",
-	[12] = "ConverterProtectionSet",
-	[29] =  "KSNSet" ,
-	[30] =  "RingSet" ,
+	[22] = {  "1:KVTSet", false }, --21
+	-- [22] = {  "1:KVTRSet", false }, --24
+	[18] = {  "VZ1Set", true },
+	[23] = { "OtklBVSet", false },
+	[12] = { "ConverterProtectionSet", true },
+	[29] = {  "KSNSet", false },
+	[30] = {  "RingSet", false },
 
 	-- 7 блок
-	[38] =  "KRPSet" ,
+	[38] = { "KRPSet", false },
 	--[37] =  "KAHSet" ,
-	[46] =  "KDPSet" ,
 }
 
 -- Возращает поезд а котором сидит игрок.
@@ -152,26 +149,6 @@ local function sendButtonMessage(button,train,outside)
         net.WriteBool(outside)
     net.SendToServer()
     return buttID
-end
-
--- Добивает строку до указанной длины необходиымым символами.
--- REMARK - Если длина строки больше необходимой, то строка будет просто возвращена.
--- (str) - Строка, которую необходимо дополнить.
--- (char) - Символ которым будет дополняться строка.
--- (len) - Необходимая длина.
--- RETURNS - Новая строка, дополненная до необходимой длины указанными символами.
-local function stringPadRight(str, char, len)
-	local strLen = string.len(str);
-
-	if (strLen >= len) then return str end
-
-	if (#char != 1) then return nil end
-
-	for i = 1, len - strLen do
-		str = str..char
-	end
-
-	return str
 end
 
 -- Возвращает имя по которому можно получить значение кнопки, на совное ID кнопки.
@@ -292,64 +269,124 @@ end
 
 PhysPult = PhysPult or {}
 
--- Количество переключателей и ламп (длины строк)
-PhysPult.SwitchesNumber = 64
-PhysPult.IndicatorsNumber = 64
-
--- Интервал обновления состояния (миллисекунды).
+-- Интверал между обновлениями состояния (мс).
 PhysPult.UpdateInterval = 15
-
--- Порт для подключения по сокетам
-PhysPult.SocketPort = 61000
 
 -- Синхронизация индикаторов в поезде.
 function PhysPult.SynchronizeIndicators(train)
-	local currentState = stringPadRight("", '0', PhysPult.IndicatorsNumber)
+	-- todo: R когда индикаторы не изменились
+	local msg = "W;"
+
+	local speed = math.floor(train:GetPackedRatio("speed") * 100)
+
+	local pressureTM = math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43)
+
+	local pressureNM = math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63)
+	
+	local pressureBC = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15)
+	
+	local batteryVoltage = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7)
+	
+	msg = msg..speed..','
+	msg = msg..pressureTM..','
+	msg = msg..pressureNM..','
+	msg = msg..pressureBC..','
+	msg = msg..batteryVoltage..';'
+
+	local registers = {
+		0, 0, 0, 0, 0, 0, 0
+	}
 
 	for k, v in pairs(indicators) do
-		if Metrostroi.GetTrainIndicatorStage(train, k) == true then
-			currentState = string.SetChar(currentState, v + 4, '1')
-		else 
-			currentState = string.SetChar(currentState, v + 4, '0')
+		local bitIndex = v
+
+		local bitInRegister = 7 - (bitIndex - 1) % 8
+		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
+		
+		local indicatorState = Metrostroi.GetTrainIndicatorStage(train, k)
+
+		if(indicatorState == true) then
+			registers[registerNumber] = bit.bor(registers[registerNumber], bit.lshift(1, bitInRegister))
+		else
+			registers[registerNumber] = bit.band(registers[registerNumber], bit.bnot(bit.lshift(1, bitInRegister)))
 		end
 	end
 
-	local speed = train:GetPackedRatio("speed") * 100
-	currentState = string.SetChar(currentState, 1, string.char(speed))
+	table.foreach(registers, function(key, value)
+		msg = msg..value..','
+	end)
 
-	local batteryVoltage = train:GetPackedRatio("BatteryVoltage") * 100 * 1.6
-	currentState = string.SetChar(currentState, 2, string.char(batteryVoltage)) 
+	msg = string.SetChar(msg, -1, ';')
 
-	-- tm 3
-	-- nm 4 
-	-- tc 5
-
-	currentState = string.SetChar(currentState, 11, '1') -- set LEKK to 1
-
-	PhysPult.SocketWrtData = currentState
+	PhysPult.SocketWrtData = msg
 end
 
 -- Синхронизация тумблреров в поезде.
 function PhysPult.SynchronizeSwitches(train)
+	local substrings = string.Explode(';', PhysPult.SocketRecData)
+	local registers = string.Explode(',', substrings[3])
+
 	for k, v in pairs(switches) do
-		local stage = PhysPult.SocketRecData[k] == '1'
+		local bitIndex = k
+
+		local bitInRegister = 7 - (bitIndex - 1) % 8
+		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
+		local register = registers[registerNumber]
+		
+		local switchState = bit.band(1, bit.rshift(tonumber(register), bitInRegister)) == 1
 
 		if (v[2]) then
-			stage = not stage
+			switchState = not switchState
 		end
-		
-		Metrostroi.SetTrainSwitchStage(train, v[1], stage)	
+
+		Metrostroi.SetTrainSwitchStage(train, v[1], switchState)	
 	end
 end
 
 -- Синхронизация кнопок в поезде.
 function PhysPult.SynchronizeButtons(train)
+	local substrings = string.Explode(';', PhysPult.SocketRecData)
+	local registers = string.Explode(',', substrings[3])
+
 	for k, v in pairs(buttons) do
-		if (PhysPult.SocketRecData[k] == '1') then
-			Metrostroi.DownTrainButton(train, v)
-		else 
-			Metrostroi.UpTrainButton(train, v)
+		local bitIndex = k
+
+		local bitInRegister = 7 - (bitIndex - 1) % 8
+		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
+		local register = registers[registerNumber]
+		
+		local switchState = bit.band(1, bit.rshift(tonumber(register), bitInRegister)) == 1
+
+		if (v[2] == false) then
+			switchState = not switchState
 		end
+		
+		if(switchState == true) then
+			Metrostroi.UpTrainButton(train, v[1])
+		else
+			Metrostroi.DownTrainButton(train, v[1])
+		end
+	end
+
+	local kdlRegister = registers[1]
+	local kdlOneState = bit.band(1, bit.rshift(tonumber(kdlRegister), 7)) == 1
+	local kdlTwoState = bit.band(1, bit.rshift(tonumber(kdlRegister), 6)) == 1
+
+	if(kdlOneState or kdlTwoState) then
+		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", false)
+		Metrostroi.DownTrainButton(train, "KDLSet")
+	else
+		Metrostroi.UpTrainButton(train, "KDLSet")
+	end
+
+	local kpdRegister = registers[6]
+	local kpdState = bit.band(1, bit.rshift(tonumber(kpdRegister), 2)) == 1
+
+	if(kpdState) then
+		Metrostroi.UpTrainButton(train, "KDPSet")
+	else
+		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", true)
+		Metrostroi.DownTrainButton(train, "KDPSet")
 	end
 end
 
@@ -358,7 +395,7 @@ function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
 
 	if(train and checkTrainType(train)) then
-		if(PhysPult.SocketRecData) then
+		if(PhysPult.SocketRecData) then 
 			PhysPult.SynchronizeSwitches(train)
 			PhysPult.SynchronizeButtons(train)
 		end
@@ -367,16 +404,24 @@ function PhysPult.Synchronize()
 	end
 end
 
--- Старт синхронизации физического пульта и виртуального поезда, в котром сидит игрок.
-function PhysPult.StartSynchronize()
-	PhysPult.StartServer("127.0.0.1", PhysPult.SocketPort)
+concommand.Add("physpult_start", function()
 
-	timer.Create("stateStringUpdate", PhysPult.UpdateInterval / 1000, 0, function()
+    timer.Create("ControlsSync", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
 	end)
-	if(timer.Exists("stateStringUpdate")) then chat.AddText("PhysPult by MetroPack started!") end
-end
 
-PhysPult.StartSynchronize()
+	if(timer.Exists("ControlsSync")) then chat.AddText("PhysPult by MetroPack started!") end
+
+    PhysPult.Socket:close()
+    PhysPult.Socket:open()
+end)
+
+concommand.Add("physpult_stop", function()
+    if(timer.Exists("PhysPultUpdate")) then timer.Remove("PhysPultUpdate") end
+	if(timer.Exists("ControlsSync")) then timer.Remove("ControlsSync") end
+    
+    PhysPult.Socket:close()
+end)
+
 
 end)
