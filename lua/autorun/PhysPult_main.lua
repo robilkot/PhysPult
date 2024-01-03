@@ -15,17 +15,17 @@ timer.Create("PhysPultInit", 0.5, 1, function()
 -- Список индикаторов с соответствующим номером бита. Биты 1-12, 15-16 зарезервированы под скорость.
 local indicators = {
 	-- 2 Блок
-	["KVC"] = 14, --
-	["AR0"] = 20, --23
+	["KVC"] = 14,
+	["AR0"] = 20,
 	["AR04"] = 19, 
 	["AR40"] = 23, 
-	["AR60"] = 17,  -- 26
+	["AR60"] = 17,
 	["AR70"] = 24, 
 	["AR80"] = 18,
 	["SD"] = 27, 
 	["VD"] = 25, 
 	["RP"] = 28, 
-	["SN"] = 13, --
+	["SN"] = 13,
 	["HRK"] = 32, 
 	["KVD"] = 21, 
 	["ST"] = 30, 
@@ -50,7 +50,7 @@ local indicators = {
 }
 
 -- Список тумблеров с соответствующим номером бита.
--- [Номер бита] = { "Имя тумблера", инвертировать ли(по стандарту false) } 
+-- [Номер бита] = { "Имя тумблера", инвертировать ли (boolean) } 
 local switches = {
 	-- 1 блок
 	[33] = { "VMKToggle" },
@@ -90,7 +90,8 @@ local switches = {
 	[28] = { "VAHToggle" },
 }
 
--- Список кнопок для снхронизации, с соответствующим номером бита.
+-- Список кнопок с соответствующим номером бита.
+-- [Номер бита] = { "Имя кнопки", инвертировать ли (boolean) } 
 local buttons = {
 	-- 1 блок
 	[37] = { "RezMKSet", true },
@@ -101,8 +102,8 @@ local buttons = {
 	[3] = { "R_Program2Set", false },
 	[15] = { "KRZDSet", false },
 	[14] = { "VozvratRPSet", false },
-	-- [1] =  { "KDLSet", false },
-	-- [2] =  { "KDLSet", false }, -- сделать or
+	-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
+	-- [2] =  { "KDLSet", false }, 
 
 	-- 6 блок
 	[22] = {  "1:KVTSet", false }, --21
@@ -409,8 +410,6 @@ concommand.Add("physpult_start", function()
     timer.Create("ControlsSync", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
 	end)
-
-	if(timer.Exists("ControlsSync")) then chat.AddText("PhysPult by MetroPack started!") end
 
     PhysPult.Socket:close()
     PhysPult.Socket:open()

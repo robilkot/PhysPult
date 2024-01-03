@@ -65,7 +65,7 @@ void DisplayState(PhysPult& physPult)
 
   // Start shifting out
   digitalWrite(OutLatchPin, 0);
-  delayMicroseconds(PulseWidth);
+  // delayMicroseconds(PulseWidth);
 
   if(physPult.State == NetworkInitialization)
   {
@@ -118,7 +118,7 @@ void DisplayState(PhysPult& physPult)
   shiftOut(OutDataPin, OutClockPin, LSBFIRST, firstDigitByte); 
 
   // End shifting out
-  delayMicroseconds(PulseWidth);
+  // delayMicroseconds(PulseWidth);
   digitalWrite(OutLatchPin, 1);
 
   // Battery voltmeter
@@ -138,12 +138,12 @@ void DisplayState(PhysPult& physPult)
 
 void UpdateServos(PhysPult& physPult)
 {
-  // Track current and target values to prevent too fast servos movements
   static uint8_t tmCurrentValue = 0;
   static uint8_t nmCurrentValue = 0;
   static uint8_t tcCurrentValue = 0;
   
-  static TimerMs servoUpdateTimer(20, true, false);
+  // To prevent too fast servos movements
+  static TimerMs servoUpdateTimer(5, true, false);
 
   if(servoUpdateTimer.tick())
   {
@@ -160,7 +160,6 @@ void UpdateServos(PhysPult& physPult)
 
 void UpdateLeds(PhysPult& physPult)
 {
-
   // Commented out since both blocks are connected to the same potentiometer and data pin
   // 3rd block
   // for(uint8_t i = 0; i < LightingLedCountTotal; i++)
@@ -201,13 +200,20 @@ uint16_t StableRead(uint8_t pin, uint8_t iterations)
 
 void UpdateInput(PhysPult& physPult)
 {
-  physPult.LightingBrightness1 = map(StableRead(PotentiometerPin1, 30), 0, 4096, 255, 0);
+  // This check prevents flickering because of inaccurate measurements
+  uint8_t newBrightness = map(StableRead(PotentiometerPin1, 15), 0, 4096, 255, 0);
+  auto lightingBrightnessDelta = newBrightness - physPult.LightingBrightness1;
+  
+  if(abs(lightingBrightnessDelta) > 2)
+  {
+    physPult.LightingBrightness1 = newBrightness;
+  }
 
   // todo: implement
   // physPult.CranePosition = map(StableRead(CranePin, 20), 0, 4096, 0, 255);
 
   // Commented out since second potentiometer is not used
-  // physPult.LightingBrightness2 = physPult.LightingBrightness1; // map(analogRead(PotentiometerPin2), 0, 4096, 0, 255);
+  // physPult.LightingBrightness2 = physPult.LightingBrightness1; // map(StableRead(PotentiometerPin2, 12), 0, 4096, 255, 0);
 
   ReadInRegisters(physPult.InRegisters);
 }

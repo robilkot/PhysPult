@@ -37,7 +37,7 @@ const uint8_t LeftLetters[][2] = {
 const uint32_t BaudRate = 115200;
 const uint16_t NetworkPort = 80;
 
-const uint8_t PulseWidth = 10; // Delay in microseconds for proper registers functioning
+const uint8_t PulseWidth = 5; // Delay in microseconds for proper registers functioning
 
 const uint8_t OutDataPin = 19; // 74hc595 registers
 const uint8_t OutClockPin = 26; // 74hc595 registers clock pin
