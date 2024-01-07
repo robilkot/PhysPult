@@ -11,5 +11,6 @@
 !*.cs
 !*.xaml
 !*.csproj
+!*.ini
 */x64/
 PhysPult_esp32/src/WifiConstants.h

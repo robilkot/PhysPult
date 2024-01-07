@@ -416,7 +416,6 @@ concommand.Add("physpult_start", function()
 end)
 
 concommand.Add("physpult_stop", function()
-    if(timer.Exists("PhysPultUpdate")) then timer.Remove("PhysPultUpdate") end
 	if(timer.Exists("ControlsSync")) then timer.Remove("ControlsSync") end
     
     PhysPult.Socket:close()

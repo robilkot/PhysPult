@@ -27,5 +27,7 @@ function PhysPult.Socket:onConnected()
 end
 
 function PhysPult.Socket:onDisconnected()
+    if(timer.Exists("PhysPultUpdate")) then timer.Remove("PhysPultUpdate") end
+    
     chat.AddText("PhysPult: Disconnected.")
 end
