@@ -32,6 +32,15 @@ void InitializeHardware(PhysPult& physPult)
   FastLED.setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(255);
 
+  ledcSetup(12, 5000, 8);
+  ledcSetup(13, 5000, 8);
+  ledcSetup(14, 5000, 8);
+  ledcSetup(15, 5000, 8);
+  ledcAttachPin(EnginesCurrentNegativePwmPin, 14);
+  ledcAttachPin(EnginesCurrentPositivePwmPin, 15);
+  ledcAttachPin(SupplyVoltmeterPwmPin, 12);
+  ledcAttachPin(BatteryVoltmeterPwmPin, 13);
+
   physPult.TmServo.attach(TmPwmPin); 
   physPult.NmServo.attach(NmPwmPin); 
   physPult.TcServo.attach(TcPwmPin); 
@@ -125,34 +134,37 @@ void DisplayState(PhysPult& physPult)
   // delayMicroseconds(PulseWidth);
   digitalWrite(OutLatchPin, 1);
 
-  // Battery voltmeter
-  analogWrite(BatteryVoltmeterPwmPin, physPult.BatteryVoltage);
-
-  //Supply voltmeter
-  analogWrite(SupplyVoltmeterPwmPin, physPult.SupplyVoltage);
-
-  // Engines ampmeter
-  uint8_t enginesCurrentAbsolute = abs(physPult.EnginesCurrent);
-  
-  // Serial.println(physPult.EnginesCurrent);
-  if(physPult.EnginesCurrent > 0)
-  {
-    analogWrite(EnginesCurrentPositivePwmPin, enginesCurrentAbsolute);
-    analogWrite(EnginesCurrentNegativePwmPin, 0);
-  }
-  else if(physPult.EnginesCurrent < 0)
-  {
-    analogWrite(EnginesCurrentNegativePwmPin, enginesCurrentAbsolute);
-    analogWrite(EnginesCurrentPositivePwmPin, 0);
-  }
-  else 
-  {
-    analogWrite(EnginesCurrentNegativePwmPin, 0);
-    analogWrite(EnginesCurrentPositivePwmPin, 0);
-  }
-
   UpdateLeds(physPult);
   UpdateServos(physPult);
+  UpdateAnalogControls(physPult);
+}
+
+void UpdateAnalogControls(PhysPult& physPult)
+{
+  static TimerMs analogUpdateTimer(5, true, false);
+
+  if(analogUpdateTimer.tick())
+  {
+    // Battery voltmeter
+    ledcWrite(13, physPult.BatteryVoltage);
+
+    //Supply voltmeter
+    ledcWrite(12, physPult.SupplyVoltage);
+
+    // Engines ampmeter
+    uint8_t enginesCurrentAbsolute = abs(physPult.EnginesCurrent);
+    
+    if(physPult.EnginesCurrent > 0)
+    {
+      ledcWrite(14, 0);
+      ledcWrite(15, enginesCurrentAbsolute);
+    }
+    else
+    {
+      ledcWrite(14, enginesCurrentAbsolute);
+      ledcWrite(15, 0);
+    }
+  }
 }
 
 void UpdateServos(PhysPult& physPult)

@@ -14,5 +14,6 @@ void DisplayState(PhysPult&);
 void UpdateInput(PhysPult&);
 void UpdateServos(PhysPult&);
 void UpdateLeds(PhysPult&);
+void UpdateAnalogControls(PhysPult&);
 void ReadInRegisters(uint8_t*);
 void BackgroundHardwareFunction(void*);
