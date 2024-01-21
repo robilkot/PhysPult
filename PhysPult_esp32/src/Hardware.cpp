@@ -2,8 +2,6 @@
 
 void InitializeHardware(PhysPult& physPult)
 {
-  Serial.begin(BaudRate);
-
   pinMode(InDataPin, INPUT);
   pinMode(InLatchPin, OUTPUT);
   pinMode(InClockPin, OUTPUT);
@@ -14,19 +12,25 @@ void InitializeHardware(PhysPult& physPult)
 
   pinMode(BatteryVoltmeterPwmPin, OUTPUT);
   pinMode(SupplyVoltmeterPwmPin, OUTPUT);
-  pinMode(EnginesCurrentPwmPin, OUTPUT);
+  pinMode(EnginesCurrentPositivePwmPin, OUTPUT);
+  pinMode(EnginesCurrentNegativePwmPin, OUTPUT);
 
-  pinMode(LightingDataPin, OUTPUT);
+  pinMode(LightingDataPin1, OUTPUT);
+  pinMode(LightingDataPin2, OUTPUT);
+  pinMode(GaugesLightingDataPin, OUTPUT);
   pinMode(PotentiometerPin1, INPUT);
-  // pinMode(PotentiometerPin2, INPUT);
+  pinMode(PotentiometerPin2, INPUT);
 
   pinMode(TmPwmPin, OUTPUT);
   pinMode(TmPwmPin, OUTPUT);
   pinMode(TcPwmPin, OUTPUT);
 
-  FastLED.addLeds<WS2812B, LightingDataPin, GRB>(physPult.LightingLeds, LightingLedCountTotal);
+  FastLED.addLeds<WS2812B, LightingDataPin1, GRB>(physPult.LightingLeds1, sizeof(physPult.LightingLeds1) / sizeof(CRGB));
+  // todo: Screw this bs. Crash
+  // FastLED.addLeds<WS2812B, LightingDataPin2, GRB>(physPult.LightingLeds2, sizeof(physPult.LightingLeds2) / sizeof(CRGB));
+  // FastLED.addLeds<WS2812B, GaugesLightingDataPin, GRB>(physPult.GaugesLeds, sizeof(physPult.GaugesLeds) / sizeof(CRGB));
   FastLED.setCorrection(TypicalLEDStrip);
-  FastLED.setBrightness(0);
+  FastLED.setBrightness(255);
 
   physPult.TmServo.attach(TmPwmPin); 
   physPult.NmServo.attach(NmPwmPin); 
@@ -124,13 +128,28 @@ void DisplayState(PhysPult& physPult)
   // Battery voltmeter
   analogWrite(BatteryVoltmeterPwmPin, physPult.BatteryVoltage);
 
-  // todo: implement
-  // Supply voltmeter
-  // analogWrite(SupplyVoltmeterPwmPin, map(physPult.SupplyVoltage, 0, 1000, 0, 255));
+  //Supply voltmeter
+  analogWrite(SupplyVoltmeterPwmPin, physPult.SupplyVoltage);
 
-  // todo: How to implement negative values?
   // Engines ampmeter
-  // analogWrite(EnginesCurrentPwmPin, map(physPult.EnginesCurrent, -500, 500, 0, 255));
+  uint8_t enginesCurrentAbsolute = abs(physPult.EnginesCurrent);
+  
+  // Serial.println(physPult.EnginesCurrent);
+  if(physPult.EnginesCurrent > 0)
+  {
+    analogWrite(EnginesCurrentPositivePwmPin, enginesCurrentAbsolute);
+    analogWrite(EnginesCurrentNegativePwmPin, 0);
+  }
+  else if(physPult.EnginesCurrent < 0)
+  {
+    analogWrite(EnginesCurrentNegativePwmPin, enginesCurrentAbsolute);
+    analogWrite(EnginesCurrentPositivePwmPin, 0);
+  }
+  else 
+  {
+    analogWrite(EnginesCurrentNegativePwmPin, 0);
+    analogWrite(EnginesCurrentPositivePwmPin, 0);
+  }
 
   UpdateLeds(physPult);
   UpdateServos(physPult);
@@ -160,60 +179,82 @@ void UpdateServos(PhysPult& physPult)
 
 void UpdateLeds(PhysPult& physPult)
 {
-  // Commented out since both blocks are connected to the same potentiometer and data pin
-  // 3rd block
-  // for(uint8_t i = 0; i < LightingLedCountTotal; i++)
-  // {
-  //   physPult.LightingLeds[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness1);
-  // }
-  // // 1st block
-  // for(uint8_t i = LightingLedCount1; i < LightingLedCountTotal; i++)
-  // {
-  //   physPult.LightingLeds[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness2);
-  // }
+  static bool LightingEnabled = false;
 
+  // Global switch for lighting (both pult + gauges)
   if(physPult.InRegisters[5] >> 3 & 1) 
   {
-    FastLED.setBrightness(physPult.LightingBrightness1);
+    LightingEnabled = true;
   }
   else
   {
-    FastLED.setBrightness(0);  
+    LightingEnabled = false; 
+  }
+
+  // 1st block
+  for(uint8_t i = 0; i < LightingLedCount1; i++)
+  {
+    physPult.LightingLeds1[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness1 * LightingEnabled);
+  }
+  // 3rd block
+  for(uint8_t i = 0; i < LightingLedCount2; i++)
+  {
+    physPult.LightingLeds2[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness2 * LightingEnabled);
+  }
+  // Gauges
+  for(uint8_t i = 0; i < GaugesLightingLedCount; i++)
+  {
+    physPult.GaugesLeds[i] = CHSV(LightingColorHue, LightingColorSat, 255 * LightingEnabled);
   }
 
   FastLED.show();
 }
 
-uint16_t StableRead(uint8_t pin, uint8_t iterations)
-{
-  uint64_t result = 0;
-
-  for(uint8_t i = 0; i < iterations; i++)
-  {
-    result += analogRead(pin);
-  }
-
-  result /= iterations;
-
-  return result;
-}
-
 void UpdateInput(PhysPult& physPult)
 {
-  // This check prevents flickering because of inaccurate measurements
-  uint8_t newBrightness = map(StableRead(PotentiometerPin1, 15), 0, 4096, 255, 0);
-  auto lightingBrightnessDelta = newBrightness - physPult.LightingBrightness1;
-  
-  if(abs(lightingBrightnessDelta) > 2)
+  static uint8_t currentMeasurement = 0;
+  static uint8_t potentiometerValue1 = 0;
+  static uint8_t potentiometerValue2 = 0;
+ 
+  static uint32_t potentiometerTempValue1 = 0;
+  static uint32_t potentiometerTempValue2 = 0;
+
+  // Prevents from flickering since measurements are not single. Doesn't block execution performing multiple analogReads per call.
+  if(currentMeasurement < 15)
   {
-    physPult.LightingBrightness1 = newBrightness;
+    potentiometerTempValue1 += analogRead(PotentiometerPin1);
+    // potentiometerTempValue2 += analogRead(PotentiometerPin2);
+  
+    currentMeasurement++;
   }
+  else
+  {
+    potentiometerTempValue1 /= (currentMeasurement + 1);
+    potentiometerValue1 = map(potentiometerTempValue1, 0, 4096, 255, 0);
+    // potentiometerValue2 = map(potentiometerTempValue2 / (currentMeasurement + 1), 0, 4096, 255, 0);
+
+    potentiometerTempValue1 = 0;
+    // potentiometerTempValue2 = 0;
+    currentMeasurement = 0;
+  }
+
+  // This check prevents flickering because of inaccurate measurements (even with multiple analogRead)
+  auto lightingBrightness1Delta = potentiometerValue1 - physPult.LightingBrightness1;
+  // auto lightingBrightness2Delta = potentiometerValue2 - physPult.LightingBrightness2;
+  
+  if(abs(lightingBrightness1Delta) > 2)
+  {
+    physPult.LightingBrightness1 = potentiometerValue1;
+    physPult.LightingBrightness2 = potentiometerValue1;
+  }
+  // if(abs(lightingBrightness2Delta) > 2)
+  // {
+  //   physPult.LightingBrightness2 = potentiometerValue2;
+  // }
 
   // todo: implement
   // physPult.CranePosition = map(StableRead(CranePin, 20), 0, 4096, 0, 255);
 
-  // Commented out since second potentiometer is not used
-  // physPult.LightingBrightness2 = physPult.LightingBrightness1; // map(StableRead(PotentiometerPin2, 12), 0, 4096, 255, 0);
 
   ReadInRegisters(physPult.InRegisters);
 }

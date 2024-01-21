@@ -52,22 +52,26 @@ const uint8_t InRegistersCount = 6; // 74hc165 registers count
 const uint8_t BatteryVoltmeterPwmPin = 21; // Vmeter on 1st block
 
 const uint8_t SupplyVoltmeterPwmPin = 22; // kVmeter
-const uint8_t EnginesCurrentPwmPin = 23; // Ameter
+const uint8_t EnginesCurrentPositivePwmPin = 23; // Ampermeter positive
+const uint8_t EnginesCurrentNegativePwmPin = 15; // Ampereter negative
 
 const uint8_t TmPwmPin = 5; // TM servo pwm pin
 const uint8_t NmPwmPin = 17; // NM servo pwm pin
 const uint8_t TcPwmPin = 16; // TC servo pwm pin
 
-const uint8_t LightingDataPin = 18; // Pult lighting
-// Commented out since data pin is common for both 1st and 3rd block for now
-// const uint8_t LightingLedCount1 = 8; // LED count on 3rd block
-// const uint8_t LightingLedCount2 = 4; // LED count on 1st block
-const uint8_t LightingLedCountTotal = 8; // Max LED count in single strip
+const uint8_t LightingDataPin1 = 18; // Pult lighting first group
+const uint8_t LightingLedCount1 = 4; // LED count for first group
+
+const uint8_t LightingDataPin2 = 12; // Pult lighting second group
+const uint8_t LightingLedCount2 = 8; // LED count for second group
+
+const uint8_t GaugesLightingDataPin = 14; // High-voltage gauges lighting
+const uint8_t GaugesLightingLedCount = 1; // LED count for gauges
 
 const uint8_t CranePin = 32; // 013 crane pin
 
 const uint8_t PotentiometerPin1 = 34; // Lighting potentiometer on 3rd block
-// const uint8_t PotentiometerPin2 = 35; // Lighting potentiometer on 1st block
+const uint8_t PotentiometerPin2 = 35; // Lighting potentiometer on 1st block
 
 const uint8_t LightingColorHue = 20;
 const uint8_t LightingColorSat = 200; 

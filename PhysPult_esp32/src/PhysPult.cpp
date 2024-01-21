@@ -2,9 +2,17 @@
 
 PhysPult::PhysPult(void (*state)(PhysPult&)) : State(state)
 {
-    for(uint8_t i = 0; i < LightingLedCountTotal; i++)
+    for(uint8_t i = 0; i < LightingLedCount1; i++)
     {
-        LightingLeds[i] = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+        LightingLeds1[i] = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+    }
+    for(uint8_t i = 0; i < LightingLedCount2; i++)
+    {
+        LightingLeds2[i] = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+    }
+    for(uint8_t i = 0; i < GaugesLightingLedCount; i++)
+    {
+        GaugesLeds[i] = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
     }
 }
 
@@ -15,7 +23,7 @@ void PhysPult::AcceptMessage(PhysPultMessage msg)
         return;
     }
 
-    msg.NumericData.reserve(6);
+    msg.NumericData.reserve(7);
     
     Speed           = msg.NumericData[0];
 
@@ -26,7 +34,7 @@ void PhysPult::AcceptMessage(PhysPultMessage msg)
     BatteryVoltage  = msg.NumericData[4];
     SupplyVoltage   = msg.NumericData[5];
 
-    // EnginesCurrent  = msg.NumericData[???] - 1; // todo: implement
+    EnginesCurrent  = msg.NumericData[6];
     
     msg.NumericData.reserve(OutRegistersCount);
 

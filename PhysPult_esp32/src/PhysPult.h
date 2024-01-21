@@ -22,10 +22,13 @@ struct PhysPult
     uint8_t DeviceNumber = 0; // Used to display ipv4 of device
     uint8_t MessageNumber = 0; // Used to display error codes and progress
     
-    CRGB LightingLeds[LightingLedCountTotal];
+    CRGB LightingLeds1[LightingLedCount1];
+    CRGB LightingLeds2[LightingLedCount2];
+    CRGB GaugesLeds[GaugesLightingLedCount];
     
-    uint8_t LightingBrightness1 = 0; // For 3rd block
-    // uint8_t LightingBrightness2 = 0; // For 1st block
+    uint8_t LightingBrightness1 = 0; // For 1st block
+    uint8_t LightingBrightness2 = 0; // For 3rd block
+    uint8_t GaugesBrightness = 0; // For gauges
 
     // Output variables (ordering in message as declared here)
 
@@ -38,7 +41,7 @@ struct PhysPult
     uint8_t BatteryVoltage = 0; // 0..255
 
     uint8_t SupplyVoltage = 0; // 0..255
-    int16_t EnginesCurrent = 0; // todo: implement
+    int16_t EnginesCurrent = 0; // -255..255
 
     // Input variables
 

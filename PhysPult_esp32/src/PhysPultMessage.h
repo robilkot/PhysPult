@@ -15,7 +15,7 @@ struct PhysPultMessage {
     const char Delimiter = ';'; 
 
     char Type = PhysPultMessageTypes::INFO;
-    std::vector<uint8_t> NumericData;
+    std::vector<int16_t> NumericData;
     std::vector<uint8_t> BinaryData;
 
     String ToString();

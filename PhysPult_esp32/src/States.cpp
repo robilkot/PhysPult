@@ -2,17 +2,20 @@
 
 State(HardwareInitialization)
 {
+  Serial.begin(BaudRate);
+ 
   InitializeHardware(physPult);
 
   xTaskCreatePinnedToCore(
     BackgroundHardwareFunction,
     "BackgroundHardwareTask",
-    15000,  // Stack size
+    8000,
     &physPult,
     0,  // Priority of the task 
-    nullptr, // TaskHandle_t
-    0);
+    nullptr,
+    0); // Runs on core 0
 
+  Serial.println("Hardware initialization complete");
   SetState(NetworkInitialization);
 }
 
@@ -57,6 +60,7 @@ State(NetworkInitialization)
   }
   Serial.println("available.");
 
+  Serial.println("Network initialization complete");
   SetState(WaitingForClient);
 }
 
@@ -69,8 +73,8 @@ State(WaitingForClient)
   physPult.Client = physPult.Server.accept();
 
   physPult.Reset();
+  
   Serial.println("Client accepted.");
-
   SetState(Work);
 }
 
