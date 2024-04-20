@@ -20,6 +20,7 @@ void InitializeHardware(PhysPult& physPult)
   pinMode(GaugesLightingDataPin, OUTPUT);
   pinMode(PotentiometerPin1, INPUT);
   pinMode(PotentiometerPin2, INPUT);
+  pinMode(CranePin, INPUT);
 
   pinMode(TmPwmPin, OUTPUT);
   pinMode(TmPwmPin, OUTPUT);
@@ -32,6 +33,7 @@ void InitializeHardware(PhysPult& physPult)
   FastLED.setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(255);
 
+  // todo: document + move pwm channels to constants.h
   ledcSetup(12, 5000, 8);
   ledcSetup(13, 5000, 8);
   ledcSetup(14, 5000, 8);
@@ -148,7 +150,7 @@ void UpdateAnalogControls(PhysPult& physPult)
     // Battery voltmeter
     ledcWrite(13, physPult.BatteryVoltage);
 
-    //Supply voltmeter
+    // Supply voltmeter
     ledcWrite(12, physPult.SupplyVoltage);
 
     // Engines ampmeter
@@ -206,17 +208,20 @@ void UpdateLeds(PhysPult& physPult)
   // 1st block
   for(uint8_t i = 0; i < LightingLedCount1; i++)
   {
-    physPult.LightingLeds1[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness1 * LightingEnabled);
+    // physPult.LightingLeds1[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness1 * LightingEnabled);
+    physPult.LightingLeds1[i] = CHSV(LightingColorHue, LightingColorSat, 255);
   }
   // 3rd block
   for(uint8_t i = 0; i < LightingLedCount2; i++)
   {
-    physPult.LightingLeds2[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness2 * LightingEnabled);
+    // physPult.LightingLeds2[i] = CHSV(LightingColorHue, LightingColorSat, physPult.LightingBrightness2 * LightingEnabled);
+    physPult.LightingLeds2[i] = CHSV(LightingColorHue, LightingColorSat, 255);
   }
   // Gauges
   for(uint8_t i = 0; i < GaugesLightingLedCount; i++)
   {
-    physPult.GaugesLeds[i] = CHSV(LightingColorHue, LightingColorSat, 255 * LightingEnabled);
+    // physPult.GaugesLeds[i] = CHSV(LightingColorHue, LightingColorSat, 255 * LightingEnabled);
+    physPult.GaugesLeds[i] = CHSV(LightingColorHue, LightingColorSat, 255);
   }
 
   FastLED.show();
@@ -224,35 +229,46 @@ void UpdateLeds(PhysPult& physPult)
 
 void UpdateInput(PhysPult& physPult)
 {
+  // todo: move to StableRead function
   static uint8_t currentMeasurement = 0;
+
   static uint8_t potentiometerValue1 = 0;
   static uint8_t potentiometerValue2 = 0;
+  static uint8_t cranePotentiometerValue = 0;
  
   static uint32_t potentiometerTempValue1 = 0;
   static uint32_t potentiometerTempValue2 = 0;
+  static uint32_t cranePotentiometerTempValue = 0;
 
   // Prevents from flickering since measurements are not single. Doesn't block execution performing multiple analogReads per call.
   if(currentMeasurement < 15)
   {
     potentiometerTempValue1 += analogRead(PotentiometerPin1);
     // potentiometerTempValue2 += analogRead(PotentiometerPin2);
+    cranePotentiometerTempValue += analogRead(CranePin);
   
     currentMeasurement++;
   }
   else
   {
     potentiometerTempValue1 /= (currentMeasurement + 1);
+    potentiometerTempValue2 /= (currentMeasurement + 1);
+    cranePotentiometerTempValue /= (currentMeasurement + 1);
+
     potentiometerValue1 = map(potentiometerTempValue1, 0, 4096, 255, 0);
     // potentiometerValue2 = map(potentiometerTempValue2 / (currentMeasurement + 1), 0, 4096, 255, 0);
+    cranePotentiometerValue = map(cranePotentiometerTempValue, 0, 4096, 0, 255);
 
     potentiometerTempValue1 = 0;
     // potentiometerTempValue2 = 0;
+    cranePotentiometerTempValue = 0;
     currentMeasurement = 0;
   }
 
   // This check prevents flickering because of inaccurate measurements (even with multiple analogRead)
   auto lightingBrightness1Delta = potentiometerValue1 - physPult.LightingBrightness1;
   // auto lightingBrightness2Delta = potentiometerValue2 - physPult.LightingBrightness2;
+  auto cranePositionDelta = cranePotentiometerValue - physPult.CranePosition;
   
   if(abs(lightingBrightness1Delta) > 2)
   {
@@ -263,10 +279,10 @@ void UpdateInput(PhysPult& physPult)
   // {
   //   physPult.LightingBrightness2 = potentiometerValue2;
   // }
-
-  // todo: implement
-  // physPult.CranePosition = map(StableRead(CranePin, 20), 0, 4096, 0, 255);
-
+  if(abs(cranePositionDelta) > 2)
+  {
+    physPult.CranePosition = cranePotentiometerValue;
+  }
 
   ReadInRegisters(physPult.InRegisters);
 }

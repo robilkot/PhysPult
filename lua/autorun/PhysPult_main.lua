@@ -119,6 +119,26 @@ local buttons = {
 	--[37] =  "KAHSet" ,
 }
 
+local kvinputs = {
+	"KVSetX1B",
+	"KVSetX2",
+	"KVSetX3",
+	"KVSet0",
+	"KVSetT1B",
+	"KVSetT1AB",
+	"KVSetT2",
+}
+
+local kminputs = {
+	"PneumaticBrakeSet1",
+	"PneumaticBrakeSet2",
+	"PneumaticBrakeSet3",
+	"PneumaticBrakeSet4",
+	"PneumaticBrakeSet5",
+	"PneumaticBrakeSet6",
+	"PneumaticBrakeSet7",
+}
+
 -- Возращает поезд а котором сидит игрок.
 -- RETURNS - Ентити поезда в котором сидит игрок или nil, если игрок не находится в поезде.
 local function getPlayerDrivenTrain()
@@ -270,8 +290,11 @@ end
 
 PhysPult = PhysPult or {}
 
+PhysPult.GameCranePosition = 1
+PhysPult.GameKVPosition = 4
+
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 15
+PhysPult.UpdateInterval = 20
 
 -- Синхронизация индикаторов в поезде.
 function PhysPult.SynchronizeIndicators(train)
@@ -287,12 +310,20 @@ function PhysPult.SynchronizeIndicators(train)
 	local pressureBC = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15)
 	
 	local batteryVoltage = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7)
+
+	local supplyVoltage = math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17)
+	
+	local enginesCurrent = -1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255)
 	
 	msg = msg..speed..','
 	msg = msg..pressureTM..','
 	msg = msg..pressureNM..','
 	msg = msg..pressureBC..','
-	msg = msg..batteryVoltage..';'
+	msg = msg..batteryVoltage..','
+	msg = msg..supplyVoltage..','
+	msg = msg..enginesCurrent..';'
+
+	-- chat.AddText(supplyVoltage..' - '..enginesCurrent)
 
 	local registers = {
 		0, 0, 0, 0, 0, 0, 0
@@ -391,14 +422,64 @@ function PhysPult.SynchronizeButtons(train)
 	end
 end
 
+local CRANE_POSITIONS = {
+	["334"] = {
+		15,
+		31,
+		43,
+		62,
+		180,
+	},
+	-- ["013"] = {
+
+	-- }
+}
+
+function PhysPult.SynchronizeControllerAndCrane(train)
+	-- todo: explode strings in separate method, not three times in these methods
+	local substrings = string.Explode(';', PhysPult.SocketRecData)
+	local numerics = string.Explode(',', substrings[2])
+	
+	local realPosition = 255 - tonumber(numerics[1])
+	local positions = CRANE_POSITIONS["334"]
+
+	local prevPosition = PhysPult.GameCranePosition
+
+	for k, v in pairs(positions) do
+		if(realPosition > v) then continue end
+		
+		local median = positions[k]
+
+		if (k > 1) then
+			median = (median + positions[k - 1]) / 2
+
+			if(realPosition - median > 0) then
+				PhysPult.GameCranePosition = k
+			else
+				PhysPult.GameCranePosition = k - 1
+			end
+		end
+		
+		break
+	end
+
+	Metrostroi.DownTrainButton(train, { ["ID"] = kminputs[PhysPult.GameCranePosition] })
+	if(PhysPult.GameCranePosition != prevPosition) then
+		Metrostroi.UpTrainButton(train, { ["ID"] = kminputs[prevPosition] })
+	end
+	
+	-- chat.AddText(tostring(PhysPult.GameCranePosition), " ", tostring(realPosition))
+end
+
 -- Синхронизация физического пульта, с виртуальным пультом поезда, в котром сидит игрок.
 function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
-
+	
 	if(train and checkTrainType(train)) then
 		if(PhysPult.SocketRecData) then 
-			PhysPult.SynchronizeSwitches(train)
-			PhysPult.SynchronizeButtons(train)
+			--PhysPult.SynchronizeSwitches(train)
+			--PhysPult.SynchronizeButtons(train)
+			PhysPult.SynchronizeControllerAndCrane(train)
 		end
 
 		PhysPult.SynchronizeIndicators(train)

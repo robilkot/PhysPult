@@ -68,7 +68,7 @@ const uint8_t LightingLedCount2 = 8; // LED count for second group
 const uint8_t GaugesLightingDataPin = 14; // High-voltage gauges lighting
 const uint8_t GaugesLightingLedCount = 1; // LED count for gauges
 
-const uint8_t CranePin = 32; // 013 crane pin
+const uint8_t CranePin = 32; // Driver's valve pin
 
 const uint8_t PotentiometerPin1 = 34; // Lighting potentiometer on 3rd block
 const uint8_t PotentiometerPin2 = 35; // Lighting potentiometer on 1st block
