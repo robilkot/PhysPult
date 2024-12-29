@@ -60,7 +60,7 @@ const uint8_t NmPwmPin = 17; // NM servo pwm pin
 const uint8_t TcPwmPin = 16; // TC servo pwm pin
 
 const uint8_t LightingDataPin1 = 18; // Pult lighting first group
-const uint8_t LightingLedCount1 = 4; // LED count for first group
+const uint8_t LightingLedCount1 = 8; // LED count for first group
 
 const uint8_t LightingDataPin2 = 12; // Pult lighting second group
 const uint8_t LightingLedCount2 = 8; // LED count for second group

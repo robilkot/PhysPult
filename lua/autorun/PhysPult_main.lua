@@ -119,26 +119,6 @@ local buttons = {
 	--[37] =  "KAHSet" ,
 }
 
-local kvinputs = {
-	"KVSetX1B",
-	"KVSetX2",
-	"KVSetX3",
-	"KVSet0",
-	"KVSetT1B",
-	"KVSetT1AB",
-	"KVSetT2",
-}
-
-local kminputs = {
-	"PneumaticBrakeSet1",
-	"PneumaticBrakeSet2",
-	"PneumaticBrakeSet3",
-	"PneumaticBrakeSet4",
-	"PneumaticBrakeSet5",
-	"PneumaticBrakeSet6",
-	"PneumaticBrakeSet7",
-}
-
 -- Возращает поезд а котором сидит игрок.
 -- RETURNS - Ентити поезда в котором сидит игрок или nil, если игрок не находится в поезде.
 local function getPlayerDrivenTrain()
@@ -162,7 +142,10 @@ local function sendButtonMessage(button,train,outside)
     if button.plombed then
         tooltip,buttID = button.plombed(train)
     end
-    if not buttID then Error(Format("Can't send button message! %s\n",button.ID)) return end
+    if not buttID then 
+		PrintTable(button)
+		Error(Format("Can't send button message! %s\n",button.ID))
+		return end
     net.Start("metrostroi-cabin-button")
         net.WriteEntity(train)
         net.WriteString(buttID:gsub("^.+:",""))
@@ -291,7 +274,7 @@ end
 PhysPult = PhysPult or {}
 
 PhysPult.GameCranePosition = 1
-PhysPult.GameKVPosition = 4
+PhysPult.GameControllerPosition = 4
 
 -- Интверал между обновлениями состояния (мс).
 PhysPult.UpdateInterval = 20
@@ -301,27 +284,20 @@ function PhysPult.SynchronizeIndicators(train)
 	-- todo: R когда индикаторы не изменились
 	local msg = "W;"
 
-	local speed = math.floor(train:GetPackedRatio("speed") * 100)
-
-	local pressureTM = math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43)
-
-	local pressureNM = math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63)
+	local numerics = {
+		["speed"] = math.floor(train:GetPackedRatio("speed") * 100),
+		["pressureTM"] = math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
+		["pressureNM"] = math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63),
+		["pressureBC"] = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15),
+		["batteryVoltage"] = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7),
+		["supplyVoltage"] = math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17),
+		["enginesCurrent"] = -1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
+	}
 	
-	local pressureBC = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15)
-	
-	local batteryVoltage = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7)
-
-	local supplyVoltage = math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17)
-	
-	local enginesCurrent = -1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255)
-	
-	msg = msg..speed..','
-	msg = msg..pressureTM..','
-	msg = msg..pressureNM..','
-	msg = msg..pressureBC..','
-	msg = msg..batteryVoltage..','
-	msg = msg..supplyVoltage..','
-	msg = msg..enginesCurrent..';'
+	table.foreach(numerics, function(key, value)
+		msg = msg..value..','
+	end)
+	msg = string.SetChar(msg, -1, ';')
 
 	-- chat.AddText(supplyVoltage..' - '..enginesCurrent)
 
@@ -347,17 +323,13 @@ function PhysPult.SynchronizeIndicators(train)
 	table.foreach(registers, function(key, value)
 		msg = msg..value..','
 	end)
-
 	msg = string.SetChar(msg, -1, ';')
 
 	PhysPult.SocketWrtData = msg
 end
 
 -- Синхронизация тумблреров в поезде.
-function PhysPult.SynchronizeSwitches(train)
-	local substrings = string.Explode(';', PhysPult.SocketRecData)
-	local registers = string.Explode(',', substrings[3])
-
+function PhysPult.SynchronizeSwitches(train, registers)
 	for k, v in pairs(switches) do
 		local bitIndex = k
 
@@ -376,10 +348,7 @@ function PhysPult.SynchronizeSwitches(train)
 end
 
 -- Синхронизация кнопок в поезде.
-function PhysPult.SynchronizeButtons(train)
-	local substrings = string.Explode(';', PhysPult.SocketRecData)
-	local registers = string.Explode(',', substrings[3])
-
+function PhysPult.SynchronizeButtons(train, registers)
 	for k, v in pairs(buttons) do
 		local bitIndex = k
 
@@ -430,30 +399,73 @@ local CRANE_POSITIONS = {
 		62,
 		180,
 	},
-	-- ["013"] = {
-
-	-- }
+	["013"] = {
+		-- Not implemented in hardware
+	}
 }
 
-function PhysPult.SynchronizeControllerAndCrane(train)
-	-- todo: explode strings in separate method, not three times in these methods
-	local substrings = string.Explode(';', PhysPult.SocketRecData)
-	local numerics = string.Explode(',', substrings[2])
+local CONTROLLER_POSITIONS = {
+	["KV70"] = {
+		[0] = 1,
+		[1] = 2,
+		[2] = 3,
+		[4] = 4,
+		[8] = 5,
+		[16] = 6,
+		[32] = 7,
+	},
+}
+
+local kvinputs = {
+	["81-717"] = {
+		"KVSetX1B",
+		"KVSetX2",
+		"KVSetX3",
+		"KVSet0",
+		"KVSetT1B",
+		"KVSetT1AB",
+		"KVSetT2",
+	}
+}
+
+local kminputs = {
+	["81-717"] = {
+		"PneumaticBrakeSet1",
+		"PneumaticBrakeSet2",
+		"PneumaticBrakeSet3",
+		"PneumaticBrakeSet4",
+		"PneumaticBrakeSet5",
+		"PneumaticBrakeSet6",
+		"PneumaticBrakeSet7",
+	}
+}
+
+function PhysPult.SynchronizeControllerAndCrane(train, numerics)
+	local realCranePosition = 255 - tonumber(numerics[1])
+	local realControllerPosition = tonumber(numerics[2])
+
+	local cranePositions = CRANE_POSITIONS["334"]
+
+	local previousKmPosition = PhysPult.GameCranePosition
+	local previousKvPosition = PhysPult.GameControllerPosition
+
+	PhysPult.GameControllerPosition = CONTROLLER_POSITIONS["KV70"][realControllerPosition]
 	
-	local realPosition = 255 - tonumber(numerics[1])
-	local positions = CRANE_POSITIONS["334"]
+	Metrostroi.DownTrainButton(train, { ["ID"] = kvinputs["81-717"][PhysPult.GameControllerPosition] })
+	if(PhysPult.GameControllerPosition != previousKvPosition) then
+		Metrostroi.UpTrainButton(train, { ["ID"] = kvinputs["81-717"][previousKvPosition] })
+	end
 
-	local prevPosition = PhysPult.GameCranePosition
 
-	for k, v in pairs(positions) do
-		if(realPosition > v) then continue end
+	for k, v in pairs(cranePositions) do
+		if(realCranePosition > v) then continue end
 		
-		local median = positions[k]
+		local median = cranePositions[k]
 
 		if (k > 1) then
-			median = (median + positions[k - 1]) / 2
+			median = (median + cranePositions[k - 1]) / 2
 
-			if(realPosition - median > 0) then
+			if(realCranePosition - median > 0) then
 				PhysPult.GameCranePosition = k
 			else
 				PhysPult.GameCranePosition = k - 1
@@ -463,12 +475,12 @@ function PhysPult.SynchronizeControllerAndCrane(train)
 		break
 	end
 
-	Metrostroi.DownTrainButton(train, { ["ID"] = kminputs[PhysPult.GameCranePosition] })
-	if(PhysPult.GameCranePosition != prevPosition) then
-		Metrostroi.UpTrainButton(train, { ["ID"] = kminputs[prevPosition] })
+	Metrostroi.DownTrainButton(train, { ["ID"] = kminputs["81-717"][PhysPult.GameCranePosition] })
+	if(PhysPult.GameCranePosition != previousKmPosition) then
+		Metrostroi.UpTrainButton(train, { ["ID"] = kminputs["81-717"][previousKmPosition] })
 	end
-	
-	-- chat.AddText(tostring(PhysPult.GameCranePosition), " ", tostring(realPosition))
+
+	-- chat.AddText(tostring(PhysPult.GameCranePosition), " ", tostring(realCranePosition))
 end
 
 -- Синхронизация физического пульта, с виртуальным пультом поезда, в котром сидит игрок.
@@ -477,9 +489,13 @@ function PhysPult.Synchronize()
 	
 	if(train and checkTrainType(train)) then
 		if(PhysPult.SocketRecData) then 
-			--PhysPult.SynchronizeSwitches(train)
-			--PhysPult.SynchronizeButtons(train)
-			PhysPult.SynchronizeControllerAndCrane(train)
+			local substrings = string.Explode(';', PhysPult.SocketRecData)
+			local numerics = string.Explode(',', substrings[2])
+			local binaries = string.Explode(',', substrings[3])
+
+			--PhysPult.SynchronizeSwitches(train, binaries)
+			--PhysPult.SynchronizeButtons(train, binaries)
+			-- PhysPult.SynchronizeControllerAndCrane(train, numerics)
 		end
 
 		PhysPult.SynchronizeIndicators(train)
@@ -487,13 +503,12 @@ function PhysPult.Synchronize()
 end
 
 concommand.Add("physpult_start", function()
+	PhysPult.Socket:close()
+	PhysPult.Socket:open()
 
     timer.Create("ControlsSync", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
 	end)
-
-    PhysPult.Socket:close()
-    PhysPult.Socket:open()
 end)
 
 concommand.Add("physpult_stop", function()
@@ -501,6 +516,5 @@ concommand.Add("physpult_stop", function()
     
     PhysPult.Socket:close()
 end)
-
 
 end)

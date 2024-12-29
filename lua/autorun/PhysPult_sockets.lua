@@ -8,7 +8,7 @@ require("gwsockets")
 PhysPult.Socket = GWSockets.createWebSocket(url)
 
 function PhysPult.Socket:onMessage(txt)
-    -- chat.AddText("Received: ", txt)
+    chat.AddText("Received: ", txt)
     PhysPult.SocketRecData = txt
 end
 
