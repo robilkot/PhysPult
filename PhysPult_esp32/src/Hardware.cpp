@@ -80,7 +80,7 @@ void DisplayState(PhysPult& physPult)
 
   // Start shifting out
   digitalWrite(OutLatchPin, 0);
-  // delayMicroseconds(PulseWidth);
+  delayMicroseconds(PulseWidth);
 
   if(physPult.State == NetworkInitialization)
   {
@@ -112,7 +112,7 @@ void DisplayState(PhysPult& physPult)
     uint8_t speed = physPult.Speed % 100;
 
     // LKVC and LSN have been taken into account at the end of next line. 
-    secondDigitByte = LeftDigit[speed / 10][0] | RightDigit[speed % 10][0] | (physPult.OutRegisters[1] & B00001100);
+    secondDigitByte = LeftDigit[speed / 10][0] | RightDigit[speed % 10][0] | (physPult.OutRegisters[1] & B00000011);
     firstDigitByte = LeftDigit[speed / 10][1] | RightDigit[speed % 10][1]; 
 
     // Starting with 2 because 0 and 1 are registers working with speedometer.
@@ -135,6 +135,8 @@ void DisplayState(PhysPult& physPult)
   // End shifting out
   // delayMicroseconds(PulseWidth);
   digitalWrite(OutLatchPin, 1);
+
+  delay(100);
 
   UpdateLeds(physPult);
   UpdateServos(physPult);

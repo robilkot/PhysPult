@@ -97,11 +97,8 @@ State(Work)
 
     PhysPultMessage msgToSend = physPult.MessageToSend();
 
-    // if(msgToSend.ToString() != previousMsg)
-    // {
-      physPult.Client.send(msgToSend.ToString());
-      previousMsg = msgToSend.ToString();
-    // }
+    physPult.Client.send(msgToSend.ToString());
+    previousMsg = msgToSend.ToString();
   }
   else
   {

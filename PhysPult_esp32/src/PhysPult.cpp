@@ -18,8 +18,10 @@ PhysPult::PhysPult(void (*state)(PhysPult&)) : State(state)
 
 void PhysPult::AcceptMessage(PhysPultMessage msg)
 {
-    if(msg.Type != PhysPultMessageTypes::WORKING)
+    if(msg.Type == PhysPultMessageTypes::DEBUG)
     {
+
+
         return;
     }
 

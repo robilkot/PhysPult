@@ -4,9 +4,8 @@
 #include <vector>
 
 enum PhysPultMessageTypes {
-    INFO = 'I', // Information message sent
     WORKING = 'W', // Operating mode. Exchanging indicators and switches states
-    REQUEST = 'R' // Update of switches state requsted. No data parsing required
+    DEBUG = 'D'
     // ERROR = 'E', // Error message sent
     // SETTINGS = 'S', // Settings sent
 };
@@ -14,7 +13,7 @@ enum PhysPultMessageTypes {
 struct PhysPultMessage {
     const char Delimiter = ';'; 
 
-    char Type = PhysPultMessageTypes::INFO;
+    char Type = PhysPultMessageTypes::WORKING;
     std::vector<int16_t> NumericData;
     std::vector<uint8_t> BinaryData;
 
