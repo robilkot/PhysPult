@@ -6,6 +6,8 @@
 void setup()
 {
   Serial.begin(BaudRate);
+  Serial.setDebugOutput(true);
+  esp_log_level_set("*", ESP_LOG_VERBOSE);
 
   Pult pult;
   pult.start();

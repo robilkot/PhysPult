@@ -12,17 +12,47 @@ class Communicator
     private:
     std::function<void(PultMessage&)> on_message;
     std::function<void()> on_disconnect;
+    
+    websockets::WebsocketsServer server;
     websockets::WebsocketsClient client;
 
-    void wait_for_client()
+    void accept_client()
     {
-        Serial.println("Waiting for client.");
+        log_i("Waiting for client.");
+        // todo: use poll to not block
         client = server.accept();
-        Serial.println("Client accepted.");
+
+        client.onMessage([&](websockets::WebsocketsMessage ws_message) {
+            PultMessage message(ws_message.data());
+            on_message(message);
+        });
+        client.onEvent([&](websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
+            switch(event) {
+                case websockets::WebsocketsEvent::ConnectionOpened: {
+                    log_i("Client connected.");
+                    break;
+                }
+                case websockets::WebsocketsEvent::GotPing: {
+
+                    break;
+                }
+                case websockets::WebsocketsEvent::GotPong: {
+
+                    break;
+                }
+                case websockets::WebsocketsEvent::ConnectionClosed: {
+                    log_i("Client disconnected: %d", client.getCloseReason());
+
+                    on_disconnect();
+                    accept_client();
+                    break;
+                }
+            }
+            });
+        log_i("Client accepted.");
     }
 
     public:
-    websockets::WebsocketsServer server;
     uint8_t device_number;
 
     Communicator() { }
@@ -48,35 +78,26 @@ class Communicator
         {
             if(WiFi.status() == WL_CONNECTED)
             {
-            break;
+                break;
             }
 
-            Serial.print(".");
             // todo: don't use delay
             delay(100);
         }
 
         if(connectionDisplayTimer == connectionTimerLimit)
         {
-            Serial.print("Couldn't connect to network.");
+            log_e("Couldn't connect to network.");
         }
 
         auto ip = WiFi.localIP().toString(); 
-        Serial.println("\nConnected to network. IPv4:");
-        Serial.println(ip);
+        log_i("\nConnected to network. IPv4: %s", ip);
 
         // todo: This doesn't work with 3 digits though
         device_number = atoi(ip.substring(ip.length() - 2).c_str());
 
         server.listen(NetworkPort);
-        Serial.print("Server is ");
-        if(server.available() == false)
-        {
-            Serial.print("not ");
-        }
-        Serial.println("available.");
-
-        Serial.println("Network initialization complete");
+        log_i("Server is %savailable", server.available() ? "" : "not ");
     }
 
     void send(const websockets::WSInterfaceString msg)
@@ -88,24 +109,13 @@ class Communicator
     {
         connect_to_network();
         
-        wait_for_client();
+        accept_client();
 
         while(true)
         {
-            if(client.available())
-            {
-                websockets::WebsocketsMessage ws_message = client.readBlocking();
+            client.poll();
 
-                PultMessage message(ws_message.data());
-
-                on_message(message);
-            }
-            else
-            {
-                on_disconnect();
-                
-                wait_for_client();
-            }
+            assert(client.available());           
         }
     }
 };

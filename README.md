@@ -4,6 +4,9 @@
 
 Зависимости: gmcl_gwsockets_winXX.dll
 
+Локальные изменения в библиотеке gilmaimon/ArduinoWebsockets, чтобы header 'upgrade' сравнивался регистронезависимо (websockets_server.cpp, строка 67)
+if(params.headers["Connection"].find("Upgrade") == std::string::npos && params.headers["Connection"].find("upgrade") == std::string::npos) return {};
+
 ## Аппаратная часть
 
 ### Распиновка

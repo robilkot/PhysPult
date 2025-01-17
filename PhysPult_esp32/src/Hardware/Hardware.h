@@ -38,23 +38,29 @@ class Hardware
 
     void tick_output()
     {
-        digitalWrite(OutLatchPin, 0);
-        delayMicroseconds(PulseWidth);
-
-        for(auto reg : registers_out)
-            shiftOut(OutDataPin, OutClockPin, LSBFIRST, reg);
-
-        digitalWrite(OutLatchPin, 1);
-
+        tick_registers();
         tick_leds();
         tick_servos();
         tick_analog_contols();
+    }
 
-        // for(uint8_t i = 0; i < InRegistersCount; i++) {
-        //     for(uint8_t k = 0; k < 8; k++) Serial.print(physPult.InRegisters[i] >> (7 - k) & 1);
-        //     Serial.print(' ');
-        //   }
-        //   Serial.println();
+    void tick_registers()
+    {
+        static TimerMs registersUpdateTimer(15, true, false);
+
+        if(registersUpdateTimer.tick())
+        {
+            digitalWrite(OutLatchPin, 0);
+            delayMicroseconds(PulseWidth);
+
+            for(auto reg : registers_out) {
+                // log_v("%d", reg);
+                shiftOut(OutDataPin, OutClockPin, LSBFIRST, reg);
+                vTaskDelay(PulseWidth / portTICK_PERIOD_MS);
+            }
+
+            digitalWrite(OutLatchPin, 1);
+        }
     }
 
     void tick_analog_contols()
@@ -190,7 +196,7 @@ class Hardware
         NmServo.attach(NmPwmPin);
         TcServo.attach(TcPwmPin);
         
-        Serial.println("Hardware initialization complete");
+        log_i("Hardware initialization complete");
     }
 
     public:

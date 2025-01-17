@@ -493,8 +493,8 @@ function PhysPult.Synchronize()
 			local numerics = string.Explode(',', substrings[2])
 			local binaries = string.Explode(',', substrings[3])
 
-			--PhysPult.SynchronizeSwitches(train, binaries)
-			--PhysPult.SynchronizeButtons(train, binaries)
+			PhysPult.SynchronizeSwitches(train, binaries)
+			PhysPult.SynchronizeButtons(train, binaries)
 			-- PhysPult.SynchronizeControllerAndCrane(train, numerics)
 		end
 
@@ -503,8 +503,7 @@ function PhysPult.Synchronize()
 end
 
 concommand.Add("physpult_start", function()
-	PhysPult.Socket:close()
-	PhysPult.Socket:open()
+	PhysPult.CreateSocket()
 
     timer.Create("ControlsSync", PhysPult.UpdateInterval / 1000, 0, function()
 		PhysPult.Synchronize()
@@ -514,7 +513,7 @@ end)
 concommand.Add("physpult_stop", function()
 	if(timer.Exists("ControlsSync")) then timer.Remove("ControlsSync") end
     
-    PhysPult.Socket:close()
+    PhysPult.CloseSocket()
 end)
 
 end)

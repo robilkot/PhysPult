@@ -35,7 +35,7 @@ const uint8_t LeftLetters[][2] = {
 };
 
 const uint32_t BaudRate = 115200;
-const uint16_t NetworkPort = 80;
+const uint16_t NetworkPort = 8080;
 
 const uint8_t PulseWidth = 5; // Delay in microseconds for proper registers functioning
 
