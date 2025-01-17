@@ -14,6 +14,13 @@ class Communicator
     std::function<void()> on_disconnect;
     websockets::WebsocketsClient client;
 
+    void wait_for_client()
+    {
+        Serial.println("Waiting for client.");
+        client = server.accept();
+        Serial.println("Client accepted.");
+    }
+
     public:
     websockets::WebsocketsServer server;
     uint8_t device_number;
@@ -70,13 +77,6 @@ class Communicator
         Serial.println("available.");
 
         Serial.println("Network initialization complete");
-    }
-
-    void wait_for_client()
-    {
-        Serial.println("Waiting for client.");
-        client = server.accept();
-        Serial.println("Client accepted.");
     }
 
     void send(const websockets::WSInterfaceString msg)

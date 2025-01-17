@@ -51,13 +51,7 @@ class Pult
     static void on_disconnect()
     {
         Serial.println("Client disconnected.");
-        wait_for_client();
-    }
-
-    static void wait_for_client()
-    {
         reset();
-        communicator.wait_for_client();
     }
 
     static void reset()
@@ -80,22 +74,40 @@ class Pult
         communicator.set_on_message(on_message);
         communicator.set_on_disconnect(on_disconnect);
 
-        xTaskCreatePinnedToCore(
+        // xTaskCreatePinnedToCore(
+        //     [](void* param) { hardware.start(); },
+        //     "background_hw_function",
+        //     8000,
+        //     nullptr,
+        //     1,  // Priority
+        //     nullptr,
+        //     0); // Core
+
+        // xTaskCreatePinnedToCore(
+        //     [](void* param) { communicator.start(); },
+        //     "background_net_function",
+        //     8000,
+        //     nullptr,
+        //     2,  // Priority
+        //     nullptr,
+        //     1); // Core
+
+        xTaskCreate(
             [](void* param) { hardware.start(); },
             "background_hw_function",
             8000,
             nullptr,
-            0,  // Priority
-            nullptr,
-            1); // Core
+            1,  // Priority
+            nullptr
+        );
 
-        xTaskCreatePinnedToCore(
+        xTaskCreate(
             [](void* param) { communicator.start(); },
             "background_net_function",
             8000,
             nullptr,
-            0,  // Priority
-            nullptr,
-            0); // Core
+            2,  // Priority
+            nullptr
+        );
     }
 };

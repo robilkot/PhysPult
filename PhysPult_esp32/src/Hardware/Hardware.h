@@ -42,9 +42,7 @@ class Hardware
         delayMicroseconds(PulseWidth);
 
         for(auto reg : registers_out)
-        {
             shiftOut(OutDataPin, OutClockPin, LSBFIRST, reg);
-        }
 
         digitalWrite(OutLatchPin, 1);
 
@@ -136,18 +134,18 @@ class Hardware
         for(uint8_t i = 0; i < InRegistersCount; i++)
         {
             registers_in[i] = shiftIn(InDataPin, InClockPin, LSBFIRST);
-        }  
+        }
     }
 
     void init_pins()
-    {
-        pinMode(InDataPin, INPUT);
-        pinMode(InLatchPin, OUTPUT);
-        pinMode(InClockPin, OUTPUT);
-
+    {   
         pinMode(OutDataPin, OUTPUT);
         pinMode(OutLatchPin, OUTPUT);
         pinMode(OutClockPin, OUTPUT);
+
+        pinMode(InDataPin, INPUT);
+        pinMode(InLatchPin, OUTPUT);
+        pinMode(InClockPin, OUTPUT);
 
         pinMode(BatteryVoltmeterPwmPin, OUTPUT);
         pinMode(SupplyVoltmeterPwmPin, OUTPUT);
@@ -210,7 +208,7 @@ class Hardware
 
     uint8_t crane_position = 0;
 
-    bool lighting_enabled = true;
+    bool lighting_enabled = false;
 
     Hardware()
     : crane_reader(StableReader(CranePin)), potentiometer1_reader(StableReader(PotentiometerPin1)), potentiometer2_reader(StableReader(PotentiometerPin2))
