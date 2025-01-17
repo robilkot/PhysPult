@@ -1,13 +1,17 @@
 #include <Arduino.h>
+#include "Constants.h"
+#include "Pult.h"
 
-#include "PhysPult.h"
-#include "States.h"
 
-void setup() { }
+void setup()
+{
+  Serial.begin(BaudRate);
+
+  Pult pult;
+  pult.start();
+}
 
 void loop()
 {
-  static PhysPult physPult(HardwareInitialization);
-  
-  (*physPult.State)(physPult);
+
 }
