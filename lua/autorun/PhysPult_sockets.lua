@@ -23,7 +23,7 @@ function PhysPult.CreateSocket()
         chat.AddText("PhysPult: Connected to device.")
     
         timer.Create("PhysPultUpdate", PhysPult.UpdateInterval / 1000, 0, function()
-            if(PhysPult.SocketWrtData) then
+            if(PhysPult.Socket and PhysPult.SocketWrtData) then
                 PhysPult.Socket:write(PhysPult.SocketWrtData)
             end
         end)

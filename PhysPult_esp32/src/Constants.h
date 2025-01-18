@@ -2,38 +2,6 @@
 
 #include <Arduino.h>
 
-const uint8_t LeftDigit[10][2] = {
-{B11110000, B00100010}, // 0
-{B00010000, B00100000}, // 1
-{B11101000, B00100000}, // 2
-{B01111000, B00100000}, // 3
-{B00011000, B00100010}, // 4
-{B01111000, B00000010}, // 5
-{B11101000, B00000010}, // 6
-{B00110000, B00100000}, // 7
-{B11111000, B00100010}, // 8
-{B01111100, B11111111}  // 9
-};
-
-const uint8_t RightDigit[10][2] = {
-{B00000100, B11010101},
-{B00000000, B01010000},
-{B00000100, B11001001},
-{B00000000, B11011001},
-{B00000000, B01011100},
-{B00000000, B10011101},
-{B00000100, B10011101},
-{B00000000, B11010000},
-{B00000100, B11011101},
-{B00000000, B11011101}
-};
-
-const uint8_t LeftLetters[][2] = {
-{B00000000, B00000001}, // Underscore
-{B00000100, B10000101}, // C
-{B00000100, B10001101}  // E
-};
-
 const uint32_t BaudRate = 115200;
 const uint16_t NetworkPort = 8080;
 
@@ -43,6 +11,7 @@ const uint8_t OutDataPin = 19; // 74hc595 registers
 const uint8_t OutClockPin = 26; // 74hc595 registers clock pin
 const uint8_t OutLatchPin = 25; // 74hc595 registers latch pin
 const uint8_t OutRegistersCount = 5; // 74hc595 registers count
+const uint8_t OutputsCount = OutRegistersCount * 8;
 
 const uint8_t InDataPin = 27; // 74hc165 registers
 const uint8_t InClockPin = 4; // 74hc165 registers clock pin

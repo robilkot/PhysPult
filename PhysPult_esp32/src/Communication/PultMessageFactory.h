@@ -24,6 +24,7 @@ class PultMessageFactory {
                 auto numericDataString = str.substring(delimIndex + 1, secondDelimIndex);
 
                 int commaIndex = -1;
+                int numeric_index = 0;
                 do {
                     int secondCommaIndex = numericDataString.indexOf(',', commaIndex + 1); 
                     
@@ -35,9 +36,10 @@ class PultMessageFactory {
                     else {
                         numberSubstring = numericDataString.substring(commaIndex + 1);
                     }
-                    msg->NumericData.emplace_back(atoi(numberSubstring.c_str()));
+                    msg->numeric_data[numeric_index] = atoi(numberSubstring.c_str());
 
                     commaIndex = secondCommaIndex;
+                    numeric_index++;
                 } while(commaIndex != -1);
 
                 // Parse binary data
@@ -47,6 +49,7 @@ class PultMessageFactory {
                 auto binaryDataString = str.substring(delimIndex + 1, secondDelimIndex);
 
                 commaIndex = -1;
+                int binary_index = 0;
                 do {
                     int secondCommaIndex = binaryDataString.indexOf(',', commaIndex + 1); 
                     
@@ -58,9 +61,10 @@ class PultMessageFactory {
                     else {
                         binarySubstring = binaryDataString.substring(commaIndex + 1);
                     }
-                    msg->BinaryData.emplace_back(atoi(binarySubstring.c_str()));
+                    msg->binary_data[binary_index] = atoi(binarySubstring.c_str());
 
                     commaIndex = secondCommaIndex;
+                    binary_index++;
                 } while(commaIndex != -1);
 
                 result = msg;

@@ -13,14 +13,14 @@ class PultMessage {
 
 class WorkPultMessage : public PultMessage {
     public:
-    std::vector<int16_t> NumericData;
-    std::vector<uint8_t> BinaryData;
+    std::array<int16_t, 16> numeric_data;
+    std::array<uint8_t, InRegistersCount> binary_data;
 
     String to_string() override {
         String output(get_type());
         output += ';';
 
-        for(auto i : NumericData)
+        for(auto i : numeric_data)
         {
             output += String(i);
             output += ',';
@@ -28,7 +28,7 @@ class WorkPultMessage : public PultMessage {
 
         output[output.length() - 1] = ';';
 
-        for(auto i : BinaryData)
+        for(auto i : binary_data)
         {
             output += String(i);
             output += ',';

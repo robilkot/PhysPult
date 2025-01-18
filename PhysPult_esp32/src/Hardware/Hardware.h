@@ -229,6 +229,24 @@ class Hardware
             led = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
     }
 
+    void set_output(uint8_t out_index, bool value) {
+        auto register_index = out_index / 8;
+        auto pin_index = out_index % 8;
+
+        if(value) {
+            registers_out[register_index] |= (1 << pin_index);
+        } else {
+            registers_out[register_index] &= !(1 << pin_index);
+        }
+    }
+
+    void clear_output()
+    {
+        for(auto& reg : registers_out) {
+            reg = 0;
+        }
+    }
+
     void start()
     {
         init();

@@ -12,6 +12,7 @@ class Communicator
     private:
     std::function<void(PultMessage&)> on_message;
     std::function<void()> on_disconnect;
+    std::function<void(int)> on_ip_changed;
     
     websockets::WebsocketsServer server;
     websockets::WebsocketsClient client;
@@ -65,6 +66,10 @@ class Communicator
     {
         on_disconnect = handler;
     }
+    void set_on_ip_changed(std::function<void(int)> handler)
+    {
+        on_ip_changed = handler;
+    }
 
     void connect_to_network()
     {
@@ -91,10 +96,11 @@ class Communicator
         }
 
         auto ip = WiFi.localIP().toString(); 
-        log_i("\nConnected to network. IPv4: %s", ip);
+        log_i("Connected to network. IPv4: %s", ip);
 
         // todo: This doesn't work with 3 digits though
         device_number = atoi(ip.substring(ip.length() - 2).c_str());
+        on_ip_changed(device_number);
 
         server.listen(NetworkPort);
         log_i("Server is %savailable", server.available() ? "" : "not ");

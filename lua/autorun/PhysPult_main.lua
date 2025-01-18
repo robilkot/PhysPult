@@ -277,26 +277,25 @@ PhysPult.GameCranePosition = 1
 PhysPult.GameControllerPosition = 4
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 20
+PhysPult.UpdateInterval = 50
 
 -- Синхронизация индикаторов в поезде.
 function PhysPult.SynchronizeIndicators(train)
-	-- todo: R когда индикаторы не изменились
 	local msg = "W;"
 
 	local numerics = {
-		["speed"] = math.floor(train:GetPackedRatio("speed") * 100),
-		["pressureTM"] = math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
-		["pressureNM"] = math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63),
-		["pressureBC"] = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15),
-		["batteryVoltage"] = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7),
-		["supplyVoltage"] = math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17),
-		["enginesCurrent"] = -1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
+		math.floor(train:GetPackedRatio("speed") * 100),
+		math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
+		math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63),
+		math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15),
+		math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7),
+		math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17),
+		-1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
 	}
 	
-	table.foreach(numerics, function(key, value)
+	for key, value in pairs(numerics) do
 		msg = msg..value..','
-	end)
+	end
 	msg = string.SetChar(msg, -1, ';')
 
 	-- chat.AddText(supplyVoltage..' - '..enginesCurrent)
@@ -493,8 +492,8 @@ function PhysPult.Synchronize()
 			local numerics = string.Explode(',', substrings[2])
 			local binaries = string.Explode(',', substrings[3])
 
-			PhysPult.SynchronizeSwitches(train, binaries)
-			PhysPult.SynchronizeButtons(train, binaries)
+			-- PhysPult.SynchronizeSwitches(train, binaries)
+			-- PhysPult.SynchronizeButtons(train, binaries)
 			-- PhysPult.SynchronizeControllerAndCrane(train, numerics)
 		end
 
