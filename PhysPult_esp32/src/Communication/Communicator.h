@@ -3,8 +3,8 @@
 #include <functional>
 #include <ArduinoWebsockets.h>
 #include <WifiConstants.h>
-#include "PultMessage.h"
 #include <Constants.h>
+#include "PultMessageFactory.h"
 
 
 class Communicator
@@ -22,9 +22,8 @@ class Communicator
         // todo: use poll to not block
         client = server.accept();
 
-        client.onMessage([&](websockets::WebsocketsMessage ws_message) {
-            PultMessage message(ws_message.data());
-            on_message(message);
+        client.onMessage([&](websockets::WebsocketsMessage msg) {
+            on_message(*PultMessageFactory::Create(msg.data()));
         });
         client.onEvent([&](websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
             switch(event) {
@@ -33,11 +32,12 @@ class Communicator
                     break;
                 }
                 case websockets::WebsocketsEvent::GotPing: {
-
+                    client.pong();
+                    log_i("Got ping");
                     break;
                 }
                 case websockets::WebsocketsEvent::GotPong: {
-
+                    log_i("Got pong");
                     break;
                 }
                 case websockets::WebsocketsEvent::ConnectionClosed: {
@@ -100,9 +100,9 @@ class Communicator
         log_i("Server is %savailable", server.available() ? "" : "not ");
     }
 
-    void send(const websockets::WSInterfaceString msg)
+    void send(PultMessage& msg)
     {
-        client.send(msg);
+        client.send(msg.to_string());
     }
     
     void start()
