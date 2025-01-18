@@ -12,40 +12,40 @@ if(SERVER) then return end
 
 timer.Create("PhysPultInit", 0.5, 1, function()
 
--- Список индикаторов с соответствующим номером бита. Биты 1-12, 15-16 зарезервированы под скорость.
+-- Список индикаторов с соответствующим номером бита. Биты 26-39 под скорость нужны. Индексация с нуля
 local indicators = {
 	-- 2 Блок
-	["KVC"] = 14,
-	["AR0"] = 20,
-	["AR04"] = 19, 
-	["AR40"] = 23, 
-	["AR60"] = 17,
-	["AR70"] = 24, 
-	["AR80"] = 18,
-	["SD"] = 27, 
-	["VD"] = 25, 
-	["RP"] = 28, 
-	["SN"] = 13,
-	["HRK"] = 32, 
-	["KVD"] = 21, 
-	["ST"] = 30, 
-	--["???"] = 29, -- ДВ
-	["KT"] = 22,
-	["LN"] = 31,
-	["GLIB"] = 26, -- ЛЭКК
+	["KVC"] = 19, -- 19
+	["AR0"] = 11,
+	["AR04"] = 13, 
+	["AR40"] = 12, 
+	["AR60"] = 9,
+	["AR70"] = 25, 
+	["AR80"] = 10,
+	["SD"] = 18, 
+	["VD"] = 24, 
+	["RP"] = 20,
+	["SN"] = 15,
+	["HRK"] = 22, 
+	["KVD"] = 8, 
+	["ST"] = 17, 
+	--["???"] = 21, -- ДВ
+	["KT"] = 23,
+	["LN"] = 14,
+	["GLIB"] = 16, -- ЛЭКК
 
 	-- 5-6 Блоки
-	["GreenRP"] = 33,
+	["GreenRP"] = 7,
 	-- ["DoorsLeftL"] = ???,
-	["L1"] = 40,
-	["LSP"] = 39,
-	["AVU"] = 38,
-	["LKVP"] = 37,
+	["L1"] = 6,
+	["LSP"] = 4,
+	["AVU"] = 3,
+	["LKVP"] = 5,
 	-- ["RZP"] = ???,
 
 	-- 7 Блок
 	--["???"] = ???, -- Контроль печи
-	["PN"] = 34,
+	-- ["PN"] = 8,
 	-- ["DoorsRightR"] = ???,
 }
 
@@ -277,12 +277,9 @@ PhysPult.GameCranePosition = 1
 PhysPult.GameControllerPosition = 4
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 50
+PhysPult.UpdateInterval = 100
 
--- Синхронизация индикаторов в поезде.
-function PhysPult.SynchronizeIndicators(train)
-	local msg = "W;"
-
+local function GetNumericValuesString(train)
 	local numerics = {
 		math.floor(train:GetPackedRatio("speed") * 100),
 		math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
@@ -293,22 +290,19 @@ function PhysPult.SynchronizeIndicators(train)
 		-1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
 	}
 	
-	for key, value in pairs(numerics) do
-		msg = msg..value..','
-	end
-	msg = string.SetChar(msg, -1, ';')
+	return table.concat(numerics, ',')..';'
+end
 
-	-- chat.AddText(supplyVoltage..' - '..enginesCurrent)
-
+local function GetBinaryValuesString(train)
 	local registers = {
-		0, 0, 0, 0, 0, 0, 0
+		0, 0, 0, 0, 0
 	}
 
 	for k, v in pairs(indicators) do
 		local bitIndex = v
 
-		local bitInRegister = 7 - (bitIndex - 1) % 8
-		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
+		local bitInRegister = bitIndex % 8
+		local registerNumber = math.floor(bitIndex/ 8) + 1
 		
 		local indicatorState = Metrostroi.GetTrainIndicatorStage(train, k)
 
@@ -319,10 +313,15 @@ function PhysPult.SynchronizeIndicators(train)
 		end
 	end
 
-	table.foreach(registers, function(key, value)
-		msg = msg..value..','
-	end)
-	msg = string.SetChar(msg, -1, ';')
+	return table.concat(registers, ',')..';'
+end
+
+-- Синхронизация индикаторов в поезде.
+function PhysPult.SynchronizeIndicators(train)
+	local msg = "W;"
+
+	msg = msg..GetNumericValuesString(train)
+	msg = msg..GetBinaryValuesString(train)
 
 	PhysPult.SocketWrtData = msg
 end

@@ -115,6 +115,7 @@ class PultMessageFactory {
             }
         }
         
+        // log_d("%s", result->to_string());
         return std::unique_ptr<PultMessage>(result);
     }
 };

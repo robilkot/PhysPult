@@ -51,12 +51,9 @@ class Hardware
         if(registersUpdateTimer.tick())
         {
             digitalWrite(OutLatchPin, 0);
-            delayMicroseconds(PulseWidth);
 
             for(auto reg : registers_out) {
-                // log_v("%d", reg);
                 shiftOut(OutDataPin, OutClockPin, LSBFIRST, reg);
-                vTaskDelay(PulseWidth / portTICK_PERIOD_MS);
             }
 
             digitalWrite(OutLatchPin, 1);
@@ -236,7 +233,7 @@ class Hardware
         if(value) {
             registers_out[register_index] |= (1 << pin_index);
         } else {
-            registers_out[register_index] &= !(1 << pin_index);
+            registers_out[register_index] &= ~(1 << pin_index);
         }
     }
 

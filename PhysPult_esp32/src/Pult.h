@@ -8,11 +8,12 @@
 class Pult
 {
     private:
-    static std::vector<uint8_t> digit_pins;
+    static std::array<uint8_t, 14> digit_pins;
     static std::array<std::vector<uint8_t>, 10> symbols_left;
     static std::array<std::vector<uint8_t>, 10> symbols_right;
     static Hardware hardware;
     static Communicator communicator;
+
     static uint8_t speed;
     // todo kv, pb, other stuff
 
@@ -28,10 +29,15 @@ class Pult
 
         hardware.clear_output();
 
-        display_number(communicator.device_number);
+        display_symbols(communicator.device_number);
     }
 
-    void display_number(uint8_t number) {
+    void display_symbols(uint8_t number) {
+        // Clear previous writings just in case
+        for(auto pin_index : digit_pins) {
+            hardware.set_output(pin_index, false);
+        }
+
         auto left_digit = (number / 10) % 10;
         auto right_digit = number % 10;
 
@@ -45,7 +51,6 @@ class Pult
 
     void accept_work_message(WorkPultMessage& msg)
     {
-
         speed = msg.numeric_data[0];
         hardware.tm_position = msg.numeric_data[1];
         hardware.nm_position = msg.numeric_data[2];
@@ -54,12 +59,16 @@ class Pult
         hardware.supply_voltage = msg.numeric_data[5];
         hardware.engines_current = msg.numeric_data[6];
 
-        hardware.clear_output();
+        for(int i = 0; i < OutRegistersCount; i++) {
+            auto register_value = msg.binary_data[i];
 
-        // for(auto output : msg.BinaryData)
-        //     hardware.set_output(output, true);
-            
-        display_number(speed);
+            for(int k = 0; k < 8; k++)
+            {
+                hardware.set_output(8 * i + k, (register_value >> k) & 1);
+            }
+        }
+
+        display_symbols(speed);
 
         WorkPultMessage response;
 
@@ -155,7 +164,7 @@ class Pult
 
         communicator.set_on_message([this](PultMessage& msg) { accept_message(msg); });
         communicator.set_on_disconnect([this](void) { reset(); });
-        communicator.set_on_ip_changed([this](int ip) { display_number(communicator.device_number); });
+        communicator.set_on_ip_changed([this](int ip) { display_symbols(ip); });
 
         xTaskCreatePinnedToCore(
             [](void* param) { hardware.start(); },

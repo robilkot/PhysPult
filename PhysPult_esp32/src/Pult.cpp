@@ -4,7 +4,7 @@
 Communicator Pult::communicator;
 Hardware Pult::hardware;
 uint8_t Pult::speed;
-std::vector<uint8_t> Pult::digit_pins = {
+std::array<uint8_t, 14> Pult::digit_pins = { // Happens to be a range [26, 39]
     31, 33, 29, 37, 27, 30, 28, 26, 34, 39, 38, 36, 32, 35
 };
 std::array<std::vector<uint8_t>, 10> Pult::symbols_left = {{

@@ -5,7 +5,6 @@
 #include "Pult.h"
 
 class PultMessage {
-    private:
     public:
     virtual String to_string() = 0;
     virtual char get_type() = 0;
@@ -13,8 +12,8 @@ class PultMessage {
 
 class WorkPultMessage : public PultMessage {
     public:
-    std::array<int16_t, 16> numeric_data;
-    std::array<uint8_t, InRegistersCount> binary_data;
+    std::array<int16_t, 12> numeric_data;
+    std::array<uint8_t, 12> binary_data;
 
     String to_string() override {
         String output(get_type());
