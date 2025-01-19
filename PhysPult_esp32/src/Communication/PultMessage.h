@@ -12,8 +12,8 @@ class PultMessage {
 
 class WorkPultMessage : public PultMessage {
     public:
-    std::array<int16_t, 12> numeric_data;
-    std::array<uint8_t, 12> binary_data;
+    std::vector<int16_t> numeric_data;
+    std::vector<uint8_t> binary_data;
 
     String to_string() override {
         String output(get_type());

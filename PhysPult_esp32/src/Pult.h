@@ -34,6 +34,7 @@ class Pult
 
     void display_symbols(uint8_t number) {
         // Clear previous writings just in case
+        // todo: make this a critical section
         for(auto pin_index : digit_pins) {
             hardware.set_output(pin_index, false);
         }
@@ -47,6 +48,82 @@ class Pult
         for(auto pin_index : symbols_right[right_digit]) {
             hardware.set_output(pin_index, true);
         }
+    }
+
+    ReverserPosition get_reverser_position()
+    {
+        ReverserPosition position;
+        
+        // Reverser shaft is attached to pins 3, 4 of register 6
+        auto reverser_bits = hardware.registers_in[5] & B00110000;
+
+        // Defined by hardware connections
+        switch (reverser_bits)
+        {
+        case B00010000: {
+            position = ReverserPosition::F;
+            break;
+        }
+        case B00110000: {
+            position = ReverserPosition::O;
+            break;
+        }
+        case B00100000: {
+            position = ReverserPosition::R;
+            break;
+        }
+        default:
+            log_w("Unknown reverser position (register bits: %d). Intermediate state?", reverser_bits);
+            break;
+        }
+        
+        return position;
+    } 
+
+    ControllerPosition get_controller_position()
+    {
+        ControllerPosition position;
+
+        // Main shaft is attached to last 4 bits of register 6
+        auto controller_bits = hardware.registers_in[5] & B00001111;
+
+        // Defined by hardware connections
+        switch (controller_bits)
+        {
+        case B00001000: {
+            position = ControllerPosition::T2;
+            break;
+        }
+        case B00001001: {
+            position = ControllerPosition::T1A;
+            break;
+        }
+        case B00001011: {
+            position = ControllerPosition::T1;
+            break;
+        }
+        case B00000111: {
+            position = ControllerPosition::O;
+            break;
+        }
+        case B00000011: {
+            position = ControllerPosition::X1;
+            break;
+        }
+        case B00000001: {
+            position = ControllerPosition::X2;
+            break;
+        }
+        case B00000000: {
+            position = ControllerPosition::X3;
+            break;
+        }
+        default:
+            log_w("Unknown controller position (register bits: %d). Intermediate state?", controller_bits);
+            break;
+        }
+
+        return position;
     }
 
     void accept_work_message(WorkPultMessage& msg)
@@ -72,10 +149,12 @@ class Pult
 
         WorkPultMessage response;
 
-        response.numeric_data[0] = hardware.crane_position;
+        response.numeric_data.emplace_back(hardware.crane_position);
+        response.numeric_data.emplace_back((uint8_t)get_reverser_position());
+        response.numeric_data.emplace_back((uint8_t)get_controller_position());
 
         for(int i = 0; i < InRegistersCount; i++)
-            response.binary_data[i] = hardware.registers_in[i];
+            response.binary_data.emplace_back(hardware.registers_in[i]);
 
         communicator.send(response);
         

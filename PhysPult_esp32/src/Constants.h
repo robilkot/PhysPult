@@ -2,6 +2,22 @@
 
 #include <Arduino.h>
 
+enum class ControllerPosition : uint8_t {
+    O, // Neutral
+    X1,
+    X2,
+    X3,
+    T1,
+    T1A,
+    T2
+};
+
+enum class ReverserPosition : uint8_t {
+    O, // Neutral
+    F, // Forward
+    R // Rear
+};
+
 const uint32_t BaudRate = 115200;
 const uint16_t NetworkPort = 8080;
 

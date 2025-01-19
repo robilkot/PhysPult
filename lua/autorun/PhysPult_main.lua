@@ -44,79 +44,82 @@ local indicators = {
 	-- ["RZP"] = ???,
 
 	-- 7 Блок
-	--["???"] = ???, -- Контроль печи
-	-- ["PN"] = 8,
-	-- ["DoorsRightR"] = ???,
+	--["???"] = -, -- Контроль печи
+	["PN"] = 2,
+	-- ["DoorsRightR"] = -,
 }
 
 -- Список тумблеров с соответствующим номером бита.
 -- [Номер бита] = { "Имя тумблера", инвертировать ли (boolean) } 
 local switches = {
 	-- 1 блок
-	[33] = { "VMKToggle" },
-	[34] = { "BPSNonToggle" },
+	[38] = { "VMKToggle", true },
+	[39] = { "BPSNonToggle", true },
 
 	-- 5 блок
-	[5] = { "R_UNchToggle" },
-	[6] = { "R_ZSToggle" },
-	[7] = { "R_GToggle" },
-	[8] = { "R_RadioToggle" },
-	[13] = { "VUD1Toggle" },
-	-- [11] = { "R_VPRToggle" },
-	-- [15] = { "DoorSelectToggle" },
+	[3] = { "R_UNchToggle", true },
+	[1] = { "R_ZSToggle", true },
+	[4] = { "R_GToggle", true },
+	[2] = { "R_RadioToggle", true },
+	[10] = { "VUD1Toggle", true },
+	--[-] = { "R_VPRToggle" },
+	--[-] = { "DoorSelectToggle" },
 
 	-- 6 блок
-	[20] = { "V13Toggle" },
-	[17] = { "V11Toggle" },
-	[19] = { "V12Toggle" },
+	[26] = { "V13Toggle", true },
+	[27] = { "V11Toggle", true },
+	[25] = { "V12Toggle", true },
 
-	-- [18] = { "OtklAVUToggle"},
-	--[22] = "???", -- Двери торцевые
-	--[23] = "???", -- Вентиляция кабины
-	[9] = { "ARSToggle" },
-	[10] = { "ALSToggle" },
-	[26] = { "ARSRToggle" },
-	[11] = { "OVTToggle" } ,
-	-- [34] = { "ALSFreqToggle" },
-	[35] = { "L_1Toggle" },
-	[31] = { "L_2Toggle" }, 
-	-- [30] = { "L_3Toggle" },
-	-- [35] = { "VPToggle" },
+	--[-] = { "OtklAVUToggle"},
+	--[-] = "???", -- Двери торцевые
+	--[18] = "???", -- Вентиляция кабины
+	[15] = { "ARSToggle", true },
+	[14] = { "ALSToggle", true },
+	-- [-] = { "ARSRToggle" },
+	[13] = { "OVTToggle" } ,
+	-- [-] = { "ALSFreqToggle" },
+	[40] = { "L_1Toggle", true }, -- Аварийное освещение (1 блок)
+	[20] = { "L_2Toggle", true }, 
+	[19] = { "L_3Toggle", true },
+	[18] = { "VPToggle", true },
 	
 	-- 7 блок
-	[25] = { "L_4Toggle" },
-	[26] = { "VUSToggle" }, 
-	[27] = { "VADToggle" },
-	[28] = { "VAHToggle" },
+	[34] = { "L_4Toggle", true },
+	[35] = { "VUSToggle", true }, 
+	[36] = { "VADToggle", true },
+	[37] = { "VAHToggle", true },
 }
 
 -- Список кнопок с соответствующим номером бита.
 -- [Номер бита] = { "Имя кнопки", инвертировать ли (boolean) } 
 local buttons = {
 	-- 1 блок
-	[37] = { "RezMKSet", true },
-	-- [36] = { "ARS13Set", false },
+	[33] = { "RezMKSet", false },
+	[42] = { "ARS13Set", false },
+	-- [41] = { "???", false }, -- Радио 13В
 
 	-- 5 блок
-	[4] = { "R_Program1Set", false },
-	[3] = { "R_Program2Set", false },
-	[15] = { "KRZDSet", false },
-	[14] = { "VozvratRPSet", false },
+	[5] = { "R_Program1Set", true },
+	[6] = { "R_Program2Set", true },
+	[9] = { "KRZDSet", true },
+	[11] = { "VozvratRPSet", true },
 	-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
 	-- [2] =  { "KDLSet", false }, 
 
 	-- 6 блок
-	[22] = {  "1:KVTSet", false }, --21
-	-- [22] = {  "1:KVTRSet", false }, --24
-	[18] = {  "VZ1Set", true },
-	[23] = { "OtklBVSet", false },
-	[12] = { "ConverterProtectionSet", true },
-	[29] = {  "KSNSet", false },
-	[30] = {  "RingSet", false },
+	[22] = {  "1:KVTSet", true },
+	-- [24] = Вкл ЭПК
+	[23] = {  "1:KVTRSet", false },
+	[28] = {  "VZ1Set", false }, -- ЛКВ
+	-- [-] = { "OtklBVSet", false },
+	[12] = { "ConverterProtectionSet", false },
+	[16] = {  "KSNSet", true },
+	[17] = {  "RingSet", true },
 
 	-- 7 блок
-	[38] = { "KRPSet", false },
-	--[37] =  "KAHSet" ,
+	-- [31] =  { "KDRSet", false }, -- обрабатываются особым образом ниже
+	[32] = { "KRPSet", true },
+	-- [--] = { "KAHSet", true },
 }
 
 -- Возращает поезд а котором сидит игрок.
@@ -368,8 +371,8 @@ function PhysPult.SynchronizeButtons(train, registers)
 	end
 
 	local kdlRegister = registers[1]
-	local kdlOneState = bit.band(1, bit.rshift(tonumber(kdlRegister), 7)) == 1
-	local kdlTwoState = bit.band(1, bit.rshift(tonumber(kdlRegister), 6)) == 1
+	local kdlOneState = bit.band(1, bit.rshift(tonumber(kdlRegister), 1)) == 0
+	local kdlTwoState = bit.band(1, bit.rshift(tonumber(kdlRegister), 0)) == 0
 
 	if(kdlOneState or kdlTwoState) then
 		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", false)
@@ -378,8 +381,8 @@ function PhysPult.SynchronizeButtons(train, registers)
 		Metrostroi.UpTrainButton(train, "KDLSet")
 	end
 
-	local kpdRegister = registers[6]
-	local kpdState = bit.band(1, bit.rshift(tonumber(kpdRegister), 2)) == 1
+	local kpdRegister = registers[4]
+	local kpdState = bit.band(1, bit.rshift(tonumber(kpdRegister), 1)) == 0
 
 	if(kpdState) then
 		Metrostroi.UpTrainButton(train, "KDPSet")
@@ -402,27 +405,15 @@ local CRANE_POSITIONS = {
 	}
 }
 
-local CONTROLLER_POSITIONS = {
-	["KV70"] = {
-		[0] = 1,
-		[1] = 2,
-		[2] = 3,
-		[4] = 4,
-		[8] = 5,
-		[16] = 6,
-		[32] = 7,
-	},
-}
-
 local kvinputs = {
 	["81-717"] = {
-		"KVSetX1B",
-		"KVSetX2",
-		"KVSetX3",
-		"KVSet0",
-		"KVSetT1B",
-		"KVSetT1AB",
-		"KVSetT2",
+		[1] = "KVSetX1B",
+		[2] = "KVSetX2",
+		[3] = "KVSetX3",
+		[0] = "KVSet0",
+		[4] = "KVSetT1B",
+		[5] = "KVSetT1AB",
+		[6] = "KVSetT2",
 	}
 }
 
@@ -438,47 +429,101 @@ local kminputs = {
 	}
 }
 
-function PhysPult.SynchronizeControllerAndCrane(train, numerics)
-	local realCranePosition = 255 - tonumber(numerics[1])
-	local realControllerPosition = tonumber(numerics[2])
+function PhysPult.SynchronizeReverser(train, reverserPosition)
+	PhysPult.ReverserPosition = reverserPosition
 
-	local cranePositions = CRANE_POSITIONS["334"]
+	local nativeReverserPosition = train:GetNW2Int("ReverserPosition") -- 0 = B, 1 = 0, 2 = F
+	local currentReverserPosition = 0
 
-	local previousKmPosition = PhysPult.GameCranePosition
-	local previousKvPosition = PhysPult.GameControllerPosition
-
-	PhysPult.GameControllerPosition = CONTROLLER_POSITIONS["KV70"][realControllerPosition]
-	
-	Metrostroi.DownTrainButton(train, { ["ID"] = kvinputs["81-717"][PhysPult.GameControllerPosition] })
-	if(PhysPult.GameControllerPosition != previousKvPosition) then
-		Metrostroi.UpTrainButton(train, { ["ID"] = kvinputs["81-717"][previousKvPosition] })
+	if(nativeReverserPosition == 0) then
+		 currentReverserPosition = 2
+	elseif(nativeReverserPosition == 1) then
+		 currentReverserPosition = 0
+	elseif(nativeReverserPosition == 2) then
+		 currentReverserPosition = 1
 	end
 
+	if(currentReverserPosition != PhysPult.ReverserPosition) then
+		if(PhysPult.ReverserPosition == 0) then
+			if(currentReverserPosition == 1) then 
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
+			elseif(currentReverserPosition == 2) then
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
+			end
+			
+			Metrostroi.PressTrainButton(train, { ["ID"] = "KVWrenchNone" })
+		elseif(PhysPult.ReverserPosition == 1) then
+			Metrostroi.PressTrainButton(train, { ["ID"] = "KVWrenchKV" })
+
+			if(currentReverserPosition == 2) then
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
+			elseif(currentReverserPosition == 0) then 
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
+			end
+		elseif (PhysPult.ReverserPosition == 2) then
+			Metrostroi.PressTrainButton(train, { ["ID"] = "KVWrenchKV" })
+
+			if(currentReverserPosition == 1) then 
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
+			elseif(currentReverserPosition == 0) then 
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
+			end
+		end
+	end
+end
+
+function PhysPult.SynchronizeController(train, controllerPosition)
+	local previousKvPosition = PhysPult.ControllerPosition
+
+	PhysPult.ControllerPosition = controllerPosition
+
+	if(PhysPult.ControllerPosition != previousKvPosition) then
+		Metrostroi.UpTrainButton(train, { ["ID"] = kvinputs["81-717"][previousKvPosition] })
+	end
+	Metrostroi.DownTrainButton(train, { ["ID"] = kvinputs["81-717"][PhysPult.ControllerPosition] })
+
+	
+end
+
+function PhysPult.SynchronizeCrane(train, cranePosition)
+	local cranePositions = CRANE_POSITIONS["334"]
+
+	local previousKmPosition = PhysPult.CranePosition
 
 	for k, v in pairs(cranePositions) do
-		if(realCranePosition > v) then continue end
+		if(cranePosition > v) then continue end
 		
 		local median = cranePositions[k]
 
 		if (k > 1) then
 			median = (median + cranePositions[k - 1]) / 2
 
-			if(realCranePosition - median > 0) then
-				PhysPult.GameCranePosition = k
+			if(cranePosition - median > 0) then
+				PhysPult.CranePosition = k
 			else
-				PhysPult.GameCranePosition = k - 1
+				PhysPult.CranePosition = k - 1
 			end
 		end
 		
 		break
 	end
 
-	Metrostroi.DownTrainButton(train, { ["ID"] = kminputs["81-717"][PhysPult.GameCranePosition] })
-	if(PhysPult.GameCranePosition != previousKmPosition) then
+	Metrostroi.DownTrainButton(train, { ["ID"] = kminputs["81-717"][PhysPult.CranePosition] })
+	if(PhysPult.CranePosition != previousKmPosition) then
 		Metrostroi.UpTrainButton(train, { ["ID"] = kminputs["81-717"][previousKmPosition] })
 	end
-
-	-- chat.AddText(tostring(PhysPult.GameCranePosition), " ", tostring(realCranePosition))
 end
 
 -- Синхронизация физического пульта, с виртуальным пультом поезда, в котром сидит игрок.
@@ -490,10 +535,16 @@ function PhysPult.Synchronize()
 			local substrings = string.Explode(';', PhysPult.SocketRecData)
 			local numerics = string.Explode(',', substrings[2])
 			local binaries = string.Explode(',', substrings[3])
-
-			-- PhysPult.SynchronizeSwitches(train, binaries)
-			-- PhysPult.SynchronizeButtons(train, binaries)
-			-- PhysPult.SynchronizeControllerAndCrane(train, numerics)
+			
+			local cranePosition = 255 - tonumber(numerics[1])
+			local reverserPosition = tonumber(numerics[2])
+			local controllerPosition = tonumber(numerics[3])
+			
+			PhysPult.SynchronizeSwitches(train, binaries)
+			PhysPult.SynchronizeButtons(train, binaries)
+			PhysPult.SynchronizeController(train, controllerPosition)
+			-- PhysPult.SynchronizeReverser(train, reverserPosition)
+			-- todo: crane
 		end
 
 		PhysPult.SynchronizeIndicators(train)
