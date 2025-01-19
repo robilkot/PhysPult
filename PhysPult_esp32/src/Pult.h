@@ -32,7 +32,6 @@ class Pult
     }
 
     void display_symbols(uint8_t number) {
-        // Clear previous writings just in case
         std::lock_guard<std::mutex> lock(hardware.mutex);
 
         for(auto pin_index : digit_pins) {
@@ -118,8 +117,12 @@ class Pult
             position = ControllerPosition::X3;
             break;
         }
+        case B00001111: {
+            log_v("Intermediate controller position (%d).", controller_bits);
+            break;
+        }
         default:
-            log_w("Unknown controller position (%d).", controller_bits);
+            log_v("Unknown controller position (%d).", controller_bits);
             break;
         }
 
@@ -248,7 +251,7 @@ class Pult
         xTaskCreatePinnedToCore(
             [](void* param) { hardware.start(); },
             "hw_function",
-            8000,
+            2100, // takes 1892
             nullptr,
             1,  // Priority
             nullptr,
@@ -258,7 +261,7 @@ class Pult
         xTaskCreate(
             [](void* param) { communicator.start(); },
             "net_function",
-            8000,
+            2500, // takes 2084 but grows to 2356
             nullptr,
             1,  // Priority
             nullptr

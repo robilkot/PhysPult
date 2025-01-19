@@ -50,7 +50,7 @@ class Communicator
                 }
             }
             });
-        log_i("Client accepted.");
+        log_i("Client connected.");
     }
 
     public:
@@ -96,14 +96,13 @@ class Communicator
         }
 
         auto ip = WiFi.localIP().toString(); 
-        log_i("Connected to network. IPv4: %s", ip);
 
         // todo: This doesn't work with 3 digits though
         device_number = atoi(ip.substring(ip.length() - 2).c_str());
         on_ip_changed(device_number);
 
         server.listen(NetworkPort);
-        log_i("Server is %savailable", server.available() ? "" : "not ");
+        log_i("Server is %savailable at %s", server.available() ? "" : "not ", ip);
     }
 
     void send(PultMessage& msg)
@@ -121,7 +120,7 @@ class Communicator
         {
             client.poll();
 
-            assert(client.available());           
+            assert(client.available() && "Client should be available when polling");           
         }
     }
 };

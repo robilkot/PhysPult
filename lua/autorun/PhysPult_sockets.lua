@@ -39,6 +39,6 @@ function PhysPult.CreateSocket()
 end
 
 function PhysPult.CloseSocket()
-    PhysPult.Socket:close()
+    if(PhysPult.Socket) then PhysPult.Socket:close() end
     PhysPult.Socket = nil
 end
