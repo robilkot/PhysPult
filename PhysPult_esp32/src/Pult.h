@@ -3,7 +3,6 @@
 #include "Hardware/Hardware.h"
 #include "Communication/PultMessage.h"
 #include "Communication/Communicator.h"
-#include <map>
 
 class Pult
 {
@@ -34,7 +33,8 @@ class Pult
 
     void display_symbols(uint8_t number) {
         // Clear previous writings just in case
-        // todo: make this a critical section
+        std::lock_guard<std::mutex> lock(hardware.mutex);
+
         for(auto pin_index : digit_pins) {
             hardware.set_output(pin_index, false);
         }
@@ -73,7 +73,7 @@ class Pult
             break;
         }
         default:
-            log_w("Unknown reverser position (register bits: %d). Intermediate state?", reverser_bits);
+            log_w("Unknown reverser position (%d).", reverser_bits);
             break;
         }
         
@@ -119,7 +119,7 @@ class Pult
             break;
         }
         default:
-            log_w("Unknown controller position (register bits: %d). Intermediate state?", controller_bits);
+            log_w("Unknown controller position (%d).", controller_bits);
             break;
         }
 
@@ -198,8 +198,8 @@ class Pult
             break;
         }
         case DebugActions::TOGGLE_LIGHTING: {
-            hardware.lighting_enabled = !hardware.lighting_enabled;
-            log_d("Lighting set to %d", hardware.lighting_enabled);
+            hardware.toggle_lighting = !hardware.toggle_lighting;
+            log_d("Lighting set to %d", hardware.toggle_lighting);
             break;
         }
 

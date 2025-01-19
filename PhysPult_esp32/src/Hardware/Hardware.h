@@ -2,8 +2,9 @@
 
 #include <ESP32Servo.h>
 #include <FastLED.h>
-#include <Constants.h>
+#include <Config.h>
 #include <TimerMs.h>
+#include <mutex>
 #include "StableReader.h"
 
 class Hardware
@@ -24,15 +25,15 @@ class Hardware
     uint8_t potentiometer1_position = 0;
     uint8_t potentiometer2_position = 0;
 
-    void adjust_value(uint8_t& currentValue, const uint8_t targetValue)
+    static void adjust_value(uint8_t& currentValue, const uint8_t targetValue, int step = 1)
     {
         if(currentValue > targetValue)
         {
-            currentValue--;
+            currentValue -= step;
         }
         else if(currentValue < targetValue)
         {
-            currentValue++;
+            currentValue += step;
         }
     }
 
@@ -50,11 +51,13 @@ class Hardware
 
         if(registersUpdateTimer.tick())
         {
+            std::lock_guard<std::mutex> lock(mutex);
+            
             digitalWrite(OutLatchPin, 0);
 
             for(auto reg : registers_out) {
                 shiftOut(OutDataPin, OutClockPin, LSBFIRST, reg);
-            }
+            }            
 
             digitalWrite(OutLatchPin, 1);
         }
@@ -112,16 +115,27 @@ class Hardware
 
     void tick_leds()
     {
-        for(auto& led : LightingLeds1)
-            led = CHSV(LightingColorHue, LightingColorSat, potentiometer1_position * lighting_enabled);
-        
-        for(auto& led : LightingLeds2)
-            led = CHSV(LightingColorHue, LightingColorSat, potentiometer2_position * lighting_enabled);
+        static uint8_t current_brightness = 0;
+        static TimerMs update_timer(10, true, false);
 
-        for(auto& led : GaugesLeds)
-            led = CHSV(LightingColorHue, LightingColorSat, potentiometer1_position * lighting_enabled);
+        if(update_timer.tick()) 
+        {
+            bool lighting_switch_on = !(registers_in[2] >> 5 & 1); // Defined by hardware connections
 
-        FastLED.show();
+            auto target_brightness = potentiometer1_position / 255. * (toggle_lighting ^ lighting_switch_on) * LightingColor.v;
+            adjust_value(current_brightness, target_brightness, 15);
+
+            for(auto& led : LightingLeds1)
+                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+            
+            for(auto& led : LightingLeds2)
+                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+
+            for(auto& led : GaugesLeds)
+                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+
+            FastLED.show();
+        }
     }
 
     void tick_input()
@@ -130,8 +144,7 @@ class Hardware
         potentiometer2_position = potentiometer2_reader.tick();
         crane_position = crane_reader.tick();
 
-        digitalWrite(InLatchPin, LOW);    
-        delayMicroseconds(PulseWidth);
+        digitalWrite(InLatchPin, LOW);
         digitalWrite(InLatchPin, HIGH);
 
         for(uint8_t i = 0; i < InRegistersCount; i++)
@@ -197,6 +210,8 @@ class Hardware
     }
 
     public:
+    static std::mutex mutex;
+    
     uint8_t registers_in[InRegistersCount];
     uint8_t registers_out[OutRegistersCount];
 
@@ -211,19 +226,19 @@ class Hardware
 
     uint8_t crane_position = 0;
 
-    bool lighting_enabled = false;
+    bool toggle_lighting = false;
 
     Hardware()
     : crane_reader(StableReader(CranePin)), potentiometer1_reader(StableReader(PotentiometerPin1)), potentiometer2_reader(StableReader(PotentiometerPin2))
     {
         for(auto& led : LightingLeds1)
-            led = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+            led = LightingColor;
 
         for(auto& led : LightingLeds2)
-            led = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+            led = LightingColor;
 
         for(auto& led : GaugesLeds)
-            led = CHSV(LightingColorHue, LightingColorSat, LightingColorvalue);
+            led = LightingColor;
     }
 
     void set_output(uint8_t out_index, bool value) {
