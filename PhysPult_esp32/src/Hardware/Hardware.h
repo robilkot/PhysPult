@@ -155,6 +155,7 @@ class Hardware
 
     void init_pins()
     {   
+        pinMode(OutputEnable, OUTPUT);
         pinMode(OutDataPin, OUTPUT);
         pinMode(OutLatchPin, OUTPUT);
         pinMode(OutClockPin, OUTPUT);
@@ -184,6 +185,7 @@ class Hardware
     void init()
     {
         init_pins();
+        digitalWrite(OutputEnable, 1);
 
         FastLED.addLeds<WS2812B, LightingDataPin1, GRB>(LightingLeds1, sizeof(LightingLeds1) / sizeof(CRGB));
         // todo: crash
@@ -206,6 +208,7 @@ class Hardware
         NmServo.attach(NmPwmPin);
         TcServo.attach(TcPwmPin);
         
+        digitalWrite(OutputEnable, 0);
         log_i("Hardware initialization complete");
     }
 

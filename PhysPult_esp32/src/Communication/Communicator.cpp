@@ -99,8 +99,6 @@ void Communicator::start()
 
     while(true)
     {
-        client.poll();
-
-        assert(client.available() && "Client should be available when polling");           
+        client.poll();        
     }
 }
