@@ -10,13 +10,15 @@ enum class ControllerPosition : uint8_t {
     X3,
     T1,
     T1A,
-    T2
+    T2,
+    Intermediate, // In case measurements are incorrect
 };
 
 enum class ReverserPosition : uint8_t {
     O, // Neutral
     F, // Forward
-    R // Rear
+    R, // Rear
+    Intermediate, // In case measurements are incorrect
 };
 
 static uint32_t BaudRate = 115200;

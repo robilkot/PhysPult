@@ -8,6 +8,7 @@ void Communicator::accept_client()
     log_i("Waiting for client.");
     // todo: use poll to not block
     client = server.accept();
+    on_connect();
 
     client.onMessage([&](websockets::WebsocketsMessage msg) {
         on_message(*PultMessageFactory::Create(msg.data()));
@@ -46,6 +47,10 @@ void Communicator::set_on_message(std::function<void(PultMessage&)> handler)
 void Communicator::set_on_disconnect(std::function<void()> handler)
 {
     on_disconnect = handler;
+}
+void Communicator::set_on_connect(std::function<void()> handler)
+{
+    on_connect = handler;
 }
 void Communicator::set_on_ip_changed(std::function<void(int)> handler)
 {

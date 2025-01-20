@@ -280,7 +280,7 @@ PhysPult.GameCranePosition = 1
 PhysPult.GameControllerPosition = 4
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 15
+PhysPult.UpdateInterval = 50
 
 local function GetNumericValuesString(train)
 	local numerics = {

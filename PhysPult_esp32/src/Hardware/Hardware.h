@@ -209,7 +209,6 @@ class Hardware
         TcServo.attach(TcPwmPin);
         
         digitalWrite(OutputEnable, 0);
-        log_i("Hardware initialization complete");
     }
 
     public:
