@@ -11,7 +11,6 @@ class StateChangePultMessage;
 class PultMessageFactory {
     private:
     const static char delimiter = ';';
-    static WorkPultMessage* create_work_message(String& str, int& delimIndex);
     static DebugPultMessage* create_debug_message(String str, int& delimIndex);
     static ConfigPultMessage* create_config_message(String str, int& delimIndex);
     static StateChangePultMessage* create_state_changed_message(String& str, int& delimIndex);

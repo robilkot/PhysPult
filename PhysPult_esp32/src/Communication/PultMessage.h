@@ -6,13 +6,13 @@
 
 class Pult;
 
-enum class OutputStateKeys {
+enum class InputStateKeys {
     Controller,
     Reverser,
     Crane,
 };
 
-enum class InputStateKeys {
+enum class OutputStateKeys {
     Speed,
     TM,
     NM,
@@ -65,18 +65,6 @@ class StateChangePultMessage : public PultMessage {
     String to_string() override;
     const char get_type() override {
         return 'S';
-    }
-    void apply(Pult& pult) override;
-};
-
-class WorkPultMessage : public PultMessage {
-    public:
-    std::vector<int16_t> numeric_data;
-    std::vector<uint8_t> binary_data;
-
-    String to_string() override;
-    const char get_type() override {
-        return 'W';
     }
     void apply(Pult& pult) override;
 };

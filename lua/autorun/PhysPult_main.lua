@@ -12,6 +12,36 @@ if(SERVER) then return end
 
 timer.Create("PhysPultInit", 0.5, 1, function()
 
+-- Возращает поезд а котором сидит игрок.
+-- RETURNS - Ентити поезда в котором сидит игрок или nil, если игрок не находится в поезде.
+local function getPlayerDrivenTrain()
+    local seat = LocalPlayer():GetParent()
+    if (IsValid(seat)) then
+		local train = seat:GetParent()
+		if(IsValid(train)) then return train end
+	end 
+end
+
+-- Проверяет, является ли текущий тип поезда доупстимым.
+-- (train) - Ентити поезда.
+-- RETURNS - Является ли поезд допустимым.
+local function checkTrainType(train)
+	return train:GetClass() == "gmod_subway_81-717_mvm"
+end
+
+
+-- Возвращает имя по которому можно получить значение кнопки, на совное ID кнопки.
+-- (buttonId) - ID кнокпи.
+-- RETURNS - Имя по которому можно поулчитьб знаечени кнопки из метода поезда GetPackedRatio.
+local function getButtonValueName(buttonId)
+	local key = string.gsub(buttonId, "^.+:","")
+	key = string.Replace(key, "Toggle", "")
+	key = string.Replace(key, "Set", "")
+
+	return key
+end
+
+
 -- Список индикаторов с соответствующим номером бита. Биты 26-39 под скорость нужны. Индексация с нуля
 local indicators = {
 	-- 2 Блок
@@ -122,267 +152,78 @@ local buttons = {
 	-- [--] = { "KAHSet", true },
 }
 
--- Возращает поезд а котором сидит игрок.
--- RETURNS - Ентити поезда в котором сидит игрок или nil, если игрок не находится в поезде.
-local function getPlayerDrivenTrain()
-    local seat = LocalPlayer():GetParent()
-    if (IsValid(seat)) then
-		local train = seat:GetParent()
-		if(IsValid(train)) then return train end
-	end 
-end
-
--- Проверяет, является ли текущий тип поезда доупстимым.
--- (train) - Ентити поезда.
--- RETURNS - Является ли поезд допустимым.
-local function checkTrainType(train)
-	return train:GetClass() == "gmod_subway_81-717_mvm"
-end
-
--- Отправляет соятоние кнопки(наверное). Взято из Metrostroi.
-local function sendButtonMessage(button,train,outside)
-    local tooltip,buttID = nil,button.ID
-    if button.plombed then
-        tooltip,buttID = button.plombed(train)
-    end
-    if not buttID then 
-		PrintTable(button)
-		Error(Format("Can't send button message! %s\n",button.ID))
-		return end
-    net.Start("metrostroi-cabin-button")
-        net.WriteEntity(train)
-        net.WriteString(buttID:gsub("^.+:",""))
-        net.WriteBit(button.state)
-        net.WriteBool(outside)
-    net.SendToServer()
-    return buttID
-end
-
--- Возвращает имя по которому можно получить значение кнопки, на совное ID кнопки.
--- (buttonId) - ID кнокпи.
--- RETURNS - Имя по которому можно поулчитьб знаечени кнопки из метода поезда GetPackedRatio.
-local function getButtonValueName(buttonId)
-	local key = string.gsub(buttonId, "^.+:","")
-	key = string.Replace(key, "Toggle", "")
-	key = string.Replace(key, "Set", "")
-
-	return key
-end
-
--- Находит кнопку в поезде или возращает её, если кнопка уже передана.
--- (train) - Ентити поезда.
--- (button) - Кнопка или ID кнопки.
--- RETURNS - Таблица кнопки, содержащие данные её инициализации или nil, если кнопка не найдена.
-local function returnOrfindButton(train, button)
-	local buttonType = type(button)
-
-	if (buttonType == "table") then
-		return button
-	elseif (buttonType == "string") then
-		return Metrostroi.GetTrainButtonById(train, button)
-	end
-end
-
-----   API definition   ----
-
-Metrostroi = Metrostroi or {}
-
--- Возвращает состояние индикатора.
--- (train) - Текущий поезд.
--- (indicatorId) - Имя индикатора.
--- RETURNS - Значени индикатора true/false, или nil, если индикатор не найден.
-function Metrostroi.GetTrainIndicatorStage(train, indicatorId)
-	return train:GetNW2Bool(indicatorId)
-end
-
--- Устанавливает положени кпокпи "Нажато".
--- (train) - Текущий поезд.
--- (button) - Имя кнопки или сама кнопка.
-function Metrostroi.DownTrainButton(train, button) 
-    button = returnOrfindButton(train, button)
-
-    if (button) then
-        button.state = true
-        sendButtonMessage(button, train, true)
-    end
-end
-
--- Устанавливает положени кпокпи "Отпущена".
--- (train) - Текущий поезд.
--- (button) - Имя кнопки или сама кнопка.
-function Metrostroi.UpTrainButton(train, button)
-	button = returnOrfindButton(train, button)
-
-    if (button) then
-        button.state = false
-        sendButtonMessage(button, train, true)
-    end
-end
-
--- Иницализиурет короткое нажатие на кнопку.
--- (train) - Текущий поезд.
--- (button) - Имя кнопки или сама кнопка.
-function Metrostroi.PressTrainButton(train, button)
-	button = returnOrfindButton(train, button)
-
-	Metrostroi.DownTrainButton(train, button)
-    timer.Simple(0.1, function() Metrostroi.UpTrainButton(train, button) end)
-end
-
--- Возвращает текущее положение кнопки.
--- REMARK - Только кнопки которые являются тумблерами имеют постоянные состояния true/false,
--- в то ремя как обычные кнопки имею положени true, только при нажатии.
--- (train) - Текущий поезд.
--- (button) - Имя кнопки или сама кнопка.
--- RETURNS - Текущее состояние кнопки true/false, или nil, если кнопка не найдена.
-function Metrostroi.GetTrainSwitchStage(train, button)
-	button = returnOrfindButton(train, button)
-	if (button) then
-		return train:GetPackedRatio(getButtonValueName(button.ID)) > 0
-	end
-end
-
--- Устанвливает текущее положение кнопки.
--- REMARK - Только кнопки которые являются тумблерами имеют постоянные состояния true/false,
--- в то ремя как обычные кнопки имею положени true, только при нажатии.
--- (train) - Текущий поезд.
--- (button) - Имя кнопки или сама кнопка.
-function Metrostroi.SetTrainSwitchStage(train, button, stage)
-	button = returnOrfindButton(train, button)
-
-	if (button) then
-		if (Metrostroi.GetTrainSwitchStage(train, button) != stage) then
-			Metrostroi.PressTrainButton(train, button)
-		end
-	end
-end
-
--- Воззращает кнопку поезда по её ID(имени).
--- (train) - Текущий поезд.
--- (buttonId) - ID кнопки(имя).
--- RETURNS - Таблица кнопки, содержащие данные её инициализации или nil, если кнопка не найдена.
-function Metrostroi.GetTrainButtonById(train, buttonId)
-    for kp, panel in pairs(train.ButtonMap) do
-        if not train:ShouldDrawPanel(kp) then continue end
-        if (panel.buttons) then
-            for _, button in pairs(panel.buttons) do
-                if (button.ID == buttonId) then
-                    return button 
-                end
-            end
-        end
-    end
-end
-
 PhysPult = PhysPult or {}
-
-PhysPult.GameCranePosition = 1
-PhysPult.GameControllerPosition = 4
 
 -- Интверал между обновлениями состояния (мс).
 PhysPult.UpdateInterval = 50
 
+PhysPult.GameCranePosition = 1
+PhysPult.GameControllerPosition = 4
+
+
+local previousNumericValues = {}
+
 local function GetNumericValuesString(train)
 	local numerics = {
-		math.floor(train:GetPackedRatio("speed") * 100),
-		math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
-		math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63),
-		math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15),
-		math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7),
-		math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17),
-		-1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
+		[0] = math.floor(train:GetPackedRatio("speed") * 100),
+		[1] = math.floor(train:GetPackedRatio("BLPressure") * 100 * 8 / 5 * 1.43),
+		[2] = math.floor(train:GetPackedRatio("TLPressure") * 100 * 8 / 5 * 1.63),
+		[3] = math.floor(train:GetPackedRatio("BCPressure") * 100 * 5 / 9 * 3.15),
+		[4] = math.floor(train:GetPackedRatio("BatteryVoltage") * 100 * 1.6 * 1.7),
+		[5] = math.floor(train:GetPackedRatio("EnginesVoltage") * 100 * 2.17),
+		[6] = -1 * math.Clamp(math.floor((train:GetPackedRatio("EnginesCurrent") * 1000 - 500) * 0.6), -255, 255),
 	}
+
+	local changed_numerics = {}
+
+	for key, value in pairs(numerics) do
+		if (previousNumericValues[key] != value) then
+			previousNumericValues[key] = value
+			changed_numerics[key] = value
+		end
+	end
 	
-	return table.concat(numerics, ',')..';'
+	local str = ""
+
+	for key, value in pairs(changed_numerics) do
+		str = str..key..'/'..value..','
+	end
+
+	str = string.Trim(str, ',')..';'
+	
+	return str
 end
+
+local previousIndicatorsValues = {}
 
 local function GetBinaryValuesString(train)
-	local registers = {
-		0, 0, 0, 0, 0
-	}
+	local enabled_indicators = {}
+	local disabled_indicators = {}
 
-	for k, v in pairs(indicators) do
-		local bitIndex = v
-
-		local bitInRegister = bitIndex % 8
-		local registerNumber = math.floor(bitIndex/ 8) + 1
-		
-		local indicatorState = Metrostroi.GetTrainIndicatorStage(train, k)
-
-		if(indicatorState == true) then
-			registers[registerNumber] = bit.bor(registers[registerNumber], bit.lshift(1, bitInRegister))
-		else
-			registers[registerNumber] = bit.band(registers[registerNumber], bit.bnot(bit.lshift(1, bitInRegister)))
-		end
-	end
-
-	return table.concat(registers, ',')..';'
-end
-
--- Синхронизация индикаторов в поезде.
-function PhysPult.SynchronizeIndicators(train)
-	local msg = "W;"
-
-	msg = msg..GetNumericValuesString(train)
-	msg = msg..GetBinaryValuesString(train)
-
-	PhysPult.SocketWrtData = msg
-end
-
--- Синхронизация тумблреров в поезде.
-function PhysPult.SynchronizeSwitches(train, registers)
-	for k, v in pairs(switches) do
-		local bitIndex = k
-
-		local bitInRegister = 7 - (bitIndex - 1) % 8
-		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
-		local register = registers[registerNumber]
-		
-		local switchState = bit.band(1, bit.rshift(tonumber(register), bitInRegister)) == 1
-
-		if (v[2]) then
-			switchState = not switchState
+	for name, index in pairs(indicators) do
+		local state = Metrostroi.GetTrainIndicatorStage(train, name)
+		if(previousIndicatorsValues[name] != state) then
+			previousIndicatorsValues[name] = state
+			if(state) then
+				table.insert(enabled_indicators, index)
+			else
+				table.insert(disabled_indicators, index)
+			end
 		end
 
-		Metrostroi.SetTrainSwitchStage(train, v[1], switchState)	
 	end
+
+	return table.concat(enabled_indicators, ',')..';'..table.concat(disabled_indicators, ',')..';'
 end
 
 -- Синхронизация кнопок в поезде.
 function PhysPult.SynchronizeButtons(train, registers)
-	for k, v in pairs(buttons) do
-		local bitIndex = k
-
-		local bitInRegister = 7 - (bitIndex - 1) % 8
-		local registerNumber = math.floor((bitIndex - 1)/ 8) + 1
-		local register = registers[registerNumber]
-		
-		local switchState = bit.band(1, bit.rshift(tonumber(register), bitInRegister)) == 1
-
-		if (v[2] == false) then
-			switchState = not switchState
-		end
-		
-		if(switchState == true) then
-			Metrostroi.UpTrainButton(train, v[1])
-		else
-			Metrostroi.DownTrainButton(train, v[1])
-		end
-	end
-
-	local kdlRegister = registers[1]
-	local kdlOneState = bit.band(1, bit.rshift(tonumber(kdlRegister), 1)) == 0
-	local kdlTwoState = bit.band(1, bit.rshift(tonumber(kdlRegister), 0)) == 0
-
 	if(kdlOneState or kdlTwoState) then
 		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", false)
 		Metrostroi.DownTrainButton(train, "KDLSet")
 	else
 		Metrostroi.UpTrainButton(train, "KDLSet")
 	end
-
-	local kpdRegister = registers[4]
-	local kpdState = bit.band(1, bit.rshift(tonumber(kpdRegister), 1)) == 0
 
 	if(kpdState) then
 		Metrostroi.UpTrainButton(train, "KDPSet")
@@ -391,43 +232,6 @@ function PhysPult.SynchronizeButtons(train, registers)
 		Metrostroi.DownTrainButton(train, "KDPSet")
 	end
 end
-
-local CRANE_POSITIONS = {
-	["334"] = {
-		15,
-		31,
-		43,
-		62,
-		180,
-	},
-	["013"] = {
-		-- Not implemented in hardware
-	}
-}
-
-local kvinputs = {
-	["81-717"] = {
-		[1] = "KVSetX1B",
-		[2] = "KVSetX2",
-		[3] = "KVSetX3",
-		[0] = "KVSet0",
-		[4] = "KVSetT1B",
-		[5] = "KVSetT1AB",
-		[6] = "KVSetT2",
-	}
-}
-
-local kminputs = {
-	["81-717"] = {
-		"PneumaticBrakeSet1",
-		"PneumaticBrakeSet2",
-		"PneumaticBrakeSet3",
-		"PneumaticBrakeSet4",
-		"PneumaticBrakeSet5",
-		"PneumaticBrakeSet6",
-		"PneumaticBrakeSet7",
-	}
-}
 
 function PhysPult.SynchronizeReverser(train, reverserPosition)
 	PhysPult.ReverserPosition = reverserPosition
@@ -444,14 +248,13 @@ function PhysPult.SynchronizeReverser(train, reverserPosition)
 	end
 
 	if(currentReverserPosition != PhysPult.ReverserPosition) then
+		Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
+		Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+
 		if(PhysPult.ReverserPosition == 0) then
 			if(currentReverserPosition == 1) then 
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
 			elseif(currentReverserPosition == 2) then
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
 			end
 			
@@ -460,24 +263,16 @@ function PhysPult.SynchronizeReverser(train, reverserPosition)
 			Metrostroi.PressTrainButton(train, { ["ID"] = "KVWrenchKV" })
 
 			if(currentReverserPosition == 2) then
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
 			elseif(currentReverserPosition == 0) then 
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
 			end
 		elseif (PhysPult.ReverserPosition == 2) then
 			Metrostroi.PressTrainButton(train, { ["ID"] = "KVWrenchKV" })
 
-			if(currentReverserPosition == 1) then 
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+			if(currentReverserPosition == 1) then
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserUp" } )
-			elseif(currentReverserPosition == 0) then 
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserUp" } )
-				Metrostroi.UpTrainButton(train, { ["ID"] = "KVReverserDown" } )
+			elseif(currentReverserPosition == 0) then
 				Metrostroi.DownTrainButton(train, { ["ID"] = "KVReverserDown" } )
 			end
 		end
@@ -485,19 +280,56 @@ function PhysPult.SynchronizeReverser(train, reverserPosition)
 end
 
 function PhysPult.SynchronizeController(train, controllerPosition)
+	local kvinputs = {
+		["81-717"] = {
+			[1] = "KVSetX1B",
+			[2] = "KVSetX2",
+			[3] = "KVSetX3",
+			[0] = "KVSet0",
+			[4] = "KVSetT1B",
+			[5] = "KVSetT1AB",
+			[6] = "KVSetT2",
+		}
+	}
+
 	local previousKvPosition = PhysPult.ControllerPosition
 
 	PhysPult.ControllerPosition = controllerPosition
 
 	if(PhysPult.ControllerPosition != previousKvPosition) then
-		Metrostroi.UpTrainButton(train, { ["ID"] = kvinputs["81-717"][previousKvPosition] })
+		local prevId = kvinputs["81-717"][previousKvPosition]
+		if(prevId) then Metrostroi.UpTrainButton(train, { ["ID"] = prevId }) end
 	end
-	Metrostroi.DownTrainButton(train, { ["ID"] = kvinputs["81-717"][PhysPult.ControllerPosition] })
-
-	
+	local newId = kvinputs["81-717"][PhysPult.ControllerPosition]
+	Metrostroi.DownTrainButton(train, { ["ID"] = newId })	
 end
 
 function PhysPult.SynchronizeCrane(train, cranePosition)
+	local CRANE_POSITIONS = {
+		["334"] = {
+			15,
+			31,
+			43,
+			62,
+			180,
+		},
+		["013"] = {
+			-- Not implemented in hardware
+		}
+	}
+
+	local kminputs = {
+		["81-717"] = {
+			"PneumaticBrakeSet1",
+			"PneumaticBrakeSet2",
+			"PneumaticBrakeSet3",
+			"PneumaticBrakeSet4",
+			"PneumaticBrakeSet5",
+			"PneumaticBrakeSet6",
+			"PneumaticBrakeSet7",
+		}
+	}
+	
 	local cranePositions = CRANE_POSITIONS["334"]
 
 	local previousKmPosition = PhysPult.CranePosition
@@ -526,43 +358,121 @@ function PhysPult.SynchronizeCrane(train, cranePosition)
 	end
 end
 
--- Синхронизация физического пульта, с виртуальным пультом поезда, в котром сидит игрок.
+-- todo: refactor
+-- todo: crane
+function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
+	local kvPairs = {}
+	for k, v in pairs(newValues) do
+		local substr = string.Explode('/', v)
+		kvPairs[tonumber(substr[1])] = tonumber(substr[2])
+	end
+	
+	local controllerPosition = kvPairs[0]
+	local reverserPosition = kvPairs[1]
+	local cranePosition = kvPairs[2]
+
+	if (controllerPosition) then PhysPult.SynchronizeController(train, controllerPosition) end
+	if (reverserPosition) then PhysPult.SynchronizeReverser(train, reverserPosition) end
+
+	for k, v in pairs(enabledPins) do
+		local pin = tonumber(v)
+		local invert = false
+		if(buttons[pin]) then
+			local name = buttons[pin][1]
+			local invert = buttons[pin][2]
+
+			if(invert) then 
+				Metrostroi.UpTrainButton(train, name)
+			else
+				Metrostroi.DownTrainButton(train, name)
+			end
+		elseif(switches[pin]) then
+			local name = switches[pin][1]
+			local invert = switches[pin][2]
+
+			if(invert) then 
+				Metrostroi.UpTrainButton(train, name)
+			else
+				Metrostroi.DownTrainButton(train, name)
+			end
+		else
+			-- wrong pin
+		end
+	end
+
+	for k, v in pairs(disabledPins) do
+		local pin = tonumber(v)
+		local invert = false
+		if(buttons[pin]) then
+			local name = buttons[pin][1]
+			local invert = buttons[pin][2]
+
+			if(invert) then 
+				Metrostroi.DownTrainButton(train, name)
+			else
+				Metrostroi.UpTrainButton(train, name)
+			end
+		elseif(switches[pin]) then
+			local name = switches[pin][1]
+			local invert = switches[pin][2]
+
+			if(invert) then 
+				Metrostroi.DownTrainButton(train, name)
+			else
+				Metrostroi.UpTrainButton(train, name)
+			end
+		else
+			-- wrong pin
+		end
+	end
+end
+
 function PhysPult.Synchronize()
 	local train = getPlayerDrivenTrain()
-	
-	if(train and checkTrainType(train)) then
-		if(PhysPult.SocketRecData) then 
-			local substrings = string.Explode(';', PhysPult.SocketRecData)
-			local numerics = string.Explode(',', substrings[2])
-			local binaries = string.Explode(',', substrings[3])
-			
-			local cranePosition = 255 - tonumber(numerics[1])
-			local reverserPosition = tonumber(numerics[2])
-			local controllerPosition = tonumber(numerics[3])
-			
-			PhysPult.SynchronizeSwitches(train, binaries)
-			PhysPult.SynchronizeButtons(train, binaries)
-			PhysPult.SynchronizeController(train, controllerPosition)
-			-- PhysPult.SynchronizeReverser(train, reverserPosition)
-			-- todo: crane
-		end
+	if(not train or not checkTrainType(train)) then return end
 
-		PhysPult.SynchronizeIndicators(train)
+	local msg = "S;"
+
+	msg = msg..GetBinaryValuesString(train)
+	msg = msg..GetNumericValuesString(train)
+
+	if(msg != "S;;;;") then
+		PhysPult.Send(msg)
+	end
+end
+
+function PhysPult.AcceptMessage(msg)
+	local train = getPlayerDrivenTrain()
+	if(not train or not checkTrainType(train)) then return end
+
+	local substrings = string.Explode(';', msg)
+	local messageType = substrings[1]
+
+	if(messageType == 'S') then
+		local enabledPins = string.Explode(',', substrings[2])
+		local disabledPins = string.Explode(',', substrings[3])
+		local newValues = string.Explode(',', substrings[4])
+
+		PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
+	elseif(messageType == 'R') then
+		previousIndicatorsValues = {}
+		previousNumericValues = {}
+		PhysPult.Synchronize()
 	end
 end
 
 concommand.Add("physpult_start", function()
-	PhysPult.CreateSocket()
+	local onConnected = function()
+		timer.Create("physpult_update", PhysPult.UpdateInterval / 1000, 0, PhysPult.Synchronize)
+		PhysPult.Send("R;")
+	end
+	local onDisconnected = function()
+		if(timer.Exists("physpult_update")) then timer.Remove("physpult_update") end
+	end
 
-    timer.Create("ControlsSync", PhysPult.UpdateInterval / 1000, 0, function()
-		PhysPult.Synchronize()
-	end)
+	PhysPult.Start(PhysPult.AcceptMessage, onConnected, onDisconnected)
 end)
 
-concommand.Add("physpult_stop", function()
-	if(timer.Exists("ControlsSync")) then timer.Remove("ControlsSync") end
-    
-    PhysPult.CloseSocket()
-end)
+concommand.Add("physpult_stop", PhysPult.Stop)
 
 end)

@@ -4,10 +4,6 @@ void StateChangePultMessage::apply(Pult& pult) {
     pult.accept_state_changed_message(*this);
 }
 
-void WorkPultMessage::apply(Pult& pult) {
-    pult.accept_work_message(*this);
-}
-
 void StateRequestMessage::apply(Pult& pult) {
     pult.accept_state_request_message(*this);
 }
@@ -57,30 +53,6 @@ String StateChangePultMessage::to_string() {
     }
     if(new_values.size() == 0) {
         output += ';';
-    }
-
-    output[output.length() - 1] = ';';
-
-    return output;
-}
-
-
-String WorkPultMessage::to_string() {
-    String output(get_type());
-    output += ';';
-
-    for(auto i : numeric_data)
-    {
-        output += String(i);
-        output += ',';
-    }
-
-    output[output.length() - 1] = ';';
-
-    for(auto i : binary_data)
-    {
-        output += String(i);
-        output += ',';
     }
 
     output[output.length() - 1] = ';';

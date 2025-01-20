@@ -5,7 +5,6 @@
 #include "Communication/Communicator.h"
 
 class PultMessage;
-class WorkPultMessage;
 class ConfigPultMessage;
 class DebugPultMessage;
 class StateChangePultMessage;
@@ -47,7 +46,6 @@ class Pult
     static ControllerPosition get_controller_position();
 
     public:
-    void accept_work_message(WorkPultMessage& pult_msg);
     void accept_config_message(ConfigPultMessage& msg);
     void accept_debug_message(DebugPultMessage& pult_msg);
     void accept_state_changed_message(StateChangePultMessage& msg);

@@ -6,12 +6,20 @@ local url = "ws://192.168.1.10:8080"
 
 require("gwsockets")
 
-function PhysPult.CreateSocket()
+function PhysPult.Send(msg)
+    if(PhysPult.Socket) then
+        PhysPult.Socket:write(msg) 
+        chat.AddText("snt ", msg)
+    end
+end
+
+function PhysPult.Start(onMessage, onConnected, onDisconnected)
     if PhysPult.Socket then PhysPult.Socket:close() end
     socket = GWSockets.createWebSocket(url)
 
     function socket:onMessage(txt)
-        PhysPult.SocketRecData = txt
+        chat.AddText("rec ", tostring(txt))
+        onMessage(txt)
     end
     
     function socket:onError(txt)
@@ -19,26 +27,20 @@ function PhysPult.CreateSocket()
     end
     
     function socket:onConnected()
-        chat.AddText("PhysPult: Connected to device.")
-    
-        timer.Create("PhysPultUpdate", PhysPult.UpdateInterval / 1000, 0, function()
-            if(PhysPult.Socket and PhysPult.SocketWrtData) then
-                PhysPult.Socket:write(PhysPult.SocketWrtData)
-            end
-        end)
+        chat.AddText("PhysPult: Connected.")
+        onConnected()
     end
     
     function socket:onDisconnected()
-        if(timer.Exists("PhysPultUpdate")) then timer.Remove("PhysPultUpdate") end
-        
         chat.AddText("PhysPult: Disconnected.")
+        onDisconnected()
     end
 
     PhysPult.Socket = socket
     PhysPult.Socket:open()
 end
 
-function PhysPult.CloseSocket()
+function PhysPult.Stop()
     if(PhysPult.Socket) then PhysPult.Socket:close() end
     PhysPult.Socket = nil
 end

@@ -70,59 +70,8 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
         auto key = pair_substr.substring(0, separator_index - 1);
         auto value = pair_substr.substring(separator_index + 1);
 
-        auto pair = std::make_pair(StateKeys { .input = (InputStateKeys)atoi(key.c_str()) }, atoi(value.c_str()));
+        auto pair = std::make_pair(StateKeys { .output = (OutputStateKeys)atoi(key.c_str()) }, atoi(value.c_str()));
         msg->new_values.emplace_back(pair);
-
-        commaIndex = secondCommaIndex;
-    } while(commaIndex != -1);
-
-    return msg;
-}
-
-WorkPultMessage* PultMessageFactory::create_work_message(String& str, int& delimIndex)
-{
-    auto msg = new WorkPultMessage;
-
-    // Parse numeric data
-    int secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto numericDataString = str.substring(delimIndex + 1, secondDelimIndex);
-
-    int commaIndex = -1;
-    do {
-        int secondCommaIndex = numericDataString.indexOf(',', commaIndex + 1); 
-        
-        String numberSubstring;
-        if(secondCommaIndex != -1)
-        {
-            numberSubstring = numericDataString.substring(commaIndex + 1, secondCommaIndex);
-        }
-        else {
-            numberSubstring = numericDataString.substring(commaIndex + 1);
-        }
-        msg->numeric_data.emplace_back(atoi(numberSubstring.c_str()));
-
-        commaIndex = secondCommaIndex;
-    } while(commaIndex != -1);
-
-    // Parse binary data
-    delimIndex = secondDelimIndex;
-    secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    
-    auto binaryDataString = str.substring(delimIndex + 1, secondDelimIndex);
-
-    commaIndex = -1;
-    do {
-        int secondCommaIndex = binaryDataString.indexOf(',', commaIndex + 1); 
-        
-        String binarySubstring;
-        if(secondCommaIndex != -1)
-        {
-            binarySubstring = binaryDataString.substring(commaIndex + 1, secondCommaIndex);
-        }
-        else {
-            binarySubstring = binaryDataString.substring(commaIndex + 1);
-        }
-        msg->binary_data.emplace_back(atoi(binarySubstring.c_str()));
 
         commaIndex = secondCommaIndex;
     } while(commaIndex != -1);
@@ -185,10 +134,6 @@ std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
         }
         case 'R': {
             result = new StateRequestMessage;
-            break;
-        }
-        case 'W': {
-            result = create_work_message(str, delimIndex);
             break;
         }
         case 'D': {

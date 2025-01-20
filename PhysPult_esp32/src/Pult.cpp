@@ -150,27 +150,27 @@ void Pult::accept_state_changed_message(StateChangePultMessage& msg)
         hardware.set_output(pin, false);
     }
     for(auto pair : msg.new_values) {
-        switch (pair.first.input)
+        switch (pair.first.output)
         {
-        case InputStateKeys::Speed:
+        case OutputStateKeys::Speed:
             display_symbols(pair.second);
             break;
-        case InputStateKeys::BatteryVoltage:
+        case OutputStateKeys::BatteryVoltage:
             hardware.battery_voltage = pair.second;
             break;
-        case InputStateKeys::SupplyVoltage:
+        case OutputStateKeys::SupplyVoltage:
             hardware.supply_voltage = pair.second;
             break;
-        case InputStateKeys::EnginesCurrent:
+        case OutputStateKeys::EnginesCurrent:
             hardware.engines_current = pair.second;
             break;
-        case InputStateKeys::TM:
+        case OutputStateKeys::TM:
             hardware.tm_position = pair.second;
             break;
-        case InputStateKeys::NM:
+        case OutputStateKeys::NM:
             hardware.nm_position = pair.second;
             break;
-        case InputStateKeys::TC:
+        case OutputStateKeys::TC:
             hardware.tc_position = pair.second;
             break;
         default:
@@ -181,13 +181,14 @@ void Pult::accept_state_changed_message(StateChangePultMessage& msg)
 }
 
 // Returns full inputs lits
+// todo: account for feature flags
 void Pult::accept_state_request_message(StateRequestMessage& msg)
 {
     StateChangePultMessage response;
 
-    response.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Controller }, (int16_t)get_controller_position());
-    response.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Reverser }, (int16_t)get_reverser_position());
-    response.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Crane }, (int16_t)hardware.crane_position);
+    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
+    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
+    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
 
     for(int i = 0; i < InRegistersCount; i++) {
         auto register_value = hardware.registers_in[i];
@@ -201,40 +202,6 @@ void Pult::accept_state_request_message(StateRequestMessage& msg)
             }
         }
     }
-
-    communicator.send(response);
-}
-
-// Legacy protocol returning full inputs list
-void Pult::accept_work_message(WorkPultMessage& msg)
-{
-    auto speed = msg.numeric_data[0];
-    hardware.tm_position = msg.numeric_data[1];
-    hardware.nm_position = msg.numeric_data[2];
-    hardware.tc_position = msg.numeric_data[3];
-    hardware.battery_voltage = msg.numeric_data[4];
-    hardware.supply_voltage = msg.numeric_data[5];
-    hardware.engines_current = msg.numeric_data[6];
-
-    for(int i = 0; i < OutRegistersCount; i++) {
-        auto register_value = msg.binary_data[i];
-
-        for(int k = 0; k < 8; k++)
-        {
-            hardware.set_output(8 * i + k, (register_value >> k) & 1);
-        }
-    }
-
-    display_symbols(speed);
-
-    WorkPultMessage response;
-
-    response.numeric_data.emplace_back(hardware.crane_position);
-    response.numeric_data.emplace_back((uint8_t)get_reverser_position());
-    response.numeric_data.emplace_back((uint8_t)get_controller_position());
-
-    for(int i = 0; i < InRegistersCount; i++)
-        response.binary_data.emplace_back(hardware.registers_in[i]);
 
     communicator.send(response);
 }
@@ -313,7 +280,7 @@ void Pult::monitor_state()
                 log_i("%d %d", feature_flags, FeatureFlags::Crane);
                 update_needed = true;
                 crane_position_p = hardware.crane_position;
-                update.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Crane }, (int16_t)hardware.crane_position);
+                update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
             }
         } 
 
@@ -323,7 +290,7 @@ void Pult::monitor_state()
                 update_needed = true;
                 controller_position_p = controller_position;
                 if(controller_position != ControllerPosition::Intermediate) {
-                    update.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Controller }, (int16_t)controller_position);
+                    update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)controller_position);
                 }
             }
         }
@@ -335,7 +302,7 @@ void Pult::monitor_state()
                 update_needed = true;
                 reverser_position_p = reverser_position;
                 if(reverser_position != ReverserPosition::Intermediate) {
-                    update.new_values.emplace_back(StateKeys{ .output = OutputStateKeys::Reverser }, (int16_t)reverser_position);
+                    update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)reverser_position);
                 }
             }
         }
@@ -386,6 +353,9 @@ void Pult::start()
             &state_monitor,
             1
         );
+        
+        StateRequestMessage request; 
+        communicator.send(request);
         });
     communicator.set_on_disconnect([this](void) {
         vTaskDelete(state_monitor);
