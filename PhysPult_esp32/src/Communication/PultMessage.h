@@ -4,9 +4,12 @@
 #include <vector>
 #include "Pult.h"
 
+class Pult;
+
 class PultMessage {
     public:
     virtual String to_string() = 0;
+    virtual void apply(Pult& pult) = 0;
     virtual char get_type() = 0;
 };
 
@@ -15,32 +18,9 @@ class WorkPultMessage : public PultMessage {
     std::vector<int16_t> numeric_data;
     std::vector<uint8_t> binary_data;
 
-    String to_string() override {
-        String output(get_type());
-        output += ';';
-
-        for(auto i : numeric_data)
-        {
-            output += String(i);
-            output += ',';
-        }
-
-        output[output.length() - 1] = ';';
-
-        for(auto i : binary_data)
-        {
-            output += String(i);
-            output += ',';
-        }
-
-        output[output.length() - 1] = ';';
-
-        return output;
-    }
-
-    char get_type() override {
-        return 'W';
-    }
+    String to_string() override;
+    char get_type() override;
+    void apply(Pult& pult) override;
 };
 
 class ConfigPultMessage : public PultMessage {
@@ -48,15 +28,9 @@ class ConfigPultMessage : public PultMessage {
     String key;
     String value;
 
-    String to_string() override {
-        String output(get_type());
-        output += ';';
-        return output;
-    }
-
-    char get_type() override {
-        return 'C';
-    }
+    String to_string() override;
+    char get_type() override;
+    void apply(Pult& pult) override;
 };
 
 enum class DebugActions {
@@ -73,20 +47,7 @@ class DebugPultMessage : public PultMessage {
     DebugActions action;
     std::vector<int16_t> params;
 
-    String to_string() override {
-        String output(get_type());
-        output += ';';
-        output += (int)action;
-        output += ';';
-        for(auto param : params) {
-            output += (int)action;
-            output += ',';
-        }
-        output[output.length() - 1] = ';';
-        return output;
-    }
-
-    char get_type() override {
-        return 'D';
-    }
+    String to_string() override;
+    char get_type() override;
+    void apply(Pult& pult) override;
 };
