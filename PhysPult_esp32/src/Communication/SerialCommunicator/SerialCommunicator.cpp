@@ -20,7 +20,7 @@ void SerialCommunicator::set_on_device_number_changed(OnDeviceNumberChanged hand
 {
     on_device_number_changed = handler;
 }
-void SerialCommunicator::send(PultMessage& msg)
+void SerialCommunicator::send(const PultMessage& msg)
 {
     // todo
 }

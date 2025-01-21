@@ -17,7 +17,7 @@ class Communicator
     virtual void set_on_connect(OnConnect handler) = 0;
     virtual void set_on_disconnect(OnDisconnect handler) = 0;
     virtual void set_on_device_number_changed(OnDeviceNumberChanged handler) = 0;
-    virtual void send(PultMessage& msg) = 0;
+    virtual void send(const PultMessage& msg) = 0;
     virtual void start() = 0;
     virtual void stop() = 0;
 };

@@ -146,7 +146,7 @@ ControllerPosition Pult::get_controller_position()
     return position;
 }
 
-void Pult::accept_state_changed_message(StateChangePultMessage& msg)
+void Pult::accept_state_changed_message(const StateChangePultMessage& msg)
 {
     for(auto pin : msg.pins_enabled) {
         hardware.set_output(pin, true);
@@ -187,7 +187,7 @@ void Pult::accept_state_changed_message(StateChangePultMessage& msg)
 
 // Returns full inputs lits
 // todo: account for feature flags
-void Pult::accept_state_request_message(StateRequestMessage& msg)
+void Pult::accept_state_request_message(const StateRequestMessage& msg)
 {
     StateChangePultMessage response;
 
@@ -211,7 +211,7 @@ void Pult::accept_state_request_message(StateRequestMessage& msg)
     communicator->send(response);
 }
 
-void Pult::accept_debug_message(DebugPultMessage& msg)
+void Pult::accept_debug_message(const DebugPultMessage& msg)
 {
     bool success = true;
 
@@ -259,13 +259,11 @@ void Pult::accept_debug_message(DebugPultMessage& msg)
         success = false;
     }
 
-    DebugPultMessage response;
-    response.action = success ? DebugActions::OK : DebugActions::ERROR;
-    communicator->send(response);
+    communicator->send(success ? DebugPultMessage::Ok() : DebugPultMessage::Error());
 }
 
 // todo: feature flags
-void Pult::accept_config_message(ConfigPultMessage& msg) {
+void Pult::accept_config_message(const ConfigPultMessage& msg) {
     assert(false && "Config messages not implemented yet");    
 }
 
@@ -347,7 +345,7 @@ void Pult::start()
 {
     reset();
 
-    communicator->set_on_message([this](PultMessage& message) { message.apply(*this); });
+    communicator->set_on_message([this](const PultMessage& message) { message.apply(*this); });
     communicator->set_on_device_number_changed([this](int number) { display_symbols(number); });
     communicator->set_on_connect([this](void) {
         auto x = xTaskCreatePinnedToCore(
@@ -360,8 +358,7 @@ void Pult::start()
             1
         );
         
-        StateRequestMessage request; 
-        communicator->send(request);
+        communicator->send(StateRequestMessage());
         });
     communicator->set_on_disconnect([this](void) {
         vTaskDelete(state_monitor);

@@ -92,7 +92,7 @@ void WebsocketsCommunicator::connect_to_network()
     log_i("Server is %savailable at %s", server.available() ? "" : "not ", ip);
 }
 
-void WebsocketsCommunicator::send(PultMessage& msg)
+void WebsocketsCommunicator::send(const PultMessage& msg)
 {
     client.send(msg.to_string());
 }

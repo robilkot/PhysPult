@@ -20,7 +20,7 @@ class SerialCommunicator : public Communicator
     void set_on_connect(OnConnect handler) override;
     void set_on_disconnect(OnDisconnect handler) override;
     void set_on_device_number_changed(OnDeviceNumberChanged handler) override;
-    void send(PultMessage& msg) override;
+    void send(const PultMessage& msg) override;
     void start() override;
     void stop() override;
 };

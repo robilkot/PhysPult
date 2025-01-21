@@ -51,10 +51,10 @@ class Pult
     public:
     static void set_communicator(std::shared_ptr<Communicator> communicator);
 
-    void accept_config_message(ConfigPultMessage& msg);
-    void accept_debug_message(DebugPultMessage& pult_msg);
-    void accept_state_changed_message(StateChangePultMessage& msg);
-    void accept_state_request_message(StateRequestMessage& msg);
+    void accept_config_message(const ConfigPultMessage& msg);
+    void accept_debug_message(const DebugPultMessage& pult_msg);
+    void accept_state_changed_message(const StateChangePultMessage& msg);
+    void accept_state_request_message(const StateRequestMessage& msg);
 
     void start();
 };
