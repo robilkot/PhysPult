@@ -266,10 +266,11 @@ void Pult::accept_config_message(ConfigPultMessage& msg) {
 
 void Pult::monitor_state()
 {
-    static ControllerPosition controller_position_p = get_controller_position();
-    static ReverserPosition reverser_position_p = get_reverser_position();
-    static uint8_t crane_position_p = hardware.crane_position;
-    static uint8_t registers_in_p[InRegistersCount];
+    ControllerPosition controller_position_p = get_controller_position();
+    ReverserPosition reverser_position_p = get_reverser_position();
+    uint8_t crane_position_p = hardware.crane_position;
+    uint8_t registers_in_p[InRegistersCount];
+    std::copy(hardware.registers_in, hardware.registers_in + InRegistersCount, registers_in_p);
 
     while(true) {
         bool update_needed = false;
