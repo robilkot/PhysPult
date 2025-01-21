@@ -1,7 +1,7 @@
 #include "Pult.h"
 
 FeatureFlags Pult::feature_flags = FeatureFlags::Controller | FeatureFlags::Reverser | FeatureFlags::InputRegisters; // todo: configure via messages
-std::unique_ptr<Communicator> Pult::communicator;
+std::shared_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;
 std::array<uint8_t, 14> Pult::digit_pins = { // Happens to be a range [26, 39]
@@ -31,6 +31,11 @@ std::array<std::vector<uint8_t>, 10>  Pult::symbols_right = {{
         {26, 34, 39, 38, 36, 32, 35},
         {34, 39, 38, 36, 32, 35}
     }};
+
+void Pult::set_communicator(std::shared_ptr<Communicator> communicator_)
+{
+    Pult::communicator = communicator_;
+}
 
 void Pult::reset()
 {

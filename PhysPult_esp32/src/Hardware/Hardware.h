@@ -260,7 +260,7 @@ class Hardware
     void start()
     {
         init();
-        
+
         while(true)
         {
             tick_input();

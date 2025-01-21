@@ -39,7 +39,7 @@ class Pult
     static std::array<std::vector<uint8_t>, 10> symbols_left;
     static std::array<std::vector<uint8_t>, 10> symbols_right;
     static Hardware hardware;
-    static std::unique_ptr<Communicator> communicator;
+    static std::shared_ptr<Communicator> communicator;
     static TaskHandle_t state_monitor;
 
     static void monitor_state();
@@ -49,6 +49,8 @@ class Pult
     static ControllerPosition get_controller_position();
 
     public:
+    static void set_communicator(std::shared_ptr<Communicator> communicator);
+
     void accept_config_message(ConfigPultMessage& msg);
     void accept_debug_message(DebugPultMessage& pult_msg);
     void accept_state_changed_message(StateChangePultMessage& msg);

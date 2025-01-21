@@ -9,10 +9,11 @@
 class WebsocketsCommunicator : public Communicator
 {
     private:
-    std::function<void(PultMessage&)> on_message;
-    std::function<void()> on_disconnect;
-    std::function<void()> on_connect;
-    std::function<void(int)> on_ip_changed;
+    OnPultMessage on_message;
+    OnDisconnect on_disconnect;
+    OnConnect on_connect;
+    OnDeviceNumberChanged on_ip_changed;
+    TaskHandle_t communcation_task;
     
     uint8_t device_number;
 
@@ -23,12 +24,12 @@ class WebsocketsCommunicator : public Communicator
     void connect_to_network();
 
     public:
-    WebsocketsCommunicator();
     int get_device_number() override;
-    void set_on_message(std::function<void(PultMessage&)> handler) override;
-    void set_on_connect(std::function<void()> handler) override;
-    void set_on_disconnect(std::function<void()> handler) override;
-    void set_on_device_number_changed(std::function<void(int)> handler) override;
+    void set_on_message(OnPultMessage handler) override;
+    void set_on_connect(OnConnect handler) override;
+    void set_on_disconnect(OnDisconnect handler) override;
+    void set_on_device_number_changed(OnDeviceNumberChanged handler) override;
     void send(PultMessage& msg) override;
     void start() override;
+    void stop() override;
 };

@@ -1,7 +1,9 @@
 #include "WebsocketsCommunicator.h"
 
-WebsocketsCommunicator::WebsocketsCommunicator() { }
-
+int WebsocketsCommunicator::get_device_number()
+{
+    return device_number;
+}
 void WebsocketsCommunicator::accept_client()
 {
     log_i("Waiting for client.");
@@ -105,4 +107,9 @@ void WebsocketsCommunicator::start()
     {
         client.poll();        
     }
+}
+
+void WebsocketsCommunicator::stop()
+{
+    client.close();
 }
