@@ -3,7 +3,6 @@
 #include "Pult.h"
 #include "Communication/WebsocketsCommunicator/WebsocketsCommunicator.h"
 
-
 void setup()
 {
   Serial.begin(BaudRate);

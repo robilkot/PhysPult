@@ -92,7 +92,7 @@ ReverserPosition Pult::get_reverser_position()
         break;
     }
     default:
-        log_w("Unknown reverser position (%d).", reverser_bits);
+        position = ReverserPosition::Intermediate;
         break;
     }
     
@@ -262,9 +262,43 @@ void Pult::accept_debug_message(const DebugPultMessage& msg)
     communicator->send(success ? DebugPultMessage::Ok() : DebugPultMessage::Error());
 }
 
-// todo: feature flags
 void Pult::accept_config_message(const ConfigPultMessage& msg) {
-    assert(false && "Config messages not implemented yet");    
+    for(const auto& pair : msg.values) {
+        switch (pair.first)
+        {
+        case ConfigActions::ENABLE_FEATURE: {
+            auto feature = pair.second.feature_flag;
+            feature_flags = feature_flags | feature;
+            log_i("Enabled feature %d.", pair.second);
+            break;
+        }
+        case ConfigActions::DISABLE_FEATURE: {
+            auto feature = pair.second.feature_flag;
+            feature_flags = feature_flags & ~feature;
+            log_i("Disabled feature %d.", pair.second);
+            break;
+        }
+        case ConfigActions::SET_LIGHTING_H: {
+            LightingColor.h = pair.second.number;
+            log_i("Set lighting hue to %d.", pair.second);
+            break;
+        }
+        case ConfigActions::SET_LIGHTING_S: {
+            LightingColor.s = pair.second.number;
+            log_i("Set lighting saturation to %d.", pair.second);
+            break;
+        }
+        case ConfigActions::SET_LIGHTING_V: {
+            LightingColor.v = pair.second.number;
+            log_i("Set lighting base value to %d.", pair.second);
+            break;
+        }
+
+        default:
+            log_e("Config action of unknown type.");
+            communicator->send(DebugPultMessage::Error());
+        }
+    }
 }
 
 void Pult::monitor_state()
@@ -279,7 +313,7 @@ void Pult::monitor_state()
         bool update_needed = false;
         StateChangePultMessage update;
 
-        if(feature_flags & FeatureFlags::Crane) {
+        if(has_flag(feature_flags, FeatureFlags::Crane)) {
             if(hardware.crane_position != crane_position_p) {
                 log_i("%d %d", feature_flags, FeatureFlags::Crane);
                 update_needed = true;
@@ -288,7 +322,7 @@ void Pult::monitor_state()
             }
         } 
 
-        if(feature_flags & FeatureFlags::Controller) {
+        if(has_flag(feature_flags, FeatureFlags::Controller)) {
             auto controller_position = get_controller_position(); 
             if(controller_position != controller_position_p) {
                 update_needed = true;
@@ -299,8 +333,7 @@ void Pult::monitor_state()
             }
         }
 
-        
-        if(feature_flags & FeatureFlags::Reverser) {
+        if(has_flag(feature_flags, FeatureFlags::Reverser)) {
             auto reverser_position = get_reverser_position(); 
             if(reverser_position != reverser_position_p) {
                 update_needed = true;
@@ -311,7 +344,7 @@ void Pult::monitor_state()
             }
         }
         
-        if(feature_flags & FeatureFlags::InputRegisters) {
+        if(has_flag(feature_flags, FeatureFlags::InputRegisters)) {
             for(int i = 0; i < InRegistersCount; i++) {
                 auto old_register_value = registers_in_p[i];
                 auto new_register_value = hardware.registers_in[i];

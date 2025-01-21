@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FeatureFlags.h"
 #include "Hardware/Hardware.h"
 #include "Communication/PultMessage.h"
 #include "Communication/Communicator.h"
@@ -14,22 +15,23 @@ class StateChangePultMessage;
 class StateRequestMessage;
 class WebsocketsCommunicator;
 
-enum class FeatureFlags {
-    Controller = 0,
-    Reverser = 1,
-    Crane = 2,
-    InputRegisters = 4,
+enum class ControllerPosition : uint8_t {
+    O, // Neutral
+    X1,
+    X2,
+    X3,
+    T1,
+    T1A,
+    T2,
+    Intermediate, // In case measurements are incorrect
 };
 
-inline FeatureFlags operator|(FeatureFlags a, FeatureFlags b)
-{
-    return static_cast<FeatureFlags>(static_cast<int>(a) | static_cast<int>(b));
-}
-inline bool operator&(FeatureFlags source, FeatureFlags target)
-{
-    return static_cast<bool>((static_cast<int>(source) & static_cast<int>(target)) == static_cast<int>(target));
-}
-
+enum class ReverserPosition : uint8_t {
+    O, // Neutral
+    F, // Forward
+    R, // Rear
+    Intermediate, // In case measurements are incorrect
+};
 
 class Pult
 {

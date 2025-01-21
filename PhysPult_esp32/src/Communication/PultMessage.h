@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "Pult.h"
+#include <FeatureFlags.h>
 
 class Pult;
 
@@ -67,10 +68,14 @@ enum class ConfigActions {
     SET_LIGHTING_V,
 };
 
+union ConfigValue {
+    int number;
+    FeatureFlags feature_flag;
+};
+
 class ConfigPultMessage : public PultMessage {
     public:
-    ConfigActions key;
-    String value;
+    std::vector<std::pair<ConfigActions, ConfigValue>> values;
 
     const char get_type() const override {
         return 'C';

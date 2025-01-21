@@ -3,24 +3,6 @@
 #include <Arduino.h>
 #include <chsv.h>
 
-enum class ControllerPosition : uint8_t {
-    O, // Neutral
-    X1,
-    X2,
-    X3,
-    T1,
-    T1A,
-    T2,
-    Intermediate, // In case measurements are incorrect
-};
-
-enum class ReverserPosition : uint8_t {
-    O, // Neutral
-    F, // Forward
-    R, // Rear
-    Intermediate, // In case measurements are incorrect
-};
-
 static uint32_t BaudRate = 115200;
 static uint16_t NetworkPort = 8080;
 

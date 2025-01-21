@@ -67,7 +67,7 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
         }
 
         auto separator_index = pair_substr.indexOf('/');
-        auto key = pair_substr.substring(0, separator_index - 1);
+        auto key = pair_substr.substring(0, separator_index);
         auto value = pair_substr.substring(separator_index + 1);
 
         auto pair = std::make_pair(StateKeys { .output = (OutputStateKeys)atoi(key.c_str()) }, atoi(value.c_str()));
@@ -115,7 +115,36 @@ DebugPultMessage* PultMessageFactory::create_debug_message(String str, int& deli
 
 ConfigPultMessage* PultMessageFactory::create_config_message(String str, int& delimIndex)
 {
-    assert(false && "Config messages not implemented yet");    
+    auto msg = new ConfigPultMessage;
+
+    // key value pairs
+    auto secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
+    auto key_value_pairs_string = str.substring(delimIndex + 1, secondDelimIndex);
+
+    auto commaIndex = -1;
+    do {
+        int secondCommaIndex = key_value_pairs_string.indexOf(',', commaIndex + 1); 
+        
+        String pair_substr;
+        if(secondCommaIndex != -1)
+        {
+            pair_substr = key_value_pairs_string.substring(commaIndex + 1, secondCommaIndex);
+        }
+        else {
+            pair_substr = key_value_pairs_string.substring(commaIndex + 1);
+        }
+
+        auto separator_index = pair_substr.indexOf('/');
+        auto key = pair_substr.substring(0, separator_index).toInt();
+        auto value = pair_substr.substring(separator_index + 1).toInt();
+
+        auto pair = std::make_pair((ConfigActions)key, ConfigValue{ .number = value });
+        msg->values.emplace_back(pair);
+
+        commaIndex = secondCommaIndex;
+    } while(commaIndex != -1);
+
+    return msg;
 }
 
 std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
@@ -141,7 +170,7 @@ std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
             break;
         }
         case 'C': {
-            result = new ConfigPultMessage;
+            result = create_config_message(str, delimIndex);
             break;
         }
         default: {
