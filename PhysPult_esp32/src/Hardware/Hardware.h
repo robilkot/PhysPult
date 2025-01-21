@@ -192,15 +192,14 @@ class Hardware
         FastLED.setCorrection(TypicalLEDStrip);
         FastLED.setBrightness(255);
 
-        // todo: document + move pwm channels to constants.h
-        ledcSetup(12, 5000, 8);
-        ledcSetup(13, 5000, 8);
-        ledcSetup(14, 5000, 8);
-        ledcSetup(15, 5000, 8);
-        ledcAttachPin(EnginesCurrentNegativePwmPin, 14);
-        ledcAttachPin(EnginesCurrentPositivePwmPin, 15);
-        ledcAttachPin(SupplyVoltmeterPwmPin, 12);
-        ledcAttachPin(BatteryVoltmeterPwmPin, 13);
+        ledcSetup(EnginesCurrentNegativePwmChannel, 5000, 8);
+        ledcSetup(EnginesCurrentPositivePwmChannel, 5000, 8);
+        ledcSetup(SupplyVoltmeterPwmChannel, 5000, 8);
+        ledcSetup(BatteryVoltmeterPwmChannel, 5000, 8);
+        ledcAttachPin(EnginesCurrentNegativePwmPin, EnginesCurrentNegativePwmChannel);
+        ledcAttachPin(EnginesCurrentPositivePwmPin, EnginesCurrentPositivePwmChannel);
+        ledcAttachPin(SupplyVoltmeterPwmPin, SupplyVoltmeterPwmChannel);
+        ledcAttachPin(BatteryVoltmeterPwmPin, BatteryVoltmeterPwmChannel);
 
         TmServo.attach(TmPwmPin);
         NmServo.attach(NmPwmPin);

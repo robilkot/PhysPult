@@ -10,6 +10,11 @@ static CHSV LightingColor{20, 200, 255};
 
 static esp_log_level_t LogLevel = ESP_LOG_DEBUG;
 
+const uint8_t SupplyVoltmeterPwmChannel = 12;
+const uint8_t BatteryVoltmeterPwmChannel = 13;
+const uint8_t EnginesCurrentNegativePwmChannel = 15;
+const uint8_t EnginesCurrentPositivePwmChannel = 14;
+
 const uint8_t OutDataPin = 19; // 74hc595 registers
 const uint8_t OutClockPin = 26; // 74hc595 registers clock pin
 const uint8_t OutLatchPin = 25; // 74hc595 registers latch pin

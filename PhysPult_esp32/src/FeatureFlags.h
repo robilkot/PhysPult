@@ -1,10 +1,11 @@
 #pragma once
 
 enum class FeatureFlags {
-    Controller = 0,
-    Reverser = 1,
-    Crane = 2,
-    InputRegisters = 4,
+    None = 0,
+    Controller = 1,
+    Reverser = 2,
+    Crane = 4,
+    InputRegisters = 8,
 };
 
 inline FeatureFlags operator|(FeatureFlags a, FeatureFlags b)

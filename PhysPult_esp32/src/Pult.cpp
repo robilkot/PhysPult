@@ -1,6 +1,6 @@
 #include "Pult.h"
 
-FeatureFlags Pult::feature_flags = FeatureFlags::Controller | FeatureFlags::Reverser | FeatureFlags::InputRegisters; // todo: configure via messages
+FeatureFlags Pult::feature_flags = FeatureFlags::None;
 std::shared_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;
@@ -186,24 +186,31 @@ void Pult::accept_state_changed_message(const StateChangePultMessage& msg)
 }
 
 // Returns full inputs lits
-// todo: account for feature flags
 void Pult::accept_state_request_message(const StateRequestMessage& msg)
 {
     StateChangePultMessage response;
 
-    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
-    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
-    response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
+    if(has_flag(feature_flags, FeatureFlags::Controller)) {
+        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
+    }
+    if(has_flag(feature_flags, FeatureFlags::Reverser)) {
+        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
+    }
+    if(has_flag(feature_flags, FeatureFlags::Crane)) {
+        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
+    }
 
-    for(int i = 0; i < InRegistersCount; i++) {
-        auto register_value = hardware.registers_in[i];
+    if(has_flag(feature_flags, FeatureFlags::InputRegisters)) {
+        for(int i = 0; i < InRegistersCount; i++) {
+            auto register_value = hardware.registers_in[i];
 
-        for(int k = 0; k < 8; k++)
-        {
-            if((register_value >> k) & 1) {
-                response.pins_enabled.emplace_back(8 * i + k);
-            } else {
-                response.pins_disabled.emplace_back(8 * i + k);
+            for(int k = 0; k < 8; k++)
+            {
+                if((register_value >> k) & 1) {
+                    response.pins_enabled.emplace_back(8 * i + k);
+                } else {
+                    response.pins_disabled.emplace_back(8 * i + k);
+                }
             }
         }
     }
@@ -315,7 +322,6 @@ void Pult::monitor_state()
 
         if(has_flag(feature_flags, FeatureFlags::Crane)) {
             if(hardware.crane_position != crane_position_p) {
-                log_i("%d %d", feature_flags, FeatureFlags::Crane);
                 update_needed = true;
                 crane_position_p = hardware.crane_position;
                 update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
