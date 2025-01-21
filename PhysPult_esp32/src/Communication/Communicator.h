@@ -1,35 +1,23 @@
 #pragma once
 
-#include <functional>
-#include <ArduinoWebsockets.h>
-#include <WifiConstants.h>
-#include <Config.h>
-#include "PultMessageFactory.h"
+#include "PultMessage.h"
 
 class PultMessage;
 
+typedef std::function<void(PultMessage&)> OnPultMessage;
+typedef std::function<void()> OnConnect;
+typedef std::function<void()> OnDisconnect;
+typedef std::function<void(int)> OnDeviceNumberChanged;
+
 class Communicator
 {
-    private:
-    std::function<void(PultMessage&)> on_message;
-    std::function<void()> on_disconnect;
-    std::function<void()> on_connect;
-    std::function<void(int)> on_ip_changed;
-    
-    websockets::WebsocketsServer server;
-    websockets::WebsocketsClient client;
-
-    void accept_client();
-    void connect_to_network();
-
     public:
-    uint8_t device_number;
-
-    Communicator();
-    void set_on_message(std::function<void(PultMessage&)> handler);
-    void set_on_connect(std::function<void()> handler);
-    void set_on_disconnect(std::function<void()> handler);
-    void set_on_ip_changed(std::function<void(int)> handler);
-    void send(PultMessage& msg);
-    void start();
+    virtual int get_device_number() = 0;
+    virtual void set_on_message(OnPultMessage handler) = 0;
+    virtual void set_on_connect(OnConnect handler) = 0;
+    virtual void set_on_disconnect(OnDisconnect handler) = 0;
+    virtual void set_on_device_number_changed(OnDeviceNumberChanged handler) = 0;
+    virtual void send(PultMessage& msg) = 0;
+    virtual void start() = 0;
+    virtual void stop() = 0;
 };

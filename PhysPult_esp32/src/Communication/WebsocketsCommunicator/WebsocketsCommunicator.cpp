@@ -1,9 +1,8 @@
-#include "Communicator.h"
+#include "WebsocketsCommunicator.h"
 
+WebsocketsCommunicator::WebsocketsCommunicator() { }
 
-Communicator::Communicator() { }
-
-void Communicator::accept_client()
+void WebsocketsCommunicator::accept_client()
 {
     log_i("Waiting for client.");
     // todo: use poll to not block
@@ -40,24 +39,24 @@ void Communicator::accept_client()
     log_i("Client connected.");
 }
 
-void Communicator::set_on_message(std::function<void(PultMessage&)> handler)
+void WebsocketsCommunicator::set_on_message(OnPultMessage handler)
 {
     on_message = handler;
 }
-void Communicator::set_on_disconnect(std::function<void()> handler)
+void WebsocketsCommunicator::set_on_disconnect(OnDisconnect handler)
 {
     on_disconnect = handler;
 }
-void Communicator::set_on_connect(std::function<void()> handler)
+void WebsocketsCommunicator::set_on_connect(OnConnect handler)
 {
     on_connect = handler;
 }
-void Communicator::set_on_ip_changed(std::function<void(int)> handler)
+void WebsocketsCommunicator::set_on_device_number_changed(OnDeviceNumberChanged handler)
 {
     on_ip_changed = handler;
 }
 
-void Communicator::connect_to_network()
+void WebsocketsCommunicator::connect_to_network()
 {
     WiFi.disconnect();
     WiFi.begin(WifiSsid, WifiPassword);
@@ -91,12 +90,12 @@ void Communicator::connect_to_network()
     log_i("Server is %savailable at %s", server.available() ? "" : "not ", ip);
 }
 
-void Communicator::send(PultMessage& msg)
+void WebsocketsCommunicator::send(PultMessage& msg)
 {
     client.send(msg.to_string());
 }
 
-void Communicator::start()
+void WebsocketsCommunicator::start()
 {
     connect_to_network();
     

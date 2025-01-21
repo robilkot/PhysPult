@@ -4,12 +4,15 @@
 #include "Communication/PultMessage.h"
 #include "Communication/Communicator.h"
 
+#include <memory>
+
+class Communicator;
 class PultMessage;
 class ConfigPultMessage;
 class DebugPultMessage;
 class StateChangePultMessage;
 class StateRequestMessage;
-class Communicator;
+class WebsocketsCommunicator;
 
 enum class FeatureFlags {
     Controller = 0,
@@ -36,7 +39,7 @@ class Pult
     static std::array<std::vector<uint8_t>, 10> symbols_left;
     static std::array<std::vector<uint8_t>, 10> symbols_right;
     static Hardware hardware;
-    static Communicator communicator;
+    static std::unique_ptr<Communicator> communicator;
     static TaskHandle_t state_monitor;
 
     static void monitor_state();

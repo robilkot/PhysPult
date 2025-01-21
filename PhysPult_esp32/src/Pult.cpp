@@ -1,7 +1,7 @@
 #include "Pult.h"
 
 FeatureFlags Pult::feature_flags = FeatureFlags::Controller | FeatureFlags::Reverser | FeatureFlags::InputRegisters; // todo: configure via messages
-Communicator Pult::communicator;
+std::unique_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;
 std::array<uint8_t, 14> Pult::digit_pins = { // Happens to be a range [26, 39]
@@ -43,7 +43,7 @@ void Pult::reset()
 
     hardware.clear_output();
 
-    display_symbols(communicator.device_number);
+    display_symbols(communicator->get_device_number());
 }
 
 void Pult::display_symbols(uint8_t number) {
@@ -203,7 +203,7 @@ void Pult::accept_state_request_message(StateRequestMessage& msg)
         }
     }
 
-    communicator.send(response);
+    communicator->send(response);
 }
 
 void Pult::accept_debug_message(DebugPultMessage& msg)
@@ -256,7 +256,7 @@ void Pult::accept_debug_message(DebugPultMessage& msg)
 
     DebugPultMessage response;
     response.action = success ? DebugActions::OK : DebugActions::ERROR;
-    communicator.send(response);
+    communicator->send(response);
 }
 
 // todo: feature flags
@@ -333,7 +333,7 @@ void Pult::monitor_state()
 
         if(update_needed) {
             std::copy(hardware.registers_in, hardware.registers_in + InRegistersCount, registers_in_p);
-            communicator.send(update);
+            communicator->send(update);
         }
     }
 }
@@ -342,9 +342,9 @@ void Pult::start()
 {
     reset();
 
-    communicator.set_on_message([this](PultMessage& message) { message.apply(*this); });
-    communicator.set_on_ip_changed([this](int ip) { display_symbols(ip); });
-    communicator.set_on_connect([this](void) {
+    communicator->set_on_message([this](PultMessage& message) { message.apply(*this); });
+    communicator->set_on_device_number_changed([this](int number) { display_symbols(number); });
+    communicator->set_on_connect([this](void) {
         auto x = xTaskCreatePinnedToCore(
             [](void* param) { monitor_state(); },
             "pult_state_monitor",
@@ -356,9 +356,9 @@ void Pult::start()
         );
         
         StateRequestMessage request; 
-        communicator.send(request);
+        communicator->send(request);
         });
-    communicator.set_on_disconnect([this](void) {
+    communicator->set_on_disconnect([this](void) {
         vTaskDelete(state_monitor);
         reset();
         });
@@ -374,7 +374,7 @@ void Pult::start()
     );
 
     xTaskCreate(
-        [](void* param) { communicator.start(); },
+        [](void* param) { communicator->start(); },
         "pult_communicator",
         2500, // takes 2084 but grows to 2356
         nullptr,
