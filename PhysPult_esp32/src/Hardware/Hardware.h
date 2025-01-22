@@ -6,6 +6,7 @@
 #include <TimerMs.h>
 #include <mutex>
 #include "StableReader.h"
+#include "esp_task_wdt.h"
 
 class Hardware
 {
@@ -262,6 +263,7 @@ class Hardware
 
         while(true)
         {
+            vTaskDelay(pdMS_TO_TICKS(1));
             tick_input();
             tick_output();
         }

@@ -1,4 +1,5 @@
 #include "WebsocketsCommunicator.h"
+#include "esp_task_wdt.h"
 
 int WebsocketsCommunicator::get_device_number()
 {
@@ -7,14 +8,23 @@ int WebsocketsCommunicator::get_device_number()
 void WebsocketsCommunicator::accept_client()
 {
     log_i("Waiting for client.");
-    // todo: use poll to not block
-    client = server.accept();
+    
+    while(server.available()) {
+        vTaskDelay(pdMS_TO_TICKS(5));
+        
+        if(server.poll()) {
+            client = server.accept();
+            break;
+        }
+    }
+    // todo: what if server not available
+    
     on_connect();
 
-    client.onMessage([&](websockets::WebsocketsMessage msg) {
+    client.onMessage([&] (websockets::WebsocketsMessage msg) {
         on_message(*PultMessageFactory::Create(msg.data()));
     });
-    client.onEvent([&](websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
+    client.onEvent([&] (websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
         switch(event) {
             case websockets::WebsocketsEvent::ConnectionOpened: {
                 log_i("Client connected.");
@@ -105,7 +115,8 @@ void WebsocketsCommunicator::start()
 
     while(true)
     {
-        client.poll();        
+        vTaskDelay(pdMS_TO_TICKS(5));
+        client.poll();  
     }
 }
 

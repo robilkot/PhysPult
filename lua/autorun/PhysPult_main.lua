@@ -155,11 +155,14 @@ local buttons = {
 PhysPult = PhysPult or {}
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 50
+PhysPult.UpdateInterval = 25
 
-PhysPult.GameCranePosition = 1
-PhysPult.GameControllerPosition = 4
-
+PhysPult.FeatureFlags = {
+	["Controller"] = 1,
+	["Reverser"] = 2,
+	["Crane"] = 4,
+	["InputRegisters"] = 8,
+}
 
 local previousNumericValues = {}
 
@@ -362,9 +365,13 @@ end
 -- todo: crane
 function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 	local kvPairs = {}
-	for k, v in pairs(newValues) do
+	for _, v in pairs(newValues) do
 		local substr = string.Explode('/', v)
-		kvPairs[tonumber(substr[1])] = tonumber(substr[2])
+		local key = tonumber(substr[1])
+		local value = tonumber(substr[2])
+		if(key) then
+			kvPairs[key] = value
+		end
 	end
 	
 	local controllerPosition = kvPairs[0]
@@ -461,9 +468,35 @@ function PhysPult.AcceptMessage(msg)
 	end
 end
 
-concommand.Add("physpult_start", function()
+function PhysPult.ConfigurePult(featureFlags)
+	local config = "C;"
+		
+	for key, value in pairs(PhysPult.FeatureFlags) do
+		if(table.HasValue(featureFlags, key)) then
+			print("enable", key)
+			config = config..'0/'..value..','
+		else
+			print("disable", key)
+			config = config..'1/'..value..','
+		end
+	end
+
+	config = string.Trim(config, ',')..';'
+
+	PhysPult.Send(config)
+end
+
+concommand.Add("pult_start", function()
 	local onConnected = function()
 		timer.Create("physpult_update", PhysPult.UpdateInterval / 1000, 0, PhysPult.Synchronize)
+
+
+		local enabledFlags = {
+			"Controller"
+		}
+
+		PhysPult.ConfigurePult(enabledFlags)
+
 		PhysPult.Send("R;")
 	end
 	local onDisconnected = function()
@@ -473,6 +506,6 @@ concommand.Add("physpult_start", function()
 	PhysPult.Start(PhysPult.AcceptMessage, onConnected, onDisconnected)
 end)
 
-concommand.Add("physpult_stop", PhysPult.Stop)
+concommand.Add("pult_stop", PhysPult.Stop)
 
 end)

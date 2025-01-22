@@ -317,6 +317,7 @@ void Pult::monitor_state()
     std::copy(hardware.registers_in, hardware.registers_in + InRegistersCount, registers_in_p);
 
     while(true) {
+        vTaskDelay(pdMS_TO_TICKS(1));
         bool update_needed = false;
         StateChangePultMessage update;
 
@@ -387,7 +388,7 @@ void Pult::start()
     communicator->set_on_message([this](const PultMessage& message) { message.apply(*this); });
     communicator->set_on_device_number_changed([this](int number) { display_symbols(number); });
     communicator->set_on_connect([this](void) {
-        auto x = xTaskCreatePinnedToCore(
+        xTaskCreatePinnedToCore(
             [](void* param) { monitor_state(); },
             "pult_state_monitor",
             8000, // takes ???
@@ -400,26 +401,29 @@ void Pult::start()
         communicator->send(StateRequestMessage());
         });
     communicator->set_on_disconnect([this](void) {
-        vTaskDelete(state_monitor);
+        if(state_monitor) {
+            vTaskDelete(state_monitor);
+        }
         reset();
         });
 
     xTaskCreatePinnedToCore(
         [](void* param) { hardware.start(); },
         "pult_hardware",
-        2100, // takes 1892
+        2500, // takes 1892
         nullptr,
         1,  // Priority
         nullptr,
         1
     );
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
         [](void* param) { communicator->start(); },
         "pult_communicator",
-        2500, // takes 2084 but grows to 2356
+        3500, // takes 2084 but grows to 2356
         nullptr,
-        1,  // Priority
-        nullptr
+        5,  // Priority
+        nullptr,
+        0
     );
 }
