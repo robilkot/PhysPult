@@ -27,23 +27,20 @@ class Hardware
     uint8_t potentiometer1_position = 0;
     uint8_t potentiometer2_position = 0;
 
-    static void adjust_value(uint8_t& currentValue, const uint8_t targetValue, int step = 1)
+    bool pult_lighting_on;
+
+    static void adjust_value(int& currentValue, const int targetValue, const int step = 1)
     {
-        if(currentValue > targetValue)
-        {
-            if((currentValue - targetValue) < step) {
-                currentValue = 0;
-            } else {
-                currentValue -= step;
-            }
+        if(currentValue == targetValue) {
+            return;
         }
-        else if(currentValue < targetValue)
-        {
-            if((targetValue - currentValue) < step) {
-                currentValue = targetValue;
-            } else {
-                currentValue += step;
-            }
+
+        auto diff = min(abs(currentValue - targetValue), step);
+
+        if(currentValue > targetValue) {
+            currentValue -= diff;
+        } else {
+            currentValue += diff;
         }
     }
 
@@ -103,9 +100,9 @@ class Hardware
 
     void tick_servos()
     {
-        static uint8_t tmCurrentValue = 0;
-        static uint8_t nmCurrentValue = 0;
-        static uint8_t tcCurrentValue = 0;
+        static int tmCurrentValue = 0;
+        static int nmCurrentValue = 0;
+        static int tcCurrentValue = 0;
         
         // To prevent too fast servos movements
         static TimerMs servoUpdateTimer(5, true, false);
@@ -125,25 +122,25 @@ class Hardware
 
     void tick_leds()
     {
-        static uint8_t current_brightness = 0;
-        static TimerMs math_timer(10, true, false);
-        static TimerMs display_timer(125, true, false);
+        static int current_lighting_brightness = 0;
+        static TimerMs display_timer(25, true, false);
+        static TimerMs math_timer(15, true, false);
 
-        if(math_timer.tick()) 
-        {
-            bool lighting_switch_on = !(registers_in[2] >> 5 & 1); // Defined by hardware connections
+        if(math_timer.tick()) {
+            int target_lighting_brightness = (int)(potentiometer1_position * (pult_lighting_on ^ invert_lighting));
+            adjust_value(current_lighting_brightness, target_lighting_brightness, 20);
 
-            auto target_brightness = potentiometer1_position / 255. * (toggle_lighting ^ lighting_switch_on) * LightingColor.v;
-            adjust_value(current_brightness, target_brightness, 15);
+            auto pult_v = (uint8_t)(PultLightingColor.v * (current_lighting_brightness / 255.));
+            auto gauges_v = (uint8_t)(GaugesLightingColor.v * (current_lighting_brightness / 255.) * gauges_lighting_on);
 
             for(auto& led : LightingLeds1)
-                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+                led = CHSV(PultLightingColor.h, PultLightingColor.s, pult_v);
             
             for(auto& led : LightingLeds2)
-                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+                led = CHSV(PultLightingColor.h, PultLightingColor.s, pult_v);
 
             for(auto& led : GaugesLeds)
-                led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+                led = CHSV(GaugesLightingColor.h, GaugesLightingColor.s, gauges_v);
         }
 
         if(display_timer.tick())
@@ -154,8 +151,15 @@ class Hardware
 
     void tick_input()
     {
-        potentiometer1_position = potentiometer1_reader.tick();
-        potentiometer2_position = potentiometer2_reader.tick();
+        if(disable_potentiometers) {
+            potentiometer1_position = 255;
+            potentiometer2_position = 255;
+        }
+        else {
+            potentiometer1_position = potentiometer1_reader.tick();
+            potentiometer2_position = potentiometer2_reader.tick();
+        }
+        
         crane_position = crane_reader.tick();
 
         digitalWrite(InLatchPin, LOW);
@@ -165,6 +169,8 @@ class Hardware
         {
             registers_in[i] = shiftIn(InDataPin, InClockPin, LSBFIRST);
         }
+        
+        pult_lighting_on = !(registers_in[2] >> 5 & 1); // Defined by hardware connections
     }
 
     void init()
@@ -232,19 +238,21 @@ class Hardware
 
     uint8_t crane_position = 0;
 
-    bool toggle_lighting = false;
+    bool gauges_lighting_on;
+    bool invert_lighting;
+    bool disable_potentiometers;
 
     Hardware()
     : crane_reader(StableReader(CranePin)), potentiometer1_reader(StableReader(PotentiometerPin1)), potentiometer2_reader(StableReader(PotentiometerPin2))
     {
         for(auto& led : LightingLeds1)
-            led = LightingColor;
+            led = CHSV();
 
         for(auto& led : LightingLeds2)
-            led = LightingColor;
+            led = CHSV();
 
         for(auto& led : GaugesLeds)
-            led = LightingColor;
+            led = CHSV();
     }
 
     void set_output(uint8_t out_index, bool value) {

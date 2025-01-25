@@ -63,9 +63,12 @@ class StateChangePultMessage : public PultMessage {
 enum class ConfigActions {
     ENABLE_FEATURE,
     DISABLE_FEATURE,
-    SET_LIGHTING_H,
-    SET_LIGHTING_S,
-    SET_LIGHTING_V,
+    SET_PULT_LIGHTING_H,
+    SET_PULT_LIGHTING_S,
+    SET_PULT_LIGHTING_V,
+    SET_GAUGES_LIGHTING_H,
+    SET_GAUGES_LIGHTING_S,
+    SET_GAUGES_LIGHTING_V,
 };
 
 union ConfigValue {

@@ -9,7 +9,7 @@ class StableReader
     const uint8_t pin;
 
     public:
-    StableReader(uint8_t analog_pin, uint8_t readings_count = 15)
+    StableReader(uint8_t analog_pin, uint8_t readings_count = 50)
         : pin(analog_pin), readings_count(readings_count) 
         { }
 

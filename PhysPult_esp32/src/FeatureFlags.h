@@ -6,6 +6,8 @@ enum class FeatureFlags {
     Reverser = 2,
     Crane = 4,
     InputRegisters = 8,
+    GaugesLighting = 16,
+    Potentiometer = 32,
 };
 
 inline FeatureFlags operator|(FeatureFlags a, FeatureFlags b)

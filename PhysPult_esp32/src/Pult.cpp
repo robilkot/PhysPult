@@ -1,6 +1,6 @@
 #include "Pult.h"
 
-FeatureFlags Pult::feature_flags = FeatureFlags::None;
+FeatureFlags Pult::feature_flags = FeatureFlags::GaugesLighting;
 std::shared_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;
@@ -39,6 +39,9 @@ void Pult::set_communicator(std::shared_ptr<Communicator> communicator_)
 
 void Pult::reset()
 {
+    hardware.disable_potentiometers = !has_flag(feature_flags, FeatureFlags::Potentiometer);
+    hardware.gauges_lighting_on = has_flag(feature_flags, FeatureFlags::GaugesLighting);
+
     hardware.battery_voltage = 0;
     hardware.tm_position = 0;
     hardware.nm_position = 0;
@@ -98,7 +101,6 @@ ReverserPosition Pult::get_reverser_position()
     
     return position;
 } 
-
 
 ControllerPosition Pult::get_controller_position()
 {
@@ -256,8 +258,8 @@ void Pult::accept_debug_message(const DebugPultMessage& msg)
         break;
     }
     case DebugActions::TOGGLE_LIGHTING: {
-        hardware.toggle_lighting = !hardware.toggle_lighting;
-        log_d("Lighting set to %d", hardware.toggle_lighting);
+        hardware.invert_lighting = !hardware.invert_lighting;
+        log_d("Invert lighting set to %d", hardware.invert_lighting);
         break;
     }
 
@@ -285,19 +287,36 @@ void Pult::accept_config_message(const ConfigPultMessage& msg) {
             log_i("Disabled feature %d.", pair.second);
             break;
         }
-        case ConfigActions::SET_LIGHTING_H: {
-            LightingColor.h = pair.second.number;
-            log_i("Set lighting hue to %d.", pair.second);
+
+        case ConfigActions::SET_PULT_LIGHTING_H: {
+            PultLightingColor.h = pair.second.number;
+            log_i("Set pult lighting hue to %d.", pair.second);
             break;
         }
-        case ConfigActions::SET_LIGHTING_S: {
-            LightingColor.s = pair.second.number;
-            log_i("Set lighting saturation to %d.", pair.second);
+        case ConfigActions::SET_PULT_LIGHTING_S: {
+            PultLightingColor.s = pair.second.number;
+            log_i("Set pult lighting saturation to %d.", pair.second);
             break;
         }
-        case ConfigActions::SET_LIGHTING_V: {
-            LightingColor.v = pair.second.number;
-            log_i("Set lighting base value to %d.", pair.second);
+        case ConfigActions::SET_PULT_LIGHTING_V: {
+            PultLightingColor.v = pair.second.number;
+            log_i("Set pult lighting base value to %d.", pair.second);
+            break;
+        }
+
+        case ConfigActions::SET_GAUGES_LIGHTING_H: {
+            GaugesLightingColor.h = pair.second.number;
+            log_i("Set gauges lighting hue to %d.", pair.second);
+            break;
+        }
+        case ConfigActions::SET_GAUGES_LIGHTING_S: {
+            GaugesLightingColor.s = pair.second.number;
+            log_i("Set gauges lighting saturation to %d.", pair.second);
+            break;
+        }
+        case ConfigActions::SET_GAUGES_LIGHTING_V: {
+            GaugesLightingColor.v = pair.second.number;
+            log_i("Set gauges lighting base value to %d.", pair.second);
             break;
         }
 
@@ -306,6 +325,9 @@ void Pult::accept_config_message(const ConfigPultMessage& msg) {
             communicator->send(DebugPultMessage::Error());
         }
     }
+
+    hardware.disable_potentiometers = !has_flag(feature_flags, FeatureFlags::Potentiometer);
+    hardware.gauges_lighting_on = has_flag(feature_flags, FeatureFlags::GaugesLighting);
 }
 
 void Pult::monitor_state()
@@ -317,7 +339,7 @@ void Pult::monitor_state()
     std::copy(hardware.registers_in, hardware.registers_in + InRegistersCount, registers_in_p);
 
     while(true) {
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(5);
         bool update_needed = false;
         StateChangePultMessage update;
 
