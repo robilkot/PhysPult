@@ -51,12 +51,13 @@ class Pult
     static ControllerPosition get_controller_position();
 
     public:
+    Pult() = delete;
     static void set_communicator(std::shared_ptr<Communicator> communicator);
 
-    void accept_config_message(const ConfigPultMessage& msg);
-    void accept_debug_message(const DebugPultMessage& pult_msg);
-    void accept_state_changed_message(const StateChangePultMessage& msg);
-    void accept_state_request_message(const StateRequestMessage& msg);
+    static void accept_config_message(const ConfigPultMessage& msg);
+    static void accept_debug_message(const DebugPultMessage& pult_msg);
+    static void accept_state_changed_message(const StateChangePultMessage& msg);
+    static void accept_state_request_message(const StateRequestMessage& msg);
 
-    void start();
+    static void start();
 };

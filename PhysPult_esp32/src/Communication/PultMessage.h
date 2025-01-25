@@ -31,7 +31,7 @@ union StateKeys {
 class PultMessage {
     public:
     const virtual char get_type() const = 0;
-    virtual void apply(Pult& pult) const = 0;
+    virtual void apply() const = 0;
     virtual String to_string() const {
         String output(get_type());
         output += ';';
@@ -44,7 +44,7 @@ class StateRequestMessage : public PultMessage {
     const char get_type() const override {
         return 'R';
     }
-    void apply(Pult& pult) const  override;
+    void apply() const  override;
 };
 
 class StateChangePultMessage : public PultMessage {
@@ -57,7 +57,7 @@ class StateChangePultMessage : public PultMessage {
     const char get_type() const override {
         return 'S';
     }
-    void apply(Pult& pult) const  override;
+    void apply() const  override;
 };
 
 enum class ConfigActions {
@@ -80,7 +80,7 @@ class ConfigPultMessage : public PultMessage {
     const char get_type() const override {
         return 'C';
     }
-    void apply(Pult& pult) const override;
+    void apply() const override;
 };
 
 enum class DebugActions {
@@ -114,5 +114,5 @@ class DebugPultMessage : public PultMessage {
     const char get_type() const override {
         return 'D';
     }
-    void apply(Pult& pult) const override;
+    void apply() const override;
 };

@@ -5,6 +5,7 @@
 #include <WifiConstants.h>
 #include <Communication/Communicator.h>
 #include <Communication/PultMessageFactory.h>
+#include "Helpers.h"
 
 class WebsocketsCommunicator : public Communicator
 {

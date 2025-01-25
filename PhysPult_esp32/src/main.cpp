@@ -11,11 +11,10 @@ void setup()
 
   auto communicator = std::shared_ptr<Communicator>(new WebsocketsCommunicator);
   Pult::set_communicator(communicator);
-  Pult pult;
-  pult.start();
+  
+  Pult::start();
 }
 
 void loop()
 {
-
 }

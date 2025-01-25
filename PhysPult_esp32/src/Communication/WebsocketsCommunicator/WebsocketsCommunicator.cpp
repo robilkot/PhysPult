@@ -1,5 +1,4 @@
 #include "WebsocketsCommunicator.h"
-#include "esp_task_wdt.h"
 
 int WebsocketsCommunicator::get_device_number()
 {
@@ -115,7 +114,7 @@ void WebsocketsCommunicator::start()
 
     while(true)
     {
-        vTaskDelay(pdMS_TO_TICKS(5));
+        yieldIfNecessary();
         client.poll();  
     }
 }

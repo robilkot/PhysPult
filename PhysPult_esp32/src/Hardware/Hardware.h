@@ -7,6 +7,7 @@
 #include <mutex>
 #include "StableReader.h"
 #include "esp_task_wdt.h"
+#include <Helpers.h>
 
 class Hardware
 {
@@ -30,11 +31,19 @@ class Hardware
     {
         if(currentValue > targetValue)
         {
-            currentValue -= step;
+            if((currentValue - targetValue) < step) {
+                currentValue = 0;
+            } else {
+                currentValue -= step;
+            }
         }
         else if(currentValue < targetValue)
         {
-            currentValue += step;
+            if((targetValue - currentValue) < step) {
+                currentValue = targetValue;
+            } else {
+                currentValue += step;
+            }
         }
     }
 
@@ -117,9 +126,10 @@ class Hardware
     void tick_leds()
     {
         static uint8_t current_brightness = 0;
-        static TimerMs update_timer(10, true, false);
+        static TimerMs math_timer(10, true, false);
+        static TimerMs display_timer(125, true, false);
 
-        if(update_timer.tick()) 
+        if(math_timer.tick()) 
         {
             bool lighting_switch_on = !(registers_in[2] >> 5 & 1); // Defined by hardware connections
 
@@ -134,7 +144,10 @@ class Hardware
 
             for(auto& led : GaugesLeds)
                 led = CHSV(LightingColor.h, LightingColor.s, current_brightness);
+        }
 
+        if(display_timer.tick())
+        {
             FastLED.show();
         }
     }
@@ -154,8 +167,8 @@ class Hardware
         }
     }
 
-    void init_pins()
-    {   
+    void init()
+    {
         pinMode(OutDataPin, OUTPUT);
         pinMode(OutLatchPin, OUTPUT);
         pinMode(OutClockPin, OUTPUT);
@@ -180,16 +193,11 @@ class Hardware
         pinMode(PotentiometerPin1, INPUT);
         pinMode(PotentiometerPin2, INPUT);
         pinMode(CranePin, INPUT);
-    }
-
-    void init()
-    {
-        init_pins();
 
         FastLED.addLeds<WS2812B, LightingDataPin1, GRB>(LightingLeds1, sizeof(LightingLeds1) / sizeof(CRGB));
+        FastLED.addLeds<WS2812B, GaugesLightingDataPin, GRB>(GaugesLeds, sizeof(GaugesLeds) / sizeof(CRGB));
         // todo: crash
         // FastLED.addLeds<WS2812B, LightingDataPin2, GRB>(LightingLeds2, sizeof(LightingLeds2) / sizeof(CRGB));
-        // FastLED.addLeds<WS2812B, GaugesLightingDataPin, GRB>(GaugesLeds, sizeof(GaugesLeds) / sizeof(CRGB));
         FastLED.setCorrection(TypicalLEDStrip);
         FastLED.setBrightness(255);
 
@@ -263,7 +271,7 @@ class Hardware
 
         while(true)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            yieldIfNecessary();
             tick_input();
             tick_output();
         }

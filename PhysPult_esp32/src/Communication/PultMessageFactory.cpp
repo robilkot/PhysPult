@@ -66,11 +66,14 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
             pair_substr = key_value_pairs_string.substring(commaIndex + 1);
         }
 
+        if(pair_substr.length() < 3) {
+            break;
+        }
         auto separator_index = pair_substr.indexOf('/');
-        auto key = pair_substr.substring(0, separator_index);
-        auto value = pair_substr.substring(separator_index + 1);
+        auto key = pair_substr.substring(0, separator_index).toInt();
+        auto value = pair_substr.substring(separator_index + 1).toInt();
 
-        auto pair = std::make_pair(StateKeys { .output = (OutputStateKeys)atoi(key.c_str()) }, atoi(value.c_str()));
+        auto pair = std::make_pair(StateKeys { .output = (OutputStateKeys)key }, value);
         msg->new_values.emplace_back(pair);
 
         commaIndex = secondCommaIndex;
@@ -132,6 +135,10 @@ ConfigPultMessage* PultMessageFactory::create_config_message(String str, int& de
         }
         else {
             pair_substr = key_value_pairs_string.substring(commaIndex + 1);
+        }
+
+        if(pair_substr.length() < 3) {
+            break;
         }
 
         auto separator_index = pair_substr.indexOf('/');

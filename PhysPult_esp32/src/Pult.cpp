@@ -385,9 +385,9 @@ void Pult::start()
 {
     reset();
 
-    communicator->set_on_message([this](const PultMessage& message) { message.apply(*this); });
-    communicator->set_on_device_number_changed([this](int number) { display_symbols(number); });
-    communicator->set_on_connect([this](void) {
+    communicator->set_on_message([](const PultMessage& message) { message.apply(); });
+    communicator->set_on_device_number_changed([](int number) { display_symbols(number); });
+    communicator->set_on_connect([](void) {
         xTaskCreatePinnedToCore(
             [](void* param) { monitor_state(); },
             "pult_state_monitor",
@@ -400,7 +400,7 @@ void Pult::start()
         
         communicator->send(StateRequestMessage());
         });
-    communicator->set_on_disconnect([this](void) {
+    communicator->set_on_disconnect([](void) {
         if(state_monitor) {
             vTaskDelete(state_monitor);
         }
@@ -420,7 +420,7 @@ void Pult::start()
     xTaskCreatePinnedToCore(
         [](void* param) { communicator->start(); },
         "pult_communicator",
-        3500, // takes 2084 but grows to 2356
+        2700, // takes 2084 but grows to 2356
         nullptr,
         5,  // Priority
         nullptr,

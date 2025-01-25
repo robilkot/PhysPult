@@ -1,19 +1,19 @@
 #include "PultMessage.h"
 
-void StateChangePultMessage::apply(Pult& pult) const {
-    pult.accept_state_changed_message(*this);
+void StateChangePultMessage::apply() const {
+    Pult::accept_state_changed_message(*this);
 }
 
-void StateRequestMessage::apply(Pult& pult) const {
-    pult.accept_state_request_message(*this);
+void StateRequestMessage::apply() const {
+    Pult::accept_state_request_message(*this);
 }
 
-void ConfigPultMessage::apply(Pult& pult) const {
-    pult.accept_config_message(*this);
+void ConfigPultMessage::apply() const {
+    Pult::accept_config_message(*this);
 }
 
-void DebugPultMessage::apply(Pult& pult) const {
-    pult.accept_debug_message(*this);
+void DebugPultMessage::apply() const {
+    Pult::accept_debug_message(*this);
 }
 
 String StateChangePultMessage::to_string() const {
