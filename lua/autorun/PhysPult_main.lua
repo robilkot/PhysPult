@@ -30,17 +30,6 @@ local function checkTrainType(train)
 end
 
 
--- Возвращает имя по которому можно получить значение кнопки, на совное ID кнопки.
--- (buttonId) - ID кнокпи.
--- RETURNS - Имя по которому можно поулчитьб знаечени кнопки из метода поезда GetPackedRatio.
-local function getButtonValueName(buttonId)
-	local key = string.gsub(buttonId, "^.+:","")
-	key = string.Replace(key, "Toggle", "")
-	key = string.Replace(key, "Set", "")
-
-	return key
-end
-
 
 -- Список индикаторов с соответствующим номером бита. Биты 26-39 под скорость нужны. Индексация с нуля
 local indicators = {
@@ -83,72 +72,72 @@ local indicators = {
 -- [Номер бита] = { "Имя тумблера", инвертировать ли (boolean) } 
 local switches = {
 	-- 1 блок
-	[38] = { "VMKToggle", true },
-	[39] = { "BPSNonToggle", true },
+	[34] = { "VMKToggle", true },
+	[33] = { "BPSNonToggle", true },
 
 	-- 5 блок
-	[3] = { "R_UNchToggle", true },
-	[1] = { "R_ZSToggle", true },
+	[5] = { "R_UNchToggle", true },
+	[7] = { "R_ZSToggle", true },
 	[4] = { "R_GToggle", true },
-	[2] = { "R_RadioToggle", true },
-	[10] = { "VUD1Toggle", true },
+	[6] = { "R_RadioToggle", true },
+	[14] = { "VUD1Toggle", true },
 	--[-] = { "R_VPRToggle" },
 	--[-] = { "DoorSelectToggle" },
 
 	-- 6 блок
-	[26] = { "V13Toggle", true },
-	[27] = { "V11Toggle", true },
-	[25] = { "V12Toggle", true },
+	[30] = { "V13Toggle", true },
+	[29] = { "V11Toggle", true },
+	[31] = { "V12Toggle", true },
 
 	--[-] = { "OtklAVUToggle"},
 	--[-] = "???", -- Двери торцевые
-	--[18] = "???", -- Вентиляция кабины
-	[15] = { "ARSToggle", true },
-	[14] = { "ALSToggle", true },
+	--[22] = "???", -- Вентиляция кабины
+	[9] = { "ARSToggle", true },
+	[10] = { "ALSToggle", true },
 	-- [-] = { "ARSRToggle" },
-	[13] = { "OVTToggle" } ,
+	[11] = { "OVTToggle" } ,
 	-- [-] = { "ALSFreqToggle" },
-	[40] = { "L_1Toggle", true }, -- Аварийное освещение (1 блок)
+	[32] = { "L_1Toggle", true }, -- Аварийное освещение (1 блок)
 	[20] = { "L_2Toggle", true }, 
-	[19] = { "L_3Toggle", true },
-	[18] = { "VPToggle", true },
+	[21] = { "L_3Toggle", true },
+	[22] = { "VPToggle", true },
 	
 	-- 7 блок
-	[34] = { "L_4Toggle", true },
-	[35] = { "VUSToggle", true }, 
+	[38] = { "L_4Toggle", true },
+	[37] = { "VUSToggle", true }, 
 	[36] = { "VADToggle", true },
-	[37] = { "VAHToggle", true },
+	[35] = { "VAHToggle", true },
 }
 
 -- Список кнопок с соответствующим номером бита.
 -- [Номер бита] = { "Имя кнопки", инвертировать ли (boolean) } 
 local buttons = {
 	-- 1 блок
-	[33] = { "RezMKSet", false },
-	[42] = { "ARS13Set", false },
-	-- [41] = { "???", false }, -- Радио 13В
+	[39] = { "RezMKSet", false },
+	[46] = { "ARS13Set", false },
+	-- [???] = { "???", false }, -- Радио 13В
 
 	-- 5 блок
-	[5] = { "R_Program1Set", true },
-	[6] = { "R_Program2Set", true },
-	[9] = { "KRZDSet", true },
-	[11] = { "VozvratRPSet", true },
+	[3] = { "R_Program1Set", true },
+	[2] = { "R_Program2Set", true },
+	[15] = { "KRZDSet", true },
+	[13] = { "VozvratRPSet", true },
 	-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
 	-- [2] =  { "KDLSet", false }, 
 
 	-- 6 блок
-	[22] = {  "1:KVTSet", true },
-	-- [24] = Вкл ЭПК
-	[23] = {  "1:KVTRSet", false },
+	[18] = {  "1:KVTSet", true },
+	-- [16] = Вкл ЭПК
+	[17] = {  "1:KVTRSet", false },
 	[28] = {  "VZ1Set", false }, -- ЛКВ
 	-- [-] = { "OtklBVSet", false },
 	[12] = { "ConverterProtectionSet", false },
-	[16] = {  "KSNSet", true },
-	[17] = {  "RingSet", true },
+	[8] = {  "KSNSet", true },
+	[23] = {  "RingSet", true },
 
 	-- 7 блок
 	-- [31] =  { "KDRSet", false }, -- обрабатываются особым образом ниже
-	[32] = { "KRPSet", true },
+	[24] = { "KRPSet", true },
 	-- [--] = { "KAHSet", true },
 }
 
@@ -386,11 +375,21 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 	for k, v in pairs(enabledPins) do
 		local pin = tonumber(v)
 		local invert = false
+
+		if(pin == 0 or pin == 1) then
+			Metrostroi.UpTrainButton(train, "KDLSet")
+		end
+
+		if(pin == 25) then
+			Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", true)
+			Metrostroi.DownTrainButton(train, "KDPSet")
+		end
+
 		if(buttons[pin]) then
 			local name = buttons[pin][1]
 			local invert = buttons[pin][2]
 
-			if(invert) then 
+			if(invert == true) then 
 				Metrostroi.UpTrainButton(train, name)
 			else
 				Metrostroi.DownTrainButton(train, name)
@@ -399,10 +398,10 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 			local name = switches[pin][1]
 			local invert = switches[pin][2]
 
-			if(invert) then 
-				Metrostroi.UpTrainButton(train, name)
+			if(invert == true) then 
+				Metrostroi.SetTrainSwitchStage(train, name, false)
 			else
-				Metrostroi.DownTrainButton(train, name)
+				Metrostroi.SetTrainSwitchStage(train, name, true)
 			end
 		else
 			-- wrong pin
@@ -412,11 +411,21 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 	for k, v in pairs(disabledPins) do
 		local pin = tonumber(v)
 		local invert = false
+
+		if(pin == 0 or pin == 1) then
+			Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", false)
+			Metrostroi.DownTrainButton(train, "KDLSet")
+		end
+
+		if(pin == 25) then
+			Metrostroi.UpTrainButton(train, "KDPSet")
+		end
+
 		if(buttons[pin]) then
 			local name = buttons[pin][1]
 			local invert = buttons[pin][2]
 
-			if(invert) then 
+			if(invert) then
 				Metrostroi.DownTrainButton(train, name)
 			else
 				Metrostroi.UpTrainButton(train, name)
@@ -425,10 +434,10 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 			local name = switches[pin][1]
 			local invert = switches[pin][2]
 
-			if(invert) then 
-				Metrostroi.DownTrainButton(train, name)
+			if(invert == true) then 
+				Metrostroi.SetTrainSwitchStage(train, name, true)
 			else
-				Metrostroi.UpTrainButton(train, name)
+				Metrostroi.SetTrainSwitchStage(train, name, false)
 			end
 		else
 			-- wrong pin

@@ -4,6 +4,18 @@ timer.Create("PhysPultInitApi", 0.5, 1, function()
 
 Metrostroi = Metrostroi or {}
 
+-- Возвращает имя по которому можно получить значение кнопки, на совное ID кнопки.
+-- (buttonId) - ID кнокпи.
+-- RETURNS - Имя по которому можно поулчитьб знаечени кнопки из метода поезда GetPackedRatio.
+local function getButtonValueName(buttonId)
+	local key = string.gsub(buttonId, "^.+:","")
+	key = string.Replace(key, "Toggle", "")
+	key = string.Replace(key, "Set", "")
+
+	return key
+end
+
+
 -- Находит кнопку в поезде или возращает её, если кнопка уже передана.
 -- (train) - Ентити поезда.
 -- (button) - Кнопка или ID кнопки.
