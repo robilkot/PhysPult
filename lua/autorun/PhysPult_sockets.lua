@@ -18,7 +18,7 @@ function PhysPult.Start(onMessage, onConnected, onDisconnected)
     socket = GWSockets.createWebSocket(url)
 
     function socket:onMessage(txt)
-        -- chat.AddText("rec ", tostring(txt))
+        chat.AddText("rec ", tostring(txt))
         onMessage(txt)
     end
     

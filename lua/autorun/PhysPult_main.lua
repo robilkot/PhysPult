@@ -162,6 +162,8 @@ PhysPult.FeatureFlags = {
 	["Reverser"] = 2,
 	["Crane"] = 4,
 	["InputRegisters"] = 8,
+    ["GaugesLighting"] = 16,
+    ["Potentiometer"] = 32,
 }
 
 local previousNumericValues = {}
@@ -492,7 +494,9 @@ concommand.Add("pult_start", function()
 
 
 		local enabledFlags = {
-			"Controller"
+			"Controller",
+			"InputRegisters",
+			"GaugesLighting"
 		}
 
 		PhysPult.ConfigurePult(enabledFlags)

@@ -6,8 +6,8 @@
 static uint32_t BaudRate = 115200;
 static uint16_t NetworkPort = 8080;
 
-static CHSV PultLightingColor{20, 200, 255};
-static CHSV GaugesLightingColor{20, 200, 255};
+static CHSV PultLightingColor{25, 190, 255};
+static CHSV GaugesLightingColor{25, 190, 255};
 
 static esp_log_level_t LogLevel = ESP_LOG_DEBUG;
 
