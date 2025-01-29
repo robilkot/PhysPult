@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <memory>
 #include "Pult.h"
 #include <FeatureFlags.h>
 
@@ -32,8 +33,8 @@ class PultMessage {
     public:
     const virtual char get_type() const = 0;
     virtual void apply() const = 0;
-    virtual String to_string() const {
-        String output(get_type());
+    virtual std::string to_string() const {
+        std::string output{get_type()};
         output += ';';
         return output;
     };
@@ -53,7 +54,7 @@ class StateChangePultMessage : public PultMessage {
     std::vector<uint8_t> pins_disabled;
     std::vector<std::pair<StateKeys, int16_t>> new_values;
 
-    String to_string() const override;
+    std::string to_string() const override;
     const char get_type() const override {
         return 'S';
     }
@@ -100,20 +101,20 @@ class DebugPultMessage : public PultMessage {
     DebugActions action;
     std::vector<int16_t> params;
 
-    static DebugPultMessage Ok()
+    static std::shared_ptr<DebugPultMessage> Ok()
     {
-        auto msg = DebugPultMessage();
-        msg.action = DebugActions::OK;
+        auto msg = std::make_shared<DebugPultMessage>();
+        msg->action = DebugActions::OK;
         return msg;
     }
-    static DebugPultMessage Error()
+    static std::shared_ptr<DebugPultMessage> Error()
     {
-        auto msg = DebugPultMessage();
-        msg.action = DebugActions::ERROR;
+        auto msg = std::make_shared<DebugPultMessage>();
+        msg->action = DebugActions::ERROR;
         return msg;
     }
 
-    String to_string() const override;
+    std::string to_string() const override;
     const char get_type() const override {
         return 'D';
     }

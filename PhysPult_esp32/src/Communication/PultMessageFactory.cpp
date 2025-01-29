@@ -1,25 +1,25 @@
 #include "PultMessageFactory.h"
 
 
-StateChangePultMessage* PultMessageFactory::create_state_changed_message(String& str, int& delimIndex)
+std::shared_ptr<StateChangePultMessage> PultMessageFactory::create_state_changed_message(const std::string& str, size_t delimIndex)
 {
-    auto msg = new StateChangePultMessage;
+    auto msg = std::make_shared<StateChangePultMessage>();
 
     // pins_enabled
-    int secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto pins_enabled_string = str.substring(delimIndex + 1, secondDelimIndex);
+    int secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto pins_enabled_string = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
 
     int commaIndex = -1;
     do {
-        int secondCommaIndex = pins_enabled_string.indexOf(',', commaIndex + 1); 
+        int secondCommaIndex = pins_enabled_string.find(',', commaIndex + 1); 
         
-        String binarySubstring;
+        std::string binarySubstring;
         if(secondCommaIndex != -1)
         {
-            binarySubstring = pins_enabled_string.substring(commaIndex + 1, secondCommaIndex);
+            binarySubstring = pins_enabled_string.substr(commaIndex + 1, secondCommaIndex - commaIndex - 1);
         }
         else {
-            binarySubstring = pins_enabled_string.substring(commaIndex + 1);
+            binarySubstring = pins_enabled_string.substr(commaIndex + 1);
         }
         msg->pins_enabled.emplace_back(atoi(binarySubstring.c_str()));
 
@@ -28,20 +28,20 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
 
     // pins_disabled
     delimIndex = secondDelimIndex;
-    secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto pins_disabled_string = str.substring(delimIndex + 1, secondDelimIndex);
+    secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto pins_disabled_string = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
 
     commaIndex = -1;
     do {
-        int secondCommaIndex = pins_disabled_string.indexOf(',', commaIndex + 1); 
+        int secondCommaIndex = pins_disabled_string.find(',', commaIndex + 1); 
         
-        String binarySubstring;
+        std::string binarySubstring;
         if(secondCommaIndex != -1)
         {
-            binarySubstring = pins_disabled_string.substring(commaIndex + 1, secondCommaIndex);
+            binarySubstring = pins_disabled_string.substr(commaIndex + 1, secondCommaIndex - commaIndex - 1);
         }
         else {
-            binarySubstring = pins_disabled_string.substring(commaIndex + 1);
+            binarySubstring = pins_disabled_string.substr(commaIndex + 1);
         }
         msg->pins_disabled.emplace_back(atoi(binarySubstring.c_str()));
 
@@ -50,28 +50,28 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
 
     // key value pairs
     delimIndex = secondDelimIndex;
-    secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto key_value_pairs_string = str.substring(delimIndex + 1, secondDelimIndex);
+    secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto key_value_pairs_string = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
 
     commaIndex = -1;
     do {
-        int secondCommaIndex = key_value_pairs_string.indexOf(',', commaIndex + 1); 
+        int secondCommaIndex = key_value_pairs_string.find(',', commaIndex + 1); 
         
-        String pair_substr;
+        std::string pair_substr;
         if(secondCommaIndex != -1)
         {
-            pair_substr = key_value_pairs_string.substring(commaIndex + 1, secondCommaIndex);
+            pair_substr = key_value_pairs_string.substr(commaIndex + 1, secondCommaIndex - commaIndex - 1);
         }
         else {
-            pair_substr = key_value_pairs_string.substring(commaIndex + 1);
+            pair_substr = key_value_pairs_string.substr(commaIndex + 1);
         }
 
         if(pair_substr.length() < 3) {
             break;
         }
-        auto separator_index = pair_substr.indexOf('/');
-        auto key = pair_substr.substring(0, separator_index).toInt();
-        auto value = pair_substr.substring(separator_index + 1).toInt();
+        auto separator_index = pair_substr.find('/');
+        auto key = std::stoi(pair_substr.substr(0, separator_index));
+        auto value = std::stoi(pair_substr.substr(separator_index + 1));
 
         auto pair = std::make_pair(StateKeys { .output = (OutputStateKeys)key }, value);
         msg->new_values.emplace_back(pair);
@@ -82,31 +82,31 @@ StateChangePultMessage* PultMessageFactory::create_state_changed_message(String&
     return msg;
 }
 
-DebugPultMessage* PultMessageFactory::create_debug_message(String str, int& delimIndex)
+std::shared_ptr<DebugPultMessage> PultMessageFactory::create_debug_message(const std::string& str, size_t delimIndex)
 {
-    auto msg = new DebugPultMessage;
+    auto msg = std::make_shared<DebugPultMessage>();
 
     // Parse action
-    int secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto actionString = str.substring(delimIndex + 1, secondDelimIndex);
+    int secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto actionString = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
     msg->action = (DebugActions)atoi(actionString.c_str());
 
     // Parse params
     delimIndex = secondDelimIndex;
-    secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto paramsString = str.substring(delimIndex + 1, secondDelimIndex);
+    secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto paramsString = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
 
     int commaIndex = -1;
     do {
-        int secondCommaIndex = paramsString.indexOf(',', commaIndex + 1); 
+        int secondCommaIndex = paramsString.find(',', commaIndex + 1); 
         
-        String numberSubstring;
+        std::string numberSubstring;
         if(secondCommaIndex != -1)
         {
-            numberSubstring = paramsString.substring(commaIndex + 1, secondCommaIndex);
+            numberSubstring = paramsString.substr(commaIndex + 1, secondCommaIndex - commaIndex - 1);
         }
         else {
-            numberSubstring = paramsString.substring(commaIndex + 1);
+            numberSubstring = paramsString.substr(commaIndex + 1);
         }
         msg->params.emplace_back(atoi(numberSubstring.c_str()));
 
@@ -116,34 +116,34 @@ DebugPultMessage* PultMessageFactory::create_debug_message(String str, int& deli
     return msg;
 }
 
-ConfigPultMessage* PultMessageFactory::create_config_message(String str, int& delimIndex)
+std::shared_ptr<ConfigPultMessage> PultMessageFactory::create_config_message(const std::string& str, size_t delimIndex)
 {
-    auto msg = new ConfigPultMessage;
+    auto msg = std::make_shared<ConfigPultMessage>();
 
     // key value pairs
-    auto secondDelimIndex = str.indexOf(delimiter, delimIndex + 1);
-    auto key_value_pairs_string = str.substring(delimIndex + 1, secondDelimIndex);
+    auto secondDelimIndex = str.find(delimiter, delimIndex + 1);
+    auto key_value_pairs_string = str.substr(delimIndex + 1, secondDelimIndex - delimIndex - 1);
 
     auto commaIndex = -1;
     do {
-        int secondCommaIndex = key_value_pairs_string.indexOf(',', commaIndex + 1); 
+        int secondCommaIndex = key_value_pairs_string.find(',', commaIndex + 1); 
         
-        String pair_substr;
+        std::string pair_substr;
         if(secondCommaIndex != -1)
         {
-            pair_substr = key_value_pairs_string.substring(commaIndex + 1, secondCommaIndex);
+            pair_substr = key_value_pairs_string.substr(commaIndex + 1, secondCommaIndex - commaIndex - 1);
         }
         else {
-            pair_substr = key_value_pairs_string.substring(commaIndex + 1);
+            pair_substr = key_value_pairs_string.substr(commaIndex + 1);
         }
 
         if(pair_substr.length() < 3) {
             break;
         }
 
-        auto separator_index = pair_substr.indexOf('/');
-        auto key = pair_substr.substring(0, separator_index).toInt();
-        auto value = pair_substr.substring(separator_index + 1).toInt();
+        auto separator_index = pair_substr.find('/');
+        auto key = std::stoi(pair_substr.substr(0, separator_index));
+        auto value = std::stoi(pair_substr.substr(separator_index + 1));
 
         auto pair = std::make_pair((ConfigActions)key, ConfigValue{ .number = value });
         msg->values.emplace_back(pair);
@@ -154,14 +154,14 @@ ConfigPultMessage* PultMessageFactory::create_config_message(String str, int& de
     return msg;
 }
 
-std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
+std::shared_ptr<PultMessage> PultMessageFactory::Create(std::string str)
 {
-    int delimIndex = str.indexOf(delimiter);
-    if(delimIndex <= 0) {
+    auto delimIndex = str.find(delimiter);
+    if(delimIndex == std::string::npos) {
         throw std::invalid_argument("Wrong message format");
     }
 
-    PultMessage* result;
+    std::shared_ptr<PultMessage> result;
 
     switch(str[0]) {
         case 'S': {
@@ -169,7 +169,7 @@ std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
             break;
         }
         case 'R': {
-            result = new StateRequestMessage;
+            result = std::make_shared<StateRequestMessage>();
             break;
         }
         case 'D': {
@@ -186,5 +186,5 @@ std::unique_ptr<PultMessage> PultMessageFactory::Create(String str)
         }
     }
     
-    return std::unique_ptr<PultMessage>(result);
+    return result;
 }

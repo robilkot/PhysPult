@@ -21,7 +21,7 @@ void WebsocketsCommunicator::accept_client()
     on_connect();
 
     client.onMessage([&] (websockets::WebsocketsMessage msg) {
-        on_message(*PultMessageFactory::Create(msg.data()));
+        on_message(*PultMessageFactory::Create(msg.rawData()));
     });
     client.onEvent([&] (websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
         switch(event) {
@@ -101,9 +101,10 @@ void WebsocketsCommunicator::connect_to_network()
     log_i("Server is %savailable at %s", server.available() ? "" : "not ", ip);
 }
 
-void WebsocketsCommunicator::send(const PultMessage& msg)
+void WebsocketsCommunicator::send(std::shared_ptr<PultMessage> msg)
 {
-    client.send(msg.to_string());
+    assert(msg);
+    client.send(msg->to_string().c_str());
 }
 
 void WebsocketsCommunicator::start()

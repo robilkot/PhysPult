@@ -190,16 +190,16 @@ void Pult::accept_state_changed_message(const StateChangePultMessage& msg)
 // Returns full inputs lits
 void Pult::accept_state_request_message(const StateRequestMessage& msg)
 {
-    StateChangePultMessage response;
+    auto response = std::make_shared<StateChangePultMessage>();
 
     if(has_flag(feature_flags, FeatureFlags::Controller)) {
-        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
+        response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
     }
     if(has_flag(feature_flags, FeatureFlags::Reverser)) {
-        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
+        response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
     }
     if(has_flag(feature_flags, FeatureFlags::Crane)) {
-        response.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
+        response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
     }
 
     if(has_flag(feature_flags, FeatureFlags::InputRegisters)) {
@@ -209,9 +209,9 @@ void Pult::accept_state_request_message(const StateRequestMessage& msg)
             for(int k = 0; k < 8; k++)
             {
                 if((register_value >> k) & 1) {
-                    response.pins_enabled.emplace_back(8 * i + k);
+                    response->pins_enabled.emplace_back(8 * i + k);
                 } else {
-                    response.pins_disabled.emplace_back(8 * i + k);
+                    response->pins_disabled.emplace_back(8 * i + k);
                 }
             }
         }
@@ -341,13 +341,13 @@ void Pult::monitor_state()
     while(true) {
         vTaskDelay(5);
         bool update_needed = false;
-        StateChangePultMessage update;
+        auto update = std::make_shared<StateChangePultMessage>();
 
         if(has_flag(feature_flags, FeatureFlags::Crane)) {
             if(hardware.crane_position != crane_position_p) {
                 update_needed = true;
                 crane_position_p = hardware.crane_position;
-                update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
+                update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
             }
         } 
 
@@ -357,7 +357,7 @@ void Pult::monitor_state()
                 update_needed = true;
                 controller_position_p = controller_position;
                 if(controller_position != ControllerPosition::Intermediate) {
-                    update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)controller_position);
+                    update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)controller_position);
                 }
             }
         }
@@ -368,7 +368,7 @@ void Pult::monitor_state()
                 update_needed = true;
                 reverser_position_p = reverser_position;
                 if(reverser_position != ReverserPosition::Intermediate) {
-                    update.new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)reverser_position);
+                    update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)reverser_position);
                 }
             }
         }
@@ -387,9 +387,9 @@ void Pult::monitor_state()
                         update_needed = true;
 
                         if(new_value) {
-                            update.pins_enabled.emplace_back(8 * i + k);
+                            update->pins_enabled.emplace_back(8 * i + k);
                         } else {
-                            update.pins_disabled.emplace_back(8 * i + k);
+                            update->pins_disabled.emplace_back(8 * i + k);
                         }
                     }
                 }
@@ -420,7 +420,7 @@ void Pult::start()
             1
         );
         
-        communicator->send(StateRequestMessage());
+        communicator->send(std::make_shared<StateRequestMessage>());
         });
     communicator->set_on_disconnect([](void) {
         if(state_monitor) {
@@ -440,7 +440,9 @@ void Pult::start()
     );
 
     xTaskCreatePinnedToCore(
-        [](void* param) { communicator->start(); },
+        [](void* param) { 
+            communicator->start(); 
+        },
         "pult_communicator",
         2700, // takes 2084 but grows to 2356
         nullptr,

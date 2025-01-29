@@ -11,10 +11,10 @@ class StateChangePultMessage;
 class PultMessageFactory {
     private:
     const static char delimiter = ';';
-    static DebugPultMessage* create_debug_message(String str, int& delimIndex);
-    static ConfigPultMessage* create_config_message(String str, int& delimIndex);
-    static StateChangePultMessage* create_state_changed_message(String& str, int& delimIndex);
+    static std::shared_ptr<DebugPultMessage> create_debug_message(const std::string& str, size_t delimIndex);
+    static std::shared_ptr<ConfigPultMessage> create_config_message(const std::string& str, size_t delimIndex);
+    static std::shared_ptr<StateChangePultMessage> create_state_changed_message(const std::string& str, size_t delimIndex);
 
     public:
-    static std::unique_ptr<PultMessage> Create(String str);
+    static std::shared_ptr<PultMessage> Create(std::string str);
 };

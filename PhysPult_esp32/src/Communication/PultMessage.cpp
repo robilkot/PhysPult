@@ -16,14 +16,14 @@ void DebugPultMessage::apply() const {
     Pult::accept_debug_message(*this);
 }
 
-String StateChangePultMessage::to_string() const {
-    String output{get_type()};
+std::string StateChangePultMessage::to_string() const {
+    std::string output{get_type()};
 
     output += ';';
 
     for(auto i : pins_enabled)
     {
-        output += String(i);
+        output += std::to_string(i);
         output += ',';
     }
     if(pins_enabled.size() == 0) {
@@ -34,7 +34,7 @@ String StateChangePultMessage::to_string() const {
 
     for(auto i : pins_disabled)
     {
-        output += String(i);
+        output += std::to_string(i);
         output += ',';
     }
     if(pins_disabled.size() == 0) {
@@ -46,9 +46,9 @@ String StateChangePultMessage::to_string() const {
     
     for(auto i : new_values)
     {
-        output += String((int)(i.first.output));
+        output += std::to_string((int)(i.first.output));
         output += '/';
-        output += String(i.second);
+        output += std::to_string(i.second);
         output += ',';
     }
     if(new_values.size() == 0) {
@@ -60,13 +60,13 @@ String StateChangePultMessage::to_string() const {
     return output;
 }
 
-String DebugPultMessage::to_string() const {
-    String output(get_type());
+std::string DebugPultMessage::to_string() const {
+    std::string output{get_type()};
     output += ';';
-    output += (int)action;
+    output += std::to_string((int)action);
     output += ';';
     for(auto param : params) {
-        output += (int)action;
+        output += std::to_string((int)action);
         output += ',';
     }
     output[output.length() - 1] = ';';
