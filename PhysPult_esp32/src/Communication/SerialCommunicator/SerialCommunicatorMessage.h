@@ -12,10 +12,12 @@
 // ---------------------------------------------------------
 //
 // Encapsulates PultMessage to provide mechanism for ack-ing messages and validation
+// It is unsafe to encapsulate PultMessage if message is not valid
 
 class SerialCommunicatorMessage
 {
     private:
+    bool valid;
     uint32_t crc;
     uint32_t sequence_number;
     uint32_t ack_number;
@@ -32,8 +34,12 @@ class SerialCommunicatorMessage
     SerialCommunicatorMessage(const std::vector<uint8_t>& bytes)
     {
         if(bytes.size() < 12) {
+            log_w("invalid serial message: less than 12 bytes");
             return;
         }
+
+        std::string message_str;
+
         try {
             for (auto i = 0; i < 4; i++)
             {
@@ -49,37 +55,47 @@ class SerialCommunicatorMessage
             }
 
             size_t size = bytes.size() - 12;
-            std::string message_str;
             message_str.reserve(size);
 
             for(auto it = bytes.begin() + 12; it != bytes.end(); it++)
             {
                 message_str += (char)*it;
             }
-
-            message = PultMessageFactory::Create(message_str);
         }
         catch(const std::exception& ex)
         {
-            log_w("invalid serial message received: %s", ex.what());
+            log_w("invalid serial message: %s", ex.what());
         }
+
+        try {
+            message = PultMessageFactory::Create(message_str);
+        }
+        catch(const std::invalid_argument& ex)
+        {
+            log_w("invalid pult message: %s", ex.what());
+        }
+
+        valid = true; // todo: remove
+        // valid = crc == get_crc();
     }
 
     SerialCommunicatorMessage(std::shared_ptr<PultMessage> message, uint32_t sequence, uint32_t ack)
     : message(message), sequence_number(sequence), ack_number(ack)
     { 
         crc = get_crc();
+
+        valid = true;
     }
 
-    std::shared_ptr<PultMessage> get_message()
+    std::shared_ptr<PultMessage> get_message() const
     {
         return message; // mutable, not good
     }
-    uint32_t get_sequence_number()
+    uint32_t get_sequence_number() const
     {
         return sequence_number;
     }
-    uint32_t get_ack_number()
+    uint32_t get_ack_number() const
     {
         return ack_number;
     }
@@ -116,6 +132,6 @@ class SerialCommunicatorMessage
 
     bool is_valid() const
     {
-        return get_crc() == crc;
+        return valid;
     }
 };

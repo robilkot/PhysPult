@@ -45,6 +45,7 @@ void SerialCommunicator::accept_pending_receive()
         {
             auto msg = SerialCommunicatorMessage(input_buffer);
             input_buffer.clear();
+            pending_receive = false;
             
             if(msg.is_valid())
             {
@@ -58,8 +59,6 @@ void SerialCommunicator::accept_pending_receive()
             break; // todo: review this function
         }
     }
-    
-    pending_receive = false;
 }
 
 void SerialCommunicator::on_invalid_message(const SerialCommunicatorMessage& msg)
