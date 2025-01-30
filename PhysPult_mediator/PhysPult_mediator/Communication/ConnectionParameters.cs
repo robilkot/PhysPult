@@ -2,7 +2,7 @@
 {
     public record ConnectionParameters(
         string PortName,
-        int BaudRate = 2400,
+        int BaudRate = 115200,
         int DataBits = 8,
         float StopBits = 1f
         );

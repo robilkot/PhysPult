@@ -1,4 +1,7 @@
 ﻿namespace PhysPult_mediator.Messages
 {
-    public interface ISerialMessage { }
+    public interface ISerialMessage
+    {
+        IEnumerable<byte> ToBytes();
+    }
 }

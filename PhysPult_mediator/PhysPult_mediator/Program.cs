@@ -21,7 +21,7 @@ var parameters = new ConnectionParameters(ports[portIndex]);
 
 // Create needed services
 var reader = new SerialPultMessageReader();
-var svc = new CommunicationService<SerialPultMessage>(reader);
+var svc = new CommunicationService<SerialCommunicatorMessage>(reader);
 
 // Subscribe to events
 svc.MessageReceived += (sender, message) =>
@@ -34,8 +34,13 @@ svc.MessageCorrupted += (sender, args) =>
     Console.WriteLine("Message corrupted");
 };
 
+
 // Start monitoring
 svc.TryConnect(parameters);
+
+var serialPultMsg = new SerialCommunicatorMessage("R;", 125, 125);
+
+svc.Send(serialPultMsg);
 
 Console.ReadKey();
 

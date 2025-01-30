@@ -1,5 +1,8 @@
 #include "SerialCommunicator.h"
 
+extern const uint8_t SerialCommunicatorMessage::stop_byte;
+extern const uint8_t SerialCommunicatorMessage::start_byte;
+
 int SerialCommunicator::get_device_number()
 {
     return 0;
@@ -39,25 +42,63 @@ void SerialCommunicator::accept_pending_receive()
             log_w("invalid reading from serial port");
         }
 
-        input_buffer.emplace_back(read);
-
-        if(read == '\n')
+        switch (read)
         {
+        case SerialCommunicatorMessage::start_byte:
+        {
+            if(message_started)
+            {
+                log_w("second message start byte received before message end");
+                input_buffer.clear();
+            }
+            message_started = true;
+            break;
+        }
+        case SerialCommunicatorMessage::stop_byte:
+        {
+            if(!message_started)
+            {
+                log_w("message end byte received before message start");
+                input_buffer.clear();
+            }
+            message_started = false;
+            
             auto msg = SerialCommunicatorMessage(input_buffer);
             input_buffer.clear();
-            pending_receive = false;
             
-            if(msg.is_valid())
-            {
-                on_message(*msg.get_message());
-            }
-            else
-            {
-                on_invalid_message(msg);
-            }
-
-            break; // todo: review this function
+            deincapsulate_pult_message(msg);
+            break;
         }
+        default:
+        {
+            if(message_started)
+            {
+                input_buffer.emplace_back(read);
+            }
+            break;
+        }
+        }
+    }
+
+    pending_receive = false;
+}
+
+void SerialCommunicator::deincapsulate_pult_message(const SerialCommunicatorMessage& message)
+{
+    try {
+        if(!message.is_valid())
+        {
+            throw std::invalid_argument("invalid message checksum");
+        }
+
+        const auto& content = message.get_content();
+        auto pultMessage = PultMessageFactory::Create(content);
+        on_message(*pultMessage);
+    }
+    catch(const std::invalid_argument& ex)
+    {
+        log_w("invalid pult message: %s", ex.what());
+        on_invalid_message(message);
     }
 }
 
@@ -90,7 +131,7 @@ void SerialCommunicator::send_pending_message()
 void SerialCommunicator::send(std::shared_ptr<PultMessage> msg)
 {
     assert(msg);
-    SerialCommunicatorMessage serial_msg(msg, 0, 0);
+    SerialCommunicatorMessage serial_msg(msg->to_string(), 0, 0);
 
     {
         std::lock_guard<std::mutex> lock(transmit_buffer_lock);

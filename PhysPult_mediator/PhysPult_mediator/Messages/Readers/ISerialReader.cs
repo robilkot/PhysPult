@@ -2,8 +2,8 @@
 {
     public interface ISerialReader<T> where T : ISerialMessage
     {
-        void Next(byte Data);
+        void Next(byte read);
         event EventHandler<T>? MessageReceived;
-        event EventHandler? MessageCorrupted;
+        event EventHandler<T?>? MessageCorrupted;
     }
 }

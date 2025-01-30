@@ -8,7 +8,7 @@ namespace PhysPult_mediator.Communication
     public class CommunicationService<T> where T : ISerialMessage
     {
         public event EventHandler<T>? MessageReceived = null;
-        public event EventHandler? MessageCorrupted = null;
+        public event EventHandler<T?>? MessageCorrupted = null;
 
         private readonly ISerialReader<T> _reader;
         private SerialPort? _activePort = null;
@@ -18,6 +18,27 @@ namespace PhysPult_mediator.Communication
             _reader = reader;
             OnDeviceConfigurationChanged();
             StartDevicesEventsWatcher();
+        }
+
+        public (bool, Exception?) Send(T message)
+        {
+            if(_activePort is null)
+            {
+                // todo log
+                return (false, null);
+            }
+
+            var bytes = message.ToBytes().ToArray();
+
+            try
+            {
+                _activePort.Write(bytes, 0, bytes.Length);
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex);
+            }
         }
 
         public (bool, Exception?) TryConnect(ConnectionParameters parameters)
@@ -110,6 +131,11 @@ namespace PhysPult_mediator.Communication
 
         private void OnReceiveData(object sender, SerialDataReceivedEventArgs e)
         {
+            if(!(_activePort?.IsOpen ?? false))
+            {
+                return;
+            }
+
             while (_activePort?.BytesToRead > 0)
             {
                 var b = _activePort.ReadByte();
@@ -124,7 +150,7 @@ namespace PhysPult_mediator.Communication
 
         private void OnReaderMessageReceived(object sender, T message)
             => MessageReceived?.Invoke(sender, message);
-        private void OnReaderMessageCorrupted(object sender, EventArgs args)
+        private void OnReaderMessageCorrupted(object sender, T? args)
             => MessageCorrupted?.Invoke(sender, args);
     }
 }

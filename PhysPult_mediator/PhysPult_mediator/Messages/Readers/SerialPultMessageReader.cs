@@ -1,25 +1,66 @@
 ﻿namespace PhysPult_mediator.Messages.Readers
 {
-    public class SerialPultMessageReader : ISerialReader<SerialPultMessage>
+    public class SerialPultMessageReader : ISerialReader<SerialCommunicatorMessage>
     {
         private List<byte> _inputBuffer = [];
+        private bool messageStarted;
 
-        public event EventHandler<SerialPultMessage>? MessageReceived;
-        public event EventHandler? MessageCorrupted;
+        public event EventHandler<SerialCommunicatorMessage>? MessageReceived;
+        public event EventHandler<SerialCommunicatorMessage?>? MessageCorrupted;
 
-        public void Next(byte data)
+        public void Next(byte read)
         {
-            // todo
+            char ch = (char)read;
+            switch (read)
+            {
+                case SerialCommunicatorMessage.StartByte:
+                    {
+                        _inputBuffer.Add(read);
+                        if (messageStarted)
+                        {
+                            // todo log ("second message start byte received before message end");
+                            _inputBuffer.Clear();
+                        }
+                        messageStarted = true;
+                        break;
+                    }
+                case SerialCommunicatorMessage.StopByte:
+                    {
+                        _inputBuffer.Add(read);
+                        if (!messageStarted)
+                        {
+                            // todo log ("message end byte received before message start");
+                            _inputBuffer.Clear();
+                        }
+                        messageStarted = false;
+
+                        var msg = new SerialCommunicatorMessage(_inputBuffer);
+
+                        DeincapsulateMessage(msg);
+                        _inputBuffer.Clear();
+                        break;
+                    }
+                default:
+                    {
+                        Console.Write(ch);
+                        if (messageStarted)
+                        {
+                            _inputBuffer.Add(read);
+                        }
+                        break;
+                    }
+            }
         }
-        private void OnMessageCorrupted()
+        private void DeincapsulateMessage(SerialCommunicatorMessage msg)
         {
-            MessageCorrupted?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void OnMessageCompleted()
-        {
-            SerialPultMessage msg = new(_inputBuffer);
-            MessageReceived?.Invoke(this, msg);
+            if(msg.Valid)
+            {
+                MessageReceived?.Invoke(this, msg);
+            }
+            else
+            {
+                MessageCorrupted?.Invoke(this, msg);
+            }
         }
     }
 }
