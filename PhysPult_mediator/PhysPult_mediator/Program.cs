@@ -5,6 +5,10 @@ using PhysPult_mediator.Messages;
 using PhysPult_mediator.Messages.Readers;
 using System.IO.Ports;
 
+
+//var test = new SerialCommunicatorMessage("R;", 125, 111);
+//var test2 = test.ToBytes().ToList();
+
 // Choose active port
 var ports = SerialPort.GetPortNames();
 
@@ -38,10 +42,21 @@ svc.MessageCorrupted += (sender, args) =>
 // Start monitoring
 svc.TryConnect(parameters);
 
-var serialPultMsg = new SerialCommunicatorMessage("R;", 125, 125);
 
-svc.Send(serialPultMsg);
+while(true)
+{
+    var key = Console.ReadKey();
 
-Console.ReadKey();
+    if(key.Key == ConsoleKey.R)
+    {
+        var serialPultMsg = new SerialCommunicatorMessage("R;", 125, 111);
+
+        svc.Send(serialPultMsg);
+    }
+    else
+    {
+        break;
+    }
+}
 
 svc.TryDisconnect();

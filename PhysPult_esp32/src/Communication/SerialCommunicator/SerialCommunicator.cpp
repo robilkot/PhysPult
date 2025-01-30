@@ -52,6 +52,7 @@ void SerialCommunicator::accept_pending_receive()
                 input_buffer.clear();
             }
             message_started = true;
+            input_buffer.emplace_back(read);
             break;
         }
         case SerialCommunicatorMessage::stop_byte:
@@ -62,6 +63,7 @@ void SerialCommunicator::accept_pending_receive()
                 input_buffer.clear();
             }
             message_started = false;
+            input_buffer.emplace_back(read);
             
             auto msg = SerialCommunicatorMessage(input_buffer);
             input_buffer.clear();
@@ -97,7 +99,7 @@ void SerialCommunicator::deincapsulate_pult_message(const SerialCommunicatorMess
     }
     catch(const std::invalid_argument& ex)
     {
-        log_w("invalid pult message: %s", ex.what());
+        log_w("invalid pult message (seq %lu, ack %lu, crc %lu): %s", message.get_sequence_number(), message.get_ack_number(), message.get_crc(), ex.what());
         on_invalid_message(message);
     }
 }

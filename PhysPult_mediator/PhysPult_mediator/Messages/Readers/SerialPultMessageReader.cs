@@ -10,28 +10,29 @@
 
         public void Next(byte read)
         {
-            char ch = (char)read;
             switch (read)
             {
                 case SerialCommunicatorMessage.StartByte:
                     {
-                        _inputBuffer.Add(read);
+                        Console.WriteLine(" start ");
                         if (messageStarted)
                         {
                             // todo log ("second message start byte received before message end");
                             _inputBuffer.Clear();
                         }
+                        _inputBuffer.Add(read);
                         messageStarted = true;
                         break;
                     }
                 case SerialCommunicatorMessage.StopByte:
                     {
-                        _inputBuffer.Add(read);
+                        Console.WriteLine(" stop ");
                         if (!messageStarted)
                         {
                             // todo log ("message end byte received before message start");
                             _inputBuffer.Clear();
                         }
+                        _inputBuffer.Add(read);
                         messageStarted = false;
 
                         var msg = new SerialCommunicatorMessage(_inputBuffer);
@@ -42,7 +43,6 @@
                     }
                 default:
                     {
-                        Console.Write(ch);
                         if (messageStarted)
                         {
                             _inputBuffer.Add(read);

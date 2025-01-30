@@ -11,14 +11,15 @@ class PultMessage;
 class SerialCommunicator : public Communicator
 {
     private:
-    std::mutex receive_buffer_lock;
-    std::mutex transmit_buffer_lock;
-    std::queue<SerialCommunicatorMessage> transmit_queue;
-    bool pending_receive;
+    std::mutex receive_buffer_lock{};
+    std::mutex transmit_buffer_lock{};
+    std::queue<SerialCommunicatorMessage> transmit_queue{};
+    bool pending_receive = false;
 
-    size_t input_buffer_max_size = 1024;
-    std::vector<uint8_t> input_buffer;
-    bool message_started;
+    // TODO implement max size
+    // size_t input_buffer_max_size = 1024;
+    std::vector<uint8_t> input_buffer{};
+    bool message_started = false;
 
     OnPultMessage on_message;
     OnDisconnect on_disconnect;

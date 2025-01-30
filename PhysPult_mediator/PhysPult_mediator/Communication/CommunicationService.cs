@@ -67,6 +67,7 @@ namespace PhysPult_mediator.Communication
             }
 
             _activePort = port;
+            _activePort.ReceivedBytesThreshold = 1;
             _activePort.DataReceived += OnReceiveData;
 
             _reader.MessageReceived += OnReaderMessageReceived!;
@@ -136,14 +137,8 @@ namespace PhysPult_mediator.Communication
                 return;
             }
 
-            while (_activePort?.BytesToRead > 0)
+            foreach(var b in _activePort.ReadExisting())
             {
-                var b = _activePort.ReadByte();
-
-                // End of stream reached
-                if (b == -1)
-                    return;
-
                 _reader.Next((byte)b);
             }
         }
