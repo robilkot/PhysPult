@@ -118,7 +118,10 @@ void SerialCommunicator::send_pending_message()
     }
 
     // todo: some queue to support ack-ing
-    const auto& bytes = transmit_queue.front().to_bytes();
+    const auto& msg = transmit_queue.front();
+    const auto& bytes = msg.to_bytes();
+    
+    // log_i("sending: crc: %lu, seq: %lu, ack: %lu", msg.get_crc(), msg.get_sequence_number(), msg.get_ack_number());
 
     for(auto b : bytes) {
         Serial.write(b);

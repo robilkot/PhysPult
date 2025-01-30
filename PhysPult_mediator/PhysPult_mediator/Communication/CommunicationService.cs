@@ -137,9 +137,12 @@ namespace PhysPult_mediator.Communication
                 return;
             }
 
-            foreach(var b in _activePort.ReadExisting())
+            var bytesToRead = _activePort.BytesToRead;
+            byte[] buf = new byte[bytesToRead];
+            _ = _activePort.Read(buf, 0, bytesToRead);
+            foreach (var b in buf)
             {
-                _reader.Next((byte)b);
+                _reader.Next(b);
             }
         }
 

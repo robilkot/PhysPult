@@ -29,14 +29,14 @@ class SerialCommunicatorMessage
     }
 
     public:
-    const static uint8_t start_byte = B01111110;
-    const static uint8_t stop_byte = B10000001;
+    const static uint8_t start_byte = B00000010;
+    const static uint8_t stop_byte = B00000011;
 
     // Accepts byte array not including start and stop bytes
     SerialCommunicatorMessage(const std::vector<uint8_t>& bytes)
     {
         if(bytes.size() < 14) {
-            log_w("invalid serial message: less than 14 bytes");
+            log_w("invalid serial message: less than 14 bytes (actual size %lu)", bytes.size());
             return;
         }
 

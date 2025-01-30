@@ -6,8 +6,9 @@ using PhysPult_mediator.Messages.Readers;
 using System.IO.Ports;
 
 
-//var test = new SerialCommunicatorMessage("R;", 125, 111);
-//var test2 = test.ToBytes().ToList();
+var test = new SerialCommunicatorMessage("S;;;;", 0, 0);
+var test2 = test.ToBytes().ToList();
+var test3 = new SerialCommunicatorMessage(test2);
 
 // Choose active port
 var ports = SerialPort.GetPortNames();
@@ -49,7 +50,13 @@ while(true)
 
     if(key.Key == ConsoleKey.R)
     {
-        var serialPultMsg = new SerialCommunicatorMessage("R;", 125, 111);
+        var serialPultMsg = new SerialCommunicatorMessage("R;", 0, 0);
+
+        svc.Send(serialPultMsg);
+    }
+    else if(key.Key == ConsoleKey.C)
+    {
+        var serialPultMsg = new SerialCommunicatorMessage("C;1/8;", 0, 0);
 
         svc.Send(serialPultMsg);
     }

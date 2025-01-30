@@ -27,8 +27,8 @@ namespace PhysPult_mediator.Messages
         public UInt32 AckNumber { get; private set; }
         public string Content { get; private set; }
 
-        public const byte StartByte = 0b01111110;
-        public const byte StopByte = 0b10000001;
+        public const byte StartByte = 0b00000010;
+        public const byte StopByte = 0b00000011;
 
         public SerialCommunicatorMessage(IList<byte> bytes)
         {

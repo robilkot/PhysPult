@@ -14,10 +14,10 @@
             {
                 case SerialCommunicatorMessage.StartByte:
                     {
-                        Console.WriteLine(" start ");
                         if (messageStarted)
                         {
-                            // todo log ("second message start byte received before message end");
+                            Console.WriteLine("second message start byte received before message end");
+                            // todo log ();
                             _inputBuffer.Clear();
                         }
                         _inputBuffer.Add(read);
@@ -26,23 +26,32 @@
                     }
                 case SerialCommunicatorMessage.StopByte:
                     {
-                        Console.WriteLine(" stop ");
-                        if (!messageStarted)
+                        if(_inputBuffer.Count < 13)
                         {
-                            // todo log ("message end byte received before message start");
+                            _inputBuffer.Add(read); // 'stop byte' is part of crc or seq or ack
+                            // todo: log this
+                        }
+                        else
+                        {
+                            if (!messageStarted)
+                            {
+                                Console.WriteLine("message end byte received before message start");
+                                // todo log ("message end byte received before message start");
+                                _inputBuffer.Clear();
+                            }
+                            _inputBuffer.Add(read);
+                            messageStarted = false;
+
+                            var msg = new SerialCommunicatorMessage(_inputBuffer);
+
+                            DeincapsulateMessage(msg);
                             _inputBuffer.Clear();
                         }
-                        _inputBuffer.Add(read);
-                        messageStarted = false;
-
-                        var msg = new SerialCommunicatorMessage(_inputBuffer);
-
-                        DeincapsulateMessage(msg);
-                        _inputBuffer.Clear();
                         break;
                     }
                 default:
                     {
+                        Console.Write((char)read);
                         if (messageStarted)
                         {
                             _inputBuffer.Add(read);
