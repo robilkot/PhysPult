@@ -94,8 +94,7 @@ void SerialCommunicator::deincapsulate_pult_message(const SerialCommunicatorMess
         }
 
         const auto& content = message.get_content();
-        auto pultMessage = PultMessageFactory::Create(content);
-        on_message(*pultMessage);
+        on_message(PultMessageFactory::Create(content));
     }
     catch(const std::invalid_argument& ex)
     {

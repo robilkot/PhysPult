@@ -21,7 +21,7 @@ void WebsocketsCommunicator::accept_client()
     on_connect();
 
     client.onMessage([&] (websockets::WebsocketsMessage msg) {
-        on_message(*PultMessageFactory::Create(msg.rawData()));
+        on_message(PultMessageFactory::Create(msg.rawData()));
     });
     client.onEvent([&] (websockets::WebsocketsEvent event, websockets::WSInterfaceString payload) {
         switch(event) {

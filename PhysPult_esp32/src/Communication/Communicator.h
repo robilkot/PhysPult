@@ -5,7 +5,7 @@
 
 class PultMessage;
 
-typedef std::function<void(PultMessage&)> OnPultMessage;
+typedef std::function<void(std::shared_ptr<PultMessage>)> OnPultMessage;
 typedef std::function<void()> OnConnect;
 typedef std::function<void()> OnDisconnect;
 typedef std::function<void(int)> OnDeviceNumberChanged;

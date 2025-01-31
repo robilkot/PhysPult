@@ -9,6 +9,7 @@ namespace PhysPult_mediator.Communication.SerialCommunicator
     {
         public event EventHandler<T>? MessageReceived = null;
         public event EventHandler<T?>? MessageCorrupted = null;
+        public bool Connected => _activePort?.IsOpen ?? false;
 
         private readonly ISerialReader<T> _reader;
         private SerialPort? _activePort = null;
@@ -43,22 +44,23 @@ namespace PhysPult_mediator.Communication.SerialCommunicator
 
         public (bool, Exception?) TryConnect(SerialPortParameters parameters)
         {
-            SerialPort port = new()
-            {
-                PortName = parameters.PortName,
-                BaudRate = parameters.BaudRate,
-                DataBits = parameters.DataBits,
-                StopBits = parameters.StopBits switch
-                {
-                    1 => StopBits.One,
-                    1.5f => StopBits.OnePointFive,
-                    2 => StopBits.Two,
-                    _ => throw new NotImplementedException()
-                },
-            };
-
+            SerialPort port = null!;
             try
             {
+                port = new()
+                {
+                    PortName = parameters.PortName,
+                    BaudRate = parameters.BaudRate,
+                    DataBits = parameters.DataBits,
+                    StopBits = parameters.StopBits switch
+                    {
+                        1 => StopBits.One,
+                        1.5f => StopBits.OnePointFive,
+                        2 => StopBits.Two,
+                        _ => throw new NotImplementedException()
+                    },
+                };
+
                 port.Open();
             }
             catch (Exception ex)
@@ -116,6 +118,7 @@ namespace PhysPult_mediator.Communication.SerialCommunicator
 #pragma warning restore CA1416
         }
 
+        // todo: reconnect handler
         private void OnDeviceConfigurationChanged()
         {
             if (_activePort is not null)

@@ -328,6 +328,9 @@ void Pult::accept_config_message(const ConfigPultMessage& msg) {
 
     hardware.disable_potentiometers = !has_flag(feature_flags, FeatureFlags::Potentiometer);
     hardware.gauges_lighting_on = has_flag(feature_flags, FeatureFlags::GaugesLighting);
+
+    // todo: review logic here. config message serves as session initiator, causing mutual staterequestmessages
+    communicator->send(std::make_shared<StateRequestMessage>());
 }
 
 void Pult::monitor_state()
@@ -407,7 +410,7 @@ void Pult::start()
 {
     reset();
 
-    communicator->set_on_message([](const PultMessage& message) { message.apply(); });
+    communicator->set_on_message([](std::shared_ptr<PultMessage> message) { message->apply(); });
     communicator->set_on_device_number_changed([](int number) { display_symbols(number); });
     communicator->set_on_connect([](void) {
         xTaskCreatePinnedToCore(
@@ -419,8 +422,6 @@ void Pult::start()
             &state_monitor,
             1
         );
-        
-        communicator->send(std::make_shared<StateRequestMessage>());
         });
     communicator->set_on_disconnect([](void) {
         if(state_monitor) {

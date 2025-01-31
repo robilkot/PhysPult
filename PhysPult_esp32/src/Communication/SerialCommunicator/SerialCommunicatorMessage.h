@@ -7,7 +7,7 @@
 // -------------------------------------------------------------------------------
 // |      1      |   4   |      4      |      4      |     ...     |      1      |
 // -------------------------------------------------------------------------------
-// | 0b01111110  | crc32 | seq. number | ack. number |   content   | 0b10000001  |
+// |  B00000010  | crc32 | seq. number | ack. number |   content   |  B00000011  |
 // -------------------------------------------------------------------------------
 // CRC is calculated started from seq. number, finishing with content. Start and stop bits are not used for CRC.
 
