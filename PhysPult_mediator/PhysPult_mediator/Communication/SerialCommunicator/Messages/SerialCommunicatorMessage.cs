@@ -2,7 +2,7 @@
 using System.IO.Hashing;
 using System.Runtime.InteropServices;
 
-namespace PhysPult_mediator.Messages
+namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
 {
     // PDU format:
     // -------------------------------------------------------------------------------
@@ -13,9 +13,9 @@ namespace PhysPult_mediator.Messages
     // CRC is calculated started from seq. number, finishing with content. Start and stop bits are not used for CRC.
     public class SerialCommunicatorMessage : ISerialMessage
     {
-        private UInt32 crc;
+        private uint crc;
 
-        private UInt32 GetCrc32()
+        private uint GetCrc32()
         {
             var bytes = ToBytes().Skip(5).SkipLast(1).ToList(); // todo: slice
             var crc32 = Crc32.HashToUInt32(CollectionsMarshal.AsSpan(bytes));
@@ -23,8 +23,8 @@ namespace PhysPult_mediator.Messages
         }
 
         public bool Valid { get; private set; }
-        public UInt32 SequenceNumber { get; private set; }
-        public UInt32 AckNumber { get; private set; }
+        public uint SequenceNumber { get; private set; }
+        public uint AckNumber { get; private set; }
         public string Content { get; private set; }
 
         public const byte StartByte = 0b00000010;
@@ -64,7 +64,7 @@ namespace PhysPult_mediator.Messages
 
             Valid = crc == GetCrc32();
         }
-        public SerialCommunicatorMessage(string content, UInt32 sequence, UInt32 ack)
+        public SerialCommunicatorMessage(string content, uint sequence, uint ack)
         {
             Content = content;
             SequenceNumber = sequence;

@@ -1,4 +1,4 @@
-﻿namespace PhysPult_mediator.Messages
+﻿namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
 {
     public interface ISerialMessage
     {

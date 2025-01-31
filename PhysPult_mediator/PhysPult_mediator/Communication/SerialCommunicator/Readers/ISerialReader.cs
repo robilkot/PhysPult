@@ -1,4 +1,6 @@
-﻿namespace PhysPult_mediator.Messages.Readers
+﻿using PhysPult_mediator.Communication.SerialCommunicator.Messages;
+
+namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
 {
     public interface ISerialReader<T> where T : ISerialMessage
     {

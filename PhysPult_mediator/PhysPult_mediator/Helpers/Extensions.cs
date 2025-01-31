@@ -1,4 +1,4 @@
-﻿namespace PhysPult_mediator
+﻿namespace PhysPult_mediator.Helpers
 {
     public static class Extensions
     {

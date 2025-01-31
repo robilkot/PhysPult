@@ -1,4 +1,6 @@
-﻿namespace PhysPult_mediator.Messages.Readers
+﻿using PhysPult_mediator.Communication.SerialCommunicator.Messages;
+
+namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
 {
     public class SerialPultMessageReader : ISerialReader<SerialCommunicatorMessage>
     {
@@ -26,7 +28,7 @@
                     }
                 case SerialCommunicatorMessage.StopByte:
                     {
-                        if(_inputBuffer.Count < 13)
+                        if (_inputBuffer.Count < 13)
                         {
                             _inputBuffer.Add(read); // 'stop byte' is part of crc or seq or ack
                             // todo: log this
@@ -62,7 +64,7 @@
         }
         private void DeincapsulateMessage(SerialCommunicatorMessage msg)
         {
-            if(msg.Valid)
+            if (msg.Valid)
             {
                 MessageReceived?.Invoke(this, msg);
             }

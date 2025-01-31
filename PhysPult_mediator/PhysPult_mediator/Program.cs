@@ -1,14 +1,8 @@
-﻿
-using PhysPult_mediator;
-using PhysPult_mediator.Communication;
-using PhysPult_mediator.Messages;
-using PhysPult_mediator.Messages.Readers;
+﻿using PhysPult_mediator.Communication.SerialCommunicator;
+using PhysPult_mediator.Communication.SerialCommunicator.Messages;
+using PhysPult_mediator.Communication.SerialCommunicator.Readers;
+using PhysPult_mediator.Helpers;
 using System.IO.Ports;
-
-
-var test = new SerialCommunicatorMessage("S;;;;", 0, 0);
-var test2 = test.ToBytes().ToList();
-var test3 = new SerialCommunicatorMessage(test2);
 
 // Choose active port
 var ports = SerialPort.GetPortNames();
@@ -22,11 +16,11 @@ ports.Each((port, index) =>
 Console.WriteLine("Input port index:");
 var portIndex = int.Parse(Console.ReadLine()!);
 
-var parameters = new ConnectionParameters(ports[portIndex]);
+var parameters = new SerialPortParameters(ports[portIndex]);
 
 // Create needed services
 var reader = new SerialPultMessageReader();
-var svc = new CommunicationService<SerialCommunicatorMessage>(reader);
+var svc = new SerialCommunicator<SerialCommunicatorMessage>(reader);
 
 // Subscribe to events
 svc.MessageReceived += (sender, message) =>
@@ -44,17 +38,17 @@ svc.MessageCorrupted += (sender, args) =>
 svc.TryConnect(parameters);
 
 
-while(true)
+while (true)
 {
     var key = Console.ReadKey();
 
-    if(key.Key == ConsoleKey.R)
+    if (key.Key == ConsoleKey.R)
     {
         var serialPultMsg = new SerialCommunicatorMessage("R;", 0, 0);
 
         svc.Send(serialPultMsg);
     }
-    else if(key.Key == ConsoleKey.C)
+    else if (key.Key == ConsoleKey.C)
     {
         var serialPultMsg = new SerialCommunicatorMessage("C;1/8;", 0, 0);
 

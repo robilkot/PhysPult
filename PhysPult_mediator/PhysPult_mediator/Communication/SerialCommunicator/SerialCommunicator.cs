@@ -1,11 +1,11 @@
-﻿using PhysPult_mediator.Messages;
-using PhysPult_mediator.Messages.Readers;
+﻿using PhysPult_mediator.Communication.SerialCommunicator.Messages;
+using PhysPult_mediator.Communication.SerialCommunicator.Readers;
 using System.IO.Ports;
 using System.Management;
 
-namespace PhysPult_mediator.Communication
+namespace PhysPult_mediator.Communication.SerialCommunicator
 {
-    public class CommunicationService<T> where T : ISerialMessage
+    public class SerialCommunicator<T> where T : ISerialMessage
     {
         public event EventHandler<T>? MessageReceived = null;
         public event EventHandler<T?>? MessageCorrupted = null;
@@ -13,7 +13,7 @@ namespace PhysPult_mediator.Communication
         private readonly ISerialReader<T> _reader;
         private SerialPort? _activePort = null;
 
-        public CommunicationService(ISerialReader<T> reader)
+        public SerialCommunicator(ISerialReader<T> reader)
         {
             _reader = reader;
             OnDeviceConfigurationChanged();
@@ -22,7 +22,7 @@ namespace PhysPult_mediator.Communication
 
         public (bool, Exception?) Send(T message)
         {
-            if(_activePort is null)
+            if (_activePort is null)
             {
                 // todo log
                 return (false, null);
@@ -41,7 +41,7 @@ namespace PhysPult_mediator.Communication
             }
         }
 
-        public (bool, Exception?) TryConnect(ConnectionParameters parameters)
+        public (bool, Exception?) TryConnect(SerialPortParameters parameters)
         {
             SerialPort port = new()
             {
@@ -132,7 +132,7 @@ namespace PhysPult_mediator.Communication
 
         private void OnReceiveData(object sender, SerialDataReceivedEventArgs e)
         {
-            if(!(_activePort?.IsOpen ?? false))
+            if (!(_activePort?.IsOpen ?? false))
             {
                 return;
             }
