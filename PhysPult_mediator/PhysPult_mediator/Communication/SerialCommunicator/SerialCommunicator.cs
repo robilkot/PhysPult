@@ -5,35 +5,41 @@ using System.Management;
 
 namespace PhysPult_mediator.Communication.SerialCommunicator
 {
-    public class SerialCommunicator<T> where T : ISerialMessage
+    public class SerialCommunicator
     {
-        public event EventHandler<T>? MessageReceived = null;
-        public event EventHandler<T?>? MessageCorrupted = null;
+        private UInt32 _seq = 0;
+
+        public event EventHandler<SerialCommunicatorMessage>? MessageReceived = null;
+        public event EventHandler<SerialCommunicatorMessage?>? MessageCorrupted = null;
         public bool Connected => _activePort?.IsOpen ?? false;
 
-        private readonly ISerialReader<T> _reader;
+        private readonly ISerialReader<SerialCommunicatorMessage> _reader;
         private SerialPort? _activePort = null;
 
-        public SerialCommunicator(ISerialReader<T> reader)
+        public SerialCommunicator(ISerialReader<SerialCommunicatorMessage> reader)
         {
             _reader = reader;
             OnDeviceConfigurationChanged();
             StartDevicesEventsWatcher();
         }
 
-        public (bool, Exception?) Send(T message)
+        public (bool, Exception?) Send(string message)
         {
-            if (_activePort is null)
+            if(_seq == 0)
             {
-                // todo log
-                return (false, null);
+                _seq++;
             }
 
-            var bytes = message.ToBytes().ToArray();
+            var msg = new SerialCommunicatorMessage(message, _seq, 0);
+
+            var bytes = msg.ToBytes().ToArray();
 
             try
             {
                 _activePort.Write(bytes, 0, bytes.Length);
+
+                _seq++;
+
                 return (true, null);
             }
             catch (Exception ex)
@@ -149,9 +155,9 @@ namespace PhysPult_mediator.Communication.SerialCommunicator
             }
         }
 
-        private void OnReaderMessageReceived(object sender, T message)
+        private void OnReaderMessageReceived(object sender, SerialCommunicatorMessage message)
             => MessageReceived?.Invoke(sender, message);
-        private void OnReaderMessageCorrupted(object sender, T? args)
+        private void OnReaderMessageCorrupted(object sender, SerialCommunicatorMessage? args)
             => MessageCorrupted?.Invoke(sender, args);
     }
 }

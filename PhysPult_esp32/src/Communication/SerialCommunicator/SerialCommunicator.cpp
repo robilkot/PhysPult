@@ -1,79 +1,71 @@
 #include "SerialCommunicator.h"
+#include <driver/uart.h>
+#include <rtc_wdt.h>
 
 extern const uint8_t SerialCommunicatorMessage::stop_byte;
 extern const uint8_t SerialCommunicatorMessage::start_byte;
 
-int SerialCommunicator::get_device_number()
+int SerialCommunicator::get_device_number() { return 0; }
+void SerialCommunicator::set_on_message(OnPultMessage handler) { on_message = handler; }
+void SerialCommunicator::set_on_disconnect(OnDisconnect handler) { on_disconnect = handler; }
+void SerialCommunicator::set_on_connect(OnConnect handler) { on_connect = handler; }
+void SerialCommunicator::set_on_device_number_changed(OnDeviceNumberChanged handler) { on_device_number_changed = handler; }
+
+void SerialCommunicator::resetInputBuffer()
 {
-    return 0;
+    input_buffer.clear();
+    expected_content_length = 0;
 }
-void SerialCommunicator::set_on_message(OnPultMessage handler)
-{
-    on_message = handler;
-}
-void SerialCommunicator::set_on_disconnect(OnDisconnect handler)
-{
-    on_disconnect = handler;
-}
-void SerialCommunicator::set_on_connect(OnConnect handler)
-{
-    on_connect = handler;
-}
-void SerialCommunicator::set_on_device_number_changed(OnDeviceNumberChanged handler)
-{
-    on_device_number_changed = handler;
-}
+
 
 void SerialCommunicator::accept_pending_receive()
 {
-    if(!pending_receive)
-    {
-        return;
-    }
- 
-    // To avoid corrupting input buffer
-    std::lock_guard<std::mutex> lock(receive_buffer_lock);
 
-    while(Serial.available())
+    uint8_t read{};
+    while(xQueueReceive(uart_rx_queue, &read, 0))
     {
-        auto read = Serial.read();
-
-        if(read == -1) {
-            log_w("invalid reading from serial port");
+        // If content length is read
+        if(input_buffer.size() == 17)
+        {
+            auto read_length = input_buffer[16];
+            expected_content_length = read_length <= 255 ? read_length : 0;
         }
 
         switch (read)
         {
         case SerialCommunicatorMessage::start_byte:
         {
-            if(message_started)
-            {
-                log_w("second message start byte received before message end");
-                input_buffer.clear();
-            }
-            message_started = true;
             input_buffer.emplace_back(read);
             break;
         }
         case SerialCommunicatorMessage::stop_byte:
         {
-            if(!message_started)
+            if(input_buffer.size() == 0)
             {
-                log_w("message end byte received before message start");
-                input_buffer.clear();
+                resetInputBuffer();
             }
-            message_started = false;
-            input_buffer.emplace_back(read);
-            
-            auto msg = SerialCommunicatorMessage(input_buffer);
-            input_buffer.clear();
-            
-            deincapsulate_pult_message(msg);
+            else {
+                input_buffer.emplace_back(read);
+
+                int contentBytes = (int)input_buffer.size() - 18;
+                if(contentBytes > 0)
+                // If expected number was corrupter or we've reached length, reset
+                // if(expected_content_length == 0 || contentBytes >= expected_content_length)
+                {
+                    SerialCommunicatorMessage msg(input_buffer);
+
+                    deincapsulate_pult_message(msg);
+                    resetInputBuffer();
+                } else
+                {
+                    log_w("contentBytes: %d < %lu", contentBytes, expected_content_length);
+                }
+            }
             break;
         }
         default:
         {
-            if(message_started)
+            if(input_buffer.size() > 0)
             {
                 input_buffer.emplace_back(read);
             }
@@ -81,74 +73,87 @@ void SerialCommunicator::accept_pending_receive()
         }
         }
     }
-
-    pending_receive = false;
 }
 
 void SerialCommunicator::deincapsulate_pult_message(const SerialCommunicatorMessage& message)
 {
-    try {
-        if(!message.is_valid())
-        {
-            throw std::invalid_argument("invalid message checksum");
-        }
-
+    if(message.is_valid())
+    {
         const auto& content = message.get_content();
         on_message(PultMessageFactory::Create(content));
     }
-    catch(const std::invalid_argument& ex)
-    {
-        log_w("invalid pult message (seq %lu, ack %lu, crc %lu): %s", message.get_sequence_number(), message.get_ack_number(), message.get_crc(), ex.what());
+    else {
         on_invalid_message(message);
     }
 }
 
-void SerialCommunicator::on_invalid_message(const SerialCommunicatorMessage& msg)
+void SerialCommunicator::on_invalid_message(const SerialCommunicatorMessage& message)
 {
-    log_w("invalid serial message received. sending state request");
+    log_w("invalid pult message: seq %lu, ack %lu, crc %lu (%s))", message.get_sequence_number(), message.get_ack_number(), message.get_crc(), message.get_content().c_str());
     send(std::make_shared<StateRequestMessage>());
 }
 
 void SerialCommunicator::send_pending_message()
 {
-    if(transmit_queue.empty())
+    if (!transmit_queue.empty())
     {
-        return;
-    }
+        const auto& msg = transmit_queue.front();
 
-    // todo: some queue to support ack-ing
-    const auto& msg = transmit_queue.front();
-    const auto& bytes = msg.to_bytes();
-    
-    // log_i("sending: crc: %lu, seq: %lu, ack: %lu", msg.get_crc(), msg.get_sequence_number(), msg.get_ack_number());
+        // log_i("sending: crc: %lu, seq: %lu, ack: %lu, len: %lu (%s)", msg.get_crc(), msg.get_sequence_number(), msg.get_ack_number(), msg.get_content_length(), msg.get_content().c_str());
 
-    for(auto b : bytes) {
-        Serial.write(b);
-    }
+        const auto& bytes = msg.to_bytes();
 
-    {
-        std::lock_guard<std::mutex> lock(transmit_buffer_lock);
-        transmit_queue.pop(); // will need to change if acking is implemented
+        for(auto b : bytes) {
+            Serial.write(b);
+        }
+        uart_write_bytes(UART_NUM_0, bytes.data(), bytes.size());
+
+        // todo: mutex
+        transmit_queue.pop();
     }
 }
 
 void SerialCommunicator::send(std::shared_ptr<PultMessage> msg)
 {
-    assert(msg);
-    SerialCommunicatorMessage serial_msg(msg->to_string(), 0, 0);
+    static uint32_t seq = 1;
 
-    {
-        std::lock_guard<std::mutex> lock(transmit_buffer_lock);
-        transmit_queue.push(serial_msg);
+    assert(msg);
+
+    if(seq == 0) {
+        seq++;
     }
+
+    SerialCommunicatorMessage serial_msg(msg->to_string(), seq, 0);
+
+    seq++;
+
+    // todo: mutex
+    transmit_queue.push(serial_msg);
 }
+
+void IRAM_ATTR SerialCommunicator::uart_read_isr()
+{
+    size_t buffered_len = Serial.available();
+    
+    uint8_t* buf = new uint8_t[buffered_len];
+    if(uart_read_bytes(UART_NUM_0, buf, buffered_len, 0) > 0)
+    {
+        for(size_t i = 0; i < buffered_len; i++) {
+            xQueueSendFromISR(uart_rx_queue, buf + i, NULL);
+        }
+    }
+
+    delete buf;
+}
+
 void SerialCommunicator::start()
 {
     Serial.onReceive([this]() {
-        pending_receive = true;
+        uart_read_isr();
     });
 
-    log_i("callback for serial set-up ok. waiting for messages.");
+    log_i("callback for serial set-up. waiting for messages.");
+    on_connect();
     
     while (true)
     {

@@ -5,58 +5,69 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
     public class SerialPultMessageReader : ISerialReader<SerialCommunicatorMessage>
     {
         private List<byte> _inputBuffer = [];
-        private bool messageStarted;
+        private UInt32? _expectedContentLength = null;
 
         public event EventHandler<SerialCommunicatorMessage>? MessageReceived;
         public event EventHandler<SerialCommunicatorMessage?>? MessageCorrupted;
 
         public void Next(byte read)
         {
+            void resetInputBuffer()
+            {
+                _inputBuffer.Clear();
+                _expectedContentLength = null;
+            }
+            
+            // If content length is read
+            if(_inputBuffer.Count == 17)
+            {
+                var readLength = BitConverter.ToUInt32(_inputBuffer.Skip(13).Take(4).ToArray());
+                _expectedContentLength = readLength <= 255 ? readLength : null;
+            }
+
             switch (read)
             {
                 case SerialCommunicatorMessage.StartByte:
                     {
-                        if (messageStarted)
-                        {
-                            Console.WriteLine("second message start byte received before message end");
-                            // todo log ();
-                            _inputBuffer.Clear();
-                        }
                         _inputBuffer.Add(read);
-                        messageStarted = true;
                         break;
                     }
                 case SerialCommunicatorMessage.StopByte:
                     {
-                        if (_inputBuffer.Count < 13)
+                        if (_inputBuffer.Count == 0)
                         {
-                            _inputBuffer.Add(read); // 'stop byte' is part of crc or seq or ack
-                            // todo: log this
+                            resetInputBuffer();
                         }
                         else
                         {
-                            if (!messageStarted)
-                            {
-                                Console.WriteLine("message end byte received before message start");
-                                // todo log ("message end byte received before message start");
-                                _inputBuffer.Clear();
-                            }
                             _inputBuffer.Add(read);
-                            messageStarted = false;
 
-                            var msg = new SerialCommunicatorMessage(_inputBuffer);
+                            var contentBytes = _inputBuffer.Count - 18;
+                            if(contentBytes >= 0) // I do not expect stop byte in content
+                            // If expected number was corrupter or we've reached length, reset
+                            //if(_expectedContentLength is null || contentBytes >= _expectedContentLength)
+                            {
+                                var msg = new SerialCommunicatorMessage(_inputBuffer);
 
-                            DeincapsulateMessage(msg);
-                            _inputBuffer.Clear();
+                                DeincapsulateMessage(msg);
+                                resetInputBuffer();
+                            } else
+                            {
+                                Console.WriteLine($"contentBytes: {contentBytes} < {_expectedContentLength}");
+                            }
                         }
                         break;
                     }
                 default:
                     {
-                        Console.Write((char)read);
-                        if (messageStarted)
+                        if (_inputBuffer.Count > 0)
                         {
                             _inputBuffer.Add(read);
+                        }
+                        else
+                        {
+                            // Reading debug or other stuff from port
+                            Console.Write((char)read);
                         }
                         break;
                     }
@@ -69,7 +80,7 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
                 MessageReceived?.Invoke(this, msg);
             }
             else
-            {
+            {   
                 MessageCorrupted?.Invoke(this, msg);
             }
         }

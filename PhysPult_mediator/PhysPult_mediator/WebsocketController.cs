@@ -8,8 +8,8 @@ namespace PhysPult_mediator
 {
     public class WebsocketController : ControllerBase
     {
-        private readonly SerialCommunicator<SerialCommunicatorMessage> _serialCommunicator;
-        public WebsocketController(SerialCommunicator<SerialCommunicatorMessage> communicator)
+        private readonly SerialCommunicator _serialCommunicator;
+        public WebsocketController(SerialCommunicator communicator)
         {
             _serialCommunicator = communicator;
         }
@@ -33,19 +33,25 @@ namespace PhysPult_mediator
             await ProcessSession(webSocket);
         }
 
+        // todo: handle force disconnect
         private async Task ProcessSession(WebSocket webSocket)
         {
             async void onSerialMessageReceived(object? sender, SerialCommunicatorMessage message)
             {
-                var str = message.Content;
-                var bytes = Encoding.UTF8.GetBytes(str);
+                var bytes = Encoding.UTF8.GetBytes(message.Content);
                 await webSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); // todo: what if message is longer than 1 segment? idgaf for now
+            }
+
+            void onSerialMessageCorrupted(object? sender, SerialCommunicatorMessage? msg)
+            {
+                Console.WriteLine($"MessageCorrupted ({msg.Crc}, {msg.SequenceNumber}, {msg.AckNumber}, {msg.ContentLength}, {msg.Content})");
             }
 
             // Subscribe
             // todo: MessageCorrupted
             _serialCommunicator.MessageReceived += onSerialMessageReceived;
-            
+            _serialCommunicator.MessageCorrupted += onSerialMessageCorrupted;
+
             // Accept messages
             var buffer = new byte[1024 * 4];
             var receiveResult = await webSocket.ReceiveAsync(
@@ -55,9 +61,10 @@ namespace PhysPult_mediator
             {
                 var message = Encoding.UTF8.GetString(buffer.Take(receiveResult.Count).ToArray());
 
-                var serialMsg = new SerialCommunicatorMessage(message, 0, 0); // todo: acking
-
-                _serialCommunicator.Send(serialMsg);
+                if(_serialCommunicator.Send(message) is (false, Exception ex))
+                {
+                    Console.WriteLine($"Serial send failure: {ex.Message}");
+                }
 
                 receiveResult = await webSocket.ReceiveAsync(
                     new ArraySegment<byte>(buffer), CancellationToken.None);
@@ -65,6 +72,7 @@ namespace PhysPult_mediator
 
             // Unsubscribe
             _serialCommunicator.MessageReceived -= onSerialMessageReceived;
+            _serialCommunicator.MessageCorrupted -= onSerialMessageCorrupted;
 
             await webSocket.CloseAsync(
                 receiveResult.CloseStatus.Value,

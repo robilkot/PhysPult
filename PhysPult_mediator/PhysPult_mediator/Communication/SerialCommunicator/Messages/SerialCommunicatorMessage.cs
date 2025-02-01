@@ -5,15 +5,16 @@ using System.Runtime.InteropServices;
 namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
 {
     // PDU format:
-    // -------------------------------------------------------------------------------
-    // |      1      |   4   |      4      |      4      |     ...     |      1      |
-    // -------------------------------------------------------------------------------
-    // | 0b00000010  | crc32 | seq. number | ack. number |   content   | 0b00000011  |
-    // -------------------------------------------------------------------------------
-    // CRC is calculated started from seq. number, finishing with content. Start and stop bits are not used for CRC.
-    public class SerialCommunicatorMessage : ISerialMessage
+    // -----------------------------------------------------------------------------------------------------------------
+    // |      1      |      4      |      4      |      4      |      3      |      1      |   0..255    |      1      |
+    // -----------------------------------------------------------------------------------------------------------------
+    // |  B00000010  |    crc32    | seq. number | ack. number |      0      |  c. length  |   content   |  B00000011  |
+    // -----------------------------------------------------------------------------------------------------------------
+    // CRC32 is calculated started for seq. number, ack. number, c. length and content
+    public class SerialCommunicatorMessage
     {
         private uint crc;
+        public uint Crc => crc;
 
         private uint GetCrc32()
         {
@@ -25,42 +26,46 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
         public bool Valid { get; private set; }
         public uint SequenceNumber { get; private set; }
         public uint AckNumber { get; private set; }
-        public string Content { get; private set; }
+        public uint ContentLength { get; private set; }
+        public string Content { get; private set; } = string.Empty;
 
         public const byte StartByte = 0b00000010;
         public const byte StopByte = 0b00000011;
 
         public SerialCommunicatorMessage(IList<byte> bytes)
         {
-            if (bytes.Count < 14)
+            if (bytes.Count < 18)
             {
-                throw new Exception("invalid serial message: less than 12 bytes");
+                // todo log
+                Console.WriteLine("invalid serial message: less than 18 bytes");
+                return;
             }
 
-            StringBuilder sb = new(150);
-
-            try
+            if (bytes[0] != StartByte)
             {
-                var crcBytes = CollectionsMarshal.AsSpan(bytes.Skip(1).Take(4).ToList());
-                crc = BitConverter.ToUInt32(crcBytes);
-
-                var seqBytes = CollectionsMarshal.AsSpan(bytes.Skip(5).Take(4).ToList());
-                SequenceNumber = BitConverter.ToUInt32(seqBytes);
-
-                var ackBytes = CollectionsMarshal.AsSpan(bytes.Skip(9).Take(4).ToList());
-                AckNumber = BitConverter.ToUInt32(ackBytes);
-
-                for (var i = 13; i < bytes.Count - 1; i++)
-                {
-                    sb.Append((char)bytes[i]);
-                }
-
-                Content = sb.ToString();
+                Console.WriteLine("invalid serial message: invalid start byte");
+                return;
             }
-            catch (Exception ex)
+            if(bytes[bytes.Count - 1] != StopByte)
             {
-                throw new Exception($"invalid serial message: {ex.Message}");
+                Console.WriteLine("invalid serial message: invalid stop byte");
+                return;
             }
+
+            var crcBytes = CollectionsMarshal.AsSpan(bytes.Skip(1).Take(4).ToList());
+            crc = BitConverter.ToUInt32(crcBytes);
+
+            var seqBytes = CollectionsMarshal.AsSpan(bytes.Skip(5).Take(4).ToList());
+            SequenceNumber = BitConverter.ToUInt32(seqBytes);
+
+            var ackBytes = CollectionsMarshal.AsSpan(bytes.Skip(9).Take(4).ToList());
+            AckNumber = BitConverter.ToUInt32(ackBytes);
+
+            var lenBytes = CollectionsMarshal.AsSpan(bytes.Skip(13).Take(4).ToList());
+            ContentLength = BitConverter.ToUInt32(lenBytes);
+
+            var contentBytes = bytes.Skip(17).SkipLast(1).ToArray();
+            Content = Encoding.UTF8.GetString(contentBytes);
 
             Valid = crc == GetCrc32();
         }
@@ -69,6 +74,7 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
             Content = content;
             SequenceNumber = sequence;
             AckNumber = ack;
+            ContentLength = (uint)content.Length;
 
             crc = GetCrc32();
             Valid = true;
@@ -94,6 +100,12 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Messages
             for (int i = 0; i < 4; i++)
             {
                 yield return ackBytes[i];
+            }
+
+            var lenBytes = BitConverter.GetBytes(ContentLength);
+            for (int i = 0; i < 4; i++)
+            {
+                yield return lenBytes[i];
             }
 
             foreach (var c in Content)

@@ -2,7 +2,7 @@
 
 namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
 {
-    public interface ISerialReader<T> where T : ISerialMessage
+    public interface ISerialReader<T>
     {
         void Next(byte read);
         event EventHandler<T>? MessageReceived;

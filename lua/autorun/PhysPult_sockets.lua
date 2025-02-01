@@ -2,14 +2,14 @@ if(SERVER) then return end
 
 PhysPult = PhysPult or {}
 
-local url = "ws://192.168.1.2:8080"
+local url = "ws://127.0.0.1:8080/ws"
 
 require("gwsockets")
 
 function PhysPult.Send(msg)
     if(PhysPult.Socket) then
         PhysPult.Socket:write(msg) 
-        -- chat.AddText("snt ", msg)
+        chat.AddText("snt ", msg)
     end
 end
 
@@ -18,7 +18,7 @@ function PhysPult.Start(onMessage, onConnected, onDisconnected)
     socket = GWSockets.createWebSocket(url)
 
     function socket:onMessage(txt)
-        -- chat.AddText("rec ", tostring(txt))
+        chat.AddText("rec ", tostring(txt))
         onMessage(txt)
     end
     

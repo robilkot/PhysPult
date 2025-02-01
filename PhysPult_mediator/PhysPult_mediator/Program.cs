@@ -1,6 +1,5 @@
 ﻿using PhysPult_mediator;
 using PhysPult_mediator.Communication.SerialCommunicator;
-using PhysPult_mediator.Communication.SerialCommunicator.Messages;
 using PhysPult_mediator.Communication.SerialCommunicator.Readers;
 using PhysPult_mediator.Helpers;
 using System.IO.Ports;
@@ -17,7 +16,7 @@ catch (Exception ex_)
 }
 
 var reader = new SerialPultMessageReader();
-var svc = new SerialCommunicator<SerialCommunicatorMessage>(reader);
+var svc = new SerialCommunicator(reader);
 
 var connected = svc.TryConnect(settings.SerialPortParameters);
 
@@ -50,6 +49,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddSingleton(svc);
+
+builder.WebHost.UseUrls($"http://localhost:{settings.WebsocketParameters.Port}");
 
 var app = builder.Build();
 

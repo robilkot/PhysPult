@@ -1,6 +1,6 @@
 #include "Pult.h"
 
-FeatureFlags Pult::feature_flags = FeatureFlags::GaugesLighting;
+FeatureFlags Pult::feature_flags = FeatureFlags::GaugesLighting | FeatureFlags::InputRegisters;
 std::shared_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;

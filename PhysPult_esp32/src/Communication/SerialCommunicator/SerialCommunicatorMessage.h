@@ -4,12 +4,12 @@
 #include <vector>
 
 // PDU format:
-// -------------------------------------------------------------------------------
-// |      1      |   4   |      4      |      4      |     ...     |      1      |
-// -------------------------------------------------------------------------------
-// |  B00000010  | crc32 | seq. number | ack. number |   content   |  B00000011  |
-// -------------------------------------------------------------------------------
-// CRC is calculated started from seq. number, finishing with content. Start and stop bits are not used for CRC.
+// -----------------------------------------------------------------------------------------------------------------
+// |      1      |      4      |      4      |      4      |      3      |      1      |   0..255    |      1      |
+// -----------------------------------------------------------------------------------------------------------------
+// |  B00000010  |    crc32    | seq. number | ack. number |      0      |  c. length  |   content   |  B00000011  |
+// -----------------------------------------------------------------------------------------------------------------
+// CRC32 is calculated started for seq. number, ack. number, c. length and content
 
 class SerialCommunicatorMessage
 {
@@ -18,7 +18,9 @@ class SerialCommunicatorMessage
     uint32_t crc = 0;
     uint32_t sequence_number = 0;
     uint32_t ack_number = 0;
-    std::string content{};
+    uint32_t content_length = 0;
+
+    std::string content {};
 
     uint32_t calculate_crc() const
     {
@@ -35,73 +37,59 @@ class SerialCommunicatorMessage
     // Accepts byte array not including start and stop bytes
     SerialCommunicatorMessage(const std::vector<uint8_t>& bytes)
     {
-        if(bytes.size() < 14) {
-            log_w("invalid serial message: less than 14 bytes (actual size %lu)", bytes.size());
+        if(bytes.size() < 18) {
+            std::string msg{bytes.begin(), bytes.end()};
+            log_w("invalid serial message: less than 18 bytes (%lu bytes): %s", bytes.size(), msg);
             return;
         }
 
-         std::string message_str;
+        std::string message_str;
 
-        try {
-            for (auto i = 0; i < 4; i++)
-            {
-                crc |= bytes[i + 1] << (8 * i);
-            }
-            for (auto i = 0; i < 4; i++)
-            {
-                sequence_number |= bytes[i + 5] << (8 * i);
-            }
-            for (auto i = 0; i < 4; i++)
-            {
-                ack_number |= bytes[i + 9] << (8 * i);
-            }
-
-            size_t size = bytes.size() - 14;
-            content.reserve(size);
-
-            for (auto it = bytes.begin() + 13; it != bytes.end() - 1; it++)
-            {
-                content += (char)*it;
-            }
-        }
-        catch (const std::exception& ex)
+        for (auto i = 0; i < 4; i++)
         {
-            log_w("invalid serial message: %s", ex.what());
+            crc |= bytes[i + 1] << (8 * i);
+        }
+        for (auto i = 0; i < 4; i++)
+        {
+            sequence_number |= bytes[i + 5] << (8 * i);
+        }
+        for (auto i = 0; i < 4; i++)
+        {
+            ack_number |= bytes[i + 9] << (8 * i);
+        }
+        for (auto i = 0; i < 4; i++)
+        {
+            content_length |= bytes[i + 13] << (8 * i);
+        }
+
+        size_t size = bytes.size() - 18;
+        content.reserve(size);
+
+        for (auto it = bytes.begin() + 17; it != bytes.end() - 1; it++)
+        {
+            content += (char)*it;
         }
 
         valid = crc == calculate_crc();
     }
 
     SerialCommunicatorMessage(std::string content, uint32_t sequence, uint32_t ack)
-    : content(content), sequence_number(sequence), ack_number(ack)
+    : content(content), sequence_number(sequence), ack_number(ack), content_length(content.size()), valid(true)
     { 
         crc = calculate_crc();
-
-        valid = true;
     }
 
-    uint32_t get_crc() const
-    {
-        return crc;
-    }
-
-    std::string get_content() const
-    {
-        return content;
-    }
-    uint32_t get_sequence_number() const
-    {
-        return sequence_number;
-    }
-    uint32_t get_ack_number() const
-    {
-        return ack_number;
-    }
+    uint32_t get_crc() const { return crc; }
+    uint32_t get_sequence_number() const { return sequence_number; }
+    uint32_t get_ack_number() const { return ack_number; }
+    uint32_t get_content_length() const { return content_length; }
+    std::string get_content() const { return content; }
+    bool is_valid() const { return valid; }
 
     std::vector<uint8_t> to_bytes() const
     {
         std::vector<uint8_t> output;
-        output.reserve(1 + 12 + content.size() + 1);
+        output.reserve(1 + 16 + content.size() + 1);
 
         // start byte
         output.emplace_back(start_byte);
@@ -121,6 +109,11 @@ class SerialCommunicatorMessage
         {
             output.emplace_back(static_cast<uint8_t>((ack_number >> (i * 8)) & 255));
         }
+        // length
+        for (auto i = 0; i < 4; i++)
+        {
+            output.emplace_back(static_cast<uint8_t>((content_length >> (i * 8)) & 255));
+        }
         // content
         for (auto c : content)
         {
@@ -133,8 +126,4 @@ class SerialCommunicatorMessage
         return output;
     }
 
-    bool is_valid() const
-    {
-        return valid;
-    }
 };

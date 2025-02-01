@@ -11,25 +11,23 @@ class PultMessage;
 class SerialCommunicator : public Communicator
 {
     private:
-    std::mutex receive_buffer_lock{};
-    std::mutex transmit_buffer_lock{};
+    QueueHandle_t uart_rx_queue = xQueueCreate(1024, sizeof(uint8_t));
     std::queue<SerialCommunicatorMessage> transmit_queue{};
-    bool pending_receive = false;
 
-    // TODO implement max size
-    // size_t input_buffer_max_size = 1024;
     std::vector<uint8_t> input_buffer{};
-    bool message_started = false;
+    uint32_t expected_content_length{};
 
     OnPultMessage on_message;
     OnDisconnect on_disconnect;
     OnConnect on_connect;
     OnDeviceNumberChanged on_device_number_changed;
 
+    void resetInputBuffer();
     void on_invalid_message(const SerialCommunicatorMessage& msg);
     void send_pending_message();
     void accept_pending_receive();
     void deincapsulate_pult_message(const SerialCommunicatorMessage& message);
+    void IRAM_ATTR uart_read_isr();
 
     public:
     int get_device_number() override;
