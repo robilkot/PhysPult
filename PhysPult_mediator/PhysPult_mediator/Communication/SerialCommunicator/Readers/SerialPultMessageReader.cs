@@ -53,7 +53,7 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
                                 resetInputBuffer();
                             } else
                             {
-                                Console.WriteLine($"contentBytes: {contentBytes} < {_expectedContentLength}");
+                                //Console.WriteLine($"contentBytes: {contentBytes} < {_expectedContentLength}");
                             }
                         }
                         break;

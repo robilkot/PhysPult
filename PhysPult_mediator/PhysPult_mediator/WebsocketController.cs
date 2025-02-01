@@ -36,9 +36,10 @@ namespace PhysPult_mediator
         // todo: handle force disconnect
         private async Task ProcessSession(WebSocket webSocket)
         {
-            async void onSerialMessageReceived(object? sender, SerialCommunicatorMessage message)
+            async void onSerialMessageReceived(object? sender, SerialCommunicatorMessage msg)
             {
-                var bytes = Encoding.UTF8.GetBytes(message.Content);
+                //Console.WriteLine($"MessageReceived ({msg.Crc}, {msg.SequenceNumber}, {msg.AckNumber}, {msg.ContentLength}, {msg.Content})");
+                var bytes = Encoding.UTF8.GetBytes(msg.Content);
                 await webSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); // todo: what if message is longer than 1 segment? idgaf for now
             }
 

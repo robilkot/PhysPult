@@ -433,7 +433,7 @@ void Pult::start()
     xTaskCreatePinnedToCore(
         [](void* param) { hardware.start(); },
         "pult_hardware",
-        2500, // takes 1892
+        3500, // takes 1892
         nullptr,
         1,  // Priority
         nullptr,
@@ -445,7 +445,7 @@ void Pult::start()
             communicator->start(); 
         },
         "pult_communicator",
-        2700, // takes 2084 but grows to 2356
+        5000, // takes 2084 but grows to 2356
         nullptr,
         5,  // Priority
         nullptr,

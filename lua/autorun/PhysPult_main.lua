@@ -144,7 +144,7 @@ local buttons = {
 PhysPult = PhysPult or {}
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 16
+PhysPult.UpdateInterval = 25
 
 PhysPult.FeatureFlags = {
 	["Controller"] = 1,
@@ -454,9 +454,9 @@ function PhysPult.Synchronize()
 	msg = msg..GetBinaryValuesString(train)
 	msg = msg..GetNumericValuesString(train)
 
-	-- if(msg != "S;;;;") then
+	if(msg != "S;;;;") then
 		PhysPult.Send(msg)
-	-- end
+	end
 end
 
 function PhysPult.AcceptMessage(msg)
