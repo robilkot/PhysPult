@@ -151,6 +151,8 @@ void SerialCommunicator::start()
 
     log_i("isr for uart set-up. waiting for messages.");
     on_connect();
+
+    send(std::make_shared<StateRequestMessage>());
     
     while (true)
     {

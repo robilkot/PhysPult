@@ -8,3 +8,18 @@ void yieldIfNecessary(void){
         vTaskDelay(5); //delay 1 RTOS tick
     }
 }
+
+void adjust_value(int& currentValue, const int targetValue, const int step)
+{
+    if(currentValue == targetValue) {
+        return;
+    }
+
+    auto diff = min(abs(currentValue - targetValue), step);
+
+    if(currentValue > targetValue) {
+        currentValue -= diff;
+    } else {
+        currentValue += diff;
+    }
+}

@@ -147,12 +147,12 @@ PhysPult = PhysPult or {}
 PhysPult.UpdateInterval = 25
 
 PhysPult.FeatureFlags = {
-	["Controller"] = 1,
-	["Reverser"] = 2,
-	["Crane"] = 4,
-	["InputRegisters"] = 8,
-    ["GaugesLighting"] = 16,
-    ["Potentiometer"] = 32,
+	["SyncController"] = 0,
+    ["SyncReverser"] = 1,
+    ["SyncCrane"] = 2,
+    ["SyncInputRegisters"] = 3,
+	["EnablePotentiometer"] = 4,
+    ["EnableGaugesLighting"] = 5,
 }
 
 local previousNumericValues = {}
@@ -485,10 +485,10 @@ function PhysPult.ConfigurePult(featureFlags)
 	for key, value in pairs(PhysPult.FeatureFlags) do
 		if(table.HasValue(featureFlags, key)) then
 			print("enable", key)
-			config = config..'0/'..value..','
+			config = config..value..'/1,'
 		else
 			print("disable", key)
-			config = config..'1/'..value..','
+			config = config..value..'/0,'
 		end
 	end
 
@@ -503,10 +503,12 @@ concommand.Add("pult_start", function()
 
 
 		local enabledFlags = {
-			"Controller",
-			"InputRegisters",
-			"GaugesLighting"
-			-- "Reverser"
+			"SyncController",
+			-- "SyncReverser",
+			-- "SyncCrane",
+			"SyncInputRegisters",
+			-- "EnablePotentiometer",
+			"EnableGaugesLighting",
 		}
 
 		PhysPult.ConfigurePult(enabledFlags)

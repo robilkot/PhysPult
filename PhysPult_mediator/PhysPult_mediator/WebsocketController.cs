@@ -45,11 +45,10 @@ namespace PhysPult_mediator
 
             void onSerialMessageCorrupted(object? sender, SerialCommunicatorMessage? msg)
             {
-                Console.WriteLine($"MessageCorrupted ({msg.Crc}, {msg.SequenceNumber}, {msg.AckNumber}, {msg.ContentLength}, {msg.Content})");
+                Console.WriteLine($"MessageCorrupted ({msg?.Crc}, {msg?.SequenceNumber}, {msg?.AckNumber}, {msg?.ContentLength}, {msg?.Content})");
             }
 
             // Subscribe
-            // todo: MessageCorrupted
             _serialCommunicator.MessageReceived += onSerialMessageReceived;
             _serialCommunicator.MessageCorrupted += onSerialMessageCorrupted;
 

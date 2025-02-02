@@ -5,7 +5,6 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
     public class SerialPultMessageReader : ISerialReader<SerialCommunicatorMessage>
     {
         private List<byte> _inputBuffer = [];
-        private UInt32? _expectedContentLength = null;
 
         public event EventHandler<SerialCommunicatorMessage>? MessageReceived;
         public event EventHandler<SerialCommunicatorMessage?>? MessageCorrupted;
@@ -15,14 +14,6 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
             void resetInputBuffer()
             {
                 _inputBuffer.Clear();
-                _expectedContentLength = null;
-            }
-            
-            // If content length is read
-            if(_inputBuffer.Count == 17)
-            {
-                var readLength = BitConverter.ToUInt32(_inputBuffer.Skip(13).Take(4).ToArray());
-                _expectedContentLength = readLength <= 255 ? readLength : null;
             }
 
             switch (read)
@@ -44,16 +35,11 @@ namespace PhysPult_mediator.Communication.SerialCommunicator.Readers
 
                             var contentBytes = _inputBuffer.Count - 18;
                             if(contentBytes >= 0) // I do not expect stop byte in content
-                            // If expected number was corrupter or we've reached length, reset
-                            //if(_expectedContentLength is null || contentBytes >= _expectedContentLength)
                             {
                                 var msg = new SerialCommunicatorMessage(_inputBuffer);
 
                                 DeincapsulateMessage(msg);
                                 resetInputBuffer();
-                            } else
-                            {
-                                //Console.WriteLine($"contentBytes: {contentBytes} < {_expectedContentLength}");
                             }
                         }
                         break;

@@ -2,7 +2,6 @@
 
 #include <ArduinoWebsockets.h>
 #include <Config.h>
-#include <WifiConstants.h>
 #include <Communication/Communicator.h>
 #include <Communication/PultMessageFactory.h>
 #include "Helpers.h"

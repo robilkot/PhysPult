@@ -4,30 +4,9 @@
 #include <vector>
 #include <memory>
 #include "Pult.h"
-#include <FeatureFlags.h>
 
 class Pult;
-
-enum class InputStateKeys {
-    Controller,
-    Reverser,
-    Crane,
-};
-
-enum class OutputStateKeys {
-    Speed,
-    TM,
-    NM,
-    TC,
-    BatteryVoltage,
-    SupplyVoltage, // KVMeter
-    EnginesCurrent, // Ampermeter
-};
-
-union StateKeys {
-    InputStateKeys input;
-    OutputStateKeys output;
-};
+union StateKeys;
 
 class PultMessage {
     public:
@@ -45,7 +24,7 @@ class StateRequestMessage : public PultMessage {
     const char get_type() const override {
         return 'R';
     }
-    void apply() const  override;
+    void apply() const override;
 };
 
 class StateChangePultMessage : public PultMessage {
@@ -54,6 +33,9 @@ class StateChangePultMessage : public PultMessage {
     std::vector<uint8_t> pins_disabled;
     std::vector<std::pair<StateKeys, int16_t>> new_values;
 
+    bool empty() const {
+        return pins_enabled.empty() && pins_disabled.empty() && new_values.empty();
+    }
     std::string to_string() const override;
     const char get_type() const override {
         return 'S';
@@ -61,25 +43,9 @@ class StateChangePultMessage : public PultMessage {
     void apply() const  override;
 };
 
-enum class ConfigActions {
-    ENABLE_FEATURE,
-    DISABLE_FEATURE,
-    SET_PULT_LIGHTING_H,
-    SET_PULT_LIGHTING_S,
-    SET_PULT_LIGHTING_V,
-    SET_GAUGES_LIGHTING_H,
-    SET_GAUGES_LIGHTING_S,
-    SET_GAUGES_LIGHTING_V,
-};
-
-union ConfigValue {
-    int number;
-    FeatureFlags feature_flag;
-};
-
 class ConfigPultMessage : public PultMessage {
     public:
-    std::vector<std::pair<ConfigActions, ConfigValue>> values;
+    std::vector<std::pair<PultPreferencesKeys, PultPreferenceValue>> values;
 
     const char get_type() const override {
         return 'C';

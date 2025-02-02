@@ -70,7 +70,7 @@ void WebsocketsCommunicator::set_on_device_number_changed(OnDeviceNumberChanged 
 void WebsocketsCommunicator::connect_to_network()
 {
     WiFi.disconnect();
-    WiFi.begin(WifiSsid, WifiPassword);
+    WiFi.begin((const char*)NetworkSsid, (const char*)NetworkPass);
 
     uint8_t connectionDisplayTimer = 1;
     const uint8_t connectionTimerLimit = 50;

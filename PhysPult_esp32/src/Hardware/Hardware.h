@@ -6,8 +6,9 @@
 #include <TimerMs.h>
 #include <mutex>
 #include "StableReader.h"
-#include "esp_task_wdt.h"
 #include <Helpers.h>
+#include <Preferences.h>
+#include <PultPreferences.h>
 
 class Hardware
 {
@@ -28,21 +29,6 @@ class Hardware
     uint8_t potentiometer2_position = 0;
 
     bool pult_lighting_on;
-
-    static void adjust_value(int& currentValue, const int targetValue, const int step = 1)
-    {
-        if(currentValue == targetValue) {
-            return;
-        }
-
-        auto diff = min(abs(currentValue - targetValue), step);
-
-        if(currentValue > targetValue) {
-            currentValue -= diff;
-        } else {
-            currentValue += diff;
-        }
-    }
 
     void tick_output()
     {
@@ -76,24 +62,20 @@ class Hardware
 
         if(analogUpdateTimer.tick())
         {
-            // Battery voltmeter
-            ledcWrite(13, battery_voltage);
-
-            // Supply voltmeter
-            ledcWrite(12, supply_voltage);
-
-            // Engines ampmeter
+            ledcWrite(BatteryVoltmeterPwmChannel, battery_voltage);
+            ledcWrite(SupplyVoltmeterPwmChannel, supply_voltage);
+            
             uint8_t enginesCurrentAbsolute = abs(engines_current);
             
             if(engines_current > 0)
             {
-                ledcWrite(14, 0);
-                ledcWrite(15, enginesCurrentAbsolute);
+                ledcWrite(EnginesCurrentPositivePwmChannel, 0);
+                ledcWrite(EnginesCurrentNegativePwmChannel, enginesCurrentAbsolute);
             }
             else
             {
-                ledcWrite(14, enginesCurrentAbsolute);
-                ledcWrite(15, 0);
+                ledcWrite(EnginesCurrentPositivePwmChannel, enginesCurrentAbsolute);
+                ledcWrite(EnginesCurrentNegativePwmChannel, 0);
             }
         }
     }
@@ -131,7 +113,7 @@ class Hardware
             adjust_value(current_lighting_brightness, target_lighting_brightness, 20);
 
             auto pult_v = (uint8_t)(PultLightingColor.v * (current_lighting_brightness / 255.));
-            auto gauges_v = (uint8_t)(GaugesLightingColor.v * (current_lighting_brightness / 255.) * gauges_lighting_on);
+            auto gauges_v = (uint8_t)(GaugesLightingColor.v * (current_lighting_brightness / 255.) * EnableGaugesLighting);
 
             for(auto& led : LightingLeds1)
                 led = CHSV(PultLightingColor.h, PultLightingColor.s, pult_v);
@@ -151,13 +133,13 @@ class Hardware
 
     void tick_input()
     {
-        if(disable_potentiometers) {
-            potentiometer1_position = 255;
-            potentiometer2_position = 255;
-        }
-        else {
+        if(EnablePotentiometer) {
             potentiometer1_position = potentiometer1_reader.tick();
             potentiometer2_position = potentiometer2_reader.tick();
+        }
+        else {
+            potentiometer1_position = 255;
+            potentiometer2_position = 255;
         }
         
         crane_position = crane_reader.tick();
@@ -238,9 +220,7 @@ class Hardware
 
     uint8_t crane_position = 0;
 
-    bool gauges_lighting_on;
     bool invert_lighting;
-    bool disable_potentiometers;
 
     Hardware()
     : crane_reader(StableReader(CranePin)), potentiometer1_reader(StableReader(PotentiometerPin1)), potentiometer2_reader(StableReader(PotentiometerPin2))

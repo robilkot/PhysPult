@@ -145,7 +145,7 @@ std::shared_ptr<ConfigPultMessage> PultMessageFactory::create_config_message(con
         auto key = std::stoi(pair_substr.substr(0, separator_index));
         auto value = std::stoi(pair_substr.substr(separator_index + 1));
 
-        auto pair = std::make_pair((ConfigActions)key, ConfigValue{ .number = value });
+        auto pair = std::make_pair((PultPreferencesKeys)key, PultPreferenceValue{ .number = value });
         msg->values.emplace_back(pair);
 
         commaIndex = secondCommaIndex;

@@ -1,11 +1,12 @@
 #pragma once
 
-#include "FeatureFlags.h"
 #include "Hardware/Hardware.h"
 #include "Communication/PultMessage.h"
 #include "Communication/Communicator.h"
+#include "PultPreferences.h"
 
 #include <memory>
+#include <Preferences.h>
 
 class Communicator;
 class PultMessage;
@@ -14,6 +15,27 @@ class DebugPultMessage;
 class StateChangePultMessage;
 class StateRequestMessage;
 class WebsocketsCommunicator;
+
+enum class InputStateKeys {
+    Controller,
+    Reverser,
+    Crane,
+};
+
+enum class OutputStateKeys {
+    Speed,
+    TM,
+    NM,
+    TC,
+    BatteryVoltage,
+    SupplyVoltage, // KVMeter
+    EnginesCurrent, // Ampermeter
+};
+
+union StateKeys {
+    InputStateKeys input;
+    OutputStateKeys output;
+};
 
 enum class ControllerPosition : uint8_t {
     O, // Neutral
@@ -36,7 +58,7 @@ enum class ReverserPosition : uint8_t {
 class Pult
 {
     private:
-    static FeatureFlags feature_flags;
+    static Preferences preferences;
     static std::array<uint8_t, 14> digit_pins;
     static std::array<std::vector<uint8_t>, 10> symbols_left;
     static std::array<std::vector<uint8_t>, 10> symbols_right;

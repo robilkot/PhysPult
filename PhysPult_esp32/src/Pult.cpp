@@ -1,6 +1,5 @@
 #include "Pult.h"
 
-FeatureFlags Pult::feature_flags = FeatureFlags::GaugesLighting | FeatureFlags::InputRegisters;
 std::shared_ptr<Communicator> Pult::communicator;
 Hardware Pult::hardware;
 TaskHandle_t Pult::state_monitor;
@@ -39,9 +38,6 @@ void Pult::set_communicator(std::shared_ptr<Communicator> communicator_)
 
 void Pult::reset()
 {
-    hardware.disable_potentiometers = !has_flag(feature_flags, FeatureFlags::Potentiometer);
-    hardware.gauges_lighting_on = has_flag(feature_flags, FeatureFlags::GaugesLighting);
-
     hardware.battery_voltage = 0;
     hardware.tm_position = 0;
     hardware.nm_position = 0;
@@ -192,17 +188,17 @@ void Pult::accept_state_request_message(const StateRequestMessage& msg)
 {
     auto response = std::make_shared<StateChangePultMessage>();
 
-    if(has_flag(feature_flags, FeatureFlags::Controller)) {
+    if(SyncController) {
         response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)get_controller_position());
     }
-    if(has_flag(feature_flags, FeatureFlags::Reverser)) {
+    if(SyncReverser) {
         response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)get_reverser_position());
     }
-    if(has_flag(feature_flags, FeatureFlags::Crane)) {
+    if(SyncCrane) {
         response->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
     }
 
-    if(has_flag(feature_flags, FeatureFlags::InputRegisters)) {
+    if(SyncInputRegisters) {
         for(int i = 0; i < InRegistersCount; i++) {
             auto register_value = hardware.registers_in[i];
 
@@ -273,61 +269,10 @@ void Pult::accept_debug_message(const DebugPultMessage& msg)
 
 void Pult::accept_config_message(const ConfigPultMessage& msg) {
     for(const auto& pair : msg.values) {
-        switch (pair.first)
-        {
-        case ConfigActions::ENABLE_FEATURE: {
-            auto feature = pair.second.feature_flag;
-            feature_flags = feature_flags | feature;
-            log_i("Enabled feature %d.", pair.second);
-            break;
-        }
-        case ConfigActions::DISABLE_FEATURE: {
-            auto feature = pair.second.feature_flag;
-            feature_flags = feature_flags & ~feature;
-            log_i("Disabled feature %d.", pair.second);
-            break;
-        }
-
-        case ConfigActions::SET_PULT_LIGHTING_H: {
-            PultLightingColor.h = pair.second.number;
-            log_i("Set pult lighting hue to %d.", pair.second);
-            break;
-        }
-        case ConfigActions::SET_PULT_LIGHTING_S: {
-            PultLightingColor.s = pair.second.number;
-            log_i("Set pult lighting saturation to %d.", pair.second);
-            break;
-        }
-        case ConfigActions::SET_PULT_LIGHTING_V: {
-            PultLightingColor.v = pair.second.number;
-            log_i("Set pult lighting base value to %d.", pair.second);
-            break;
-        }
-
-        case ConfigActions::SET_GAUGES_LIGHTING_H: {
-            GaugesLightingColor.h = pair.second.number;
-            log_i("Set gauges lighting hue to %d.", pair.second);
-            break;
-        }
-        case ConfigActions::SET_GAUGES_LIGHTING_S: {
-            GaugesLightingColor.s = pair.second.number;
-            log_i("Set gauges lighting saturation to %d.", pair.second);
-            break;
-        }
-        case ConfigActions::SET_GAUGES_LIGHTING_V: {
-            GaugesLightingColor.v = pair.second.number;
-            log_i("Set gauges lighting base value to %d.", pair.second);
-            break;
-        }
-
-        default:
-            log_e("Config action of unknown type.");
-            communicator->send(DebugPultMessage::Error());
-        }
+        set_pult_preference(pair.first, pair.second);
     }
-
-    hardware.disable_potentiometers = !has_flag(feature_flags, FeatureFlags::Potentiometer);
-    hardware.gauges_lighting_on = has_flag(feature_flags, FeatureFlags::GaugesLighting);
+    
+    save_pult_preferences();
 
     // todo: review logic here. config message serves as session initiator, causing mutual staterequestmessages
     communicator->send(std::make_shared<StateRequestMessage>());
@@ -343,21 +288,18 @@ void Pult::monitor_state()
 
     while(true) {
         vTaskDelay(5);
-        bool update_needed = false;
         auto update = std::make_shared<StateChangePultMessage>();
 
-        if(has_flag(feature_flags, FeatureFlags::Crane)) {
+        if(SyncCrane) {
             if(hardware.crane_position != crane_position_p) {
-                update_needed = true;
                 crane_position_p = hardware.crane_position;
                 update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Crane }, (int16_t)hardware.crane_position);
             }
         } 
 
-        if(has_flag(feature_flags, FeatureFlags::Controller)) {
+        if(SyncController) {
             auto controller_position = get_controller_position(); 
             if(controller_position != controller_position_p) {
-                update_needed = true;
                 controller_position_p = controller_position;
                 if(controller_position != ControllerPosition::Intermediate) {
                     update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Controller }, (int16_t)controller_position);
@@ -365,10 +307,9 @@ void Pult::monitor_state()
             }
         }
 
-        if(has_flag(feature_flags, FeatureFlags::Reverser)) {
+        if(SyncReverser) {
             auto reverser_position = get_reverser_position(); 
             if(reverser_position != reverser_position_p) {
-                update_needed = true;
                 reverser_position_p = reverser_position;
                 if(reverser_position != ReverserPosition::Intermediate) {
                     update->new_values.emplace_back(StateKeys{ .input = InputStateKeys::Reverser }, (int16_t)reverser_position);
@@ -376,7 +317,7 @@ void Pult::monitor_state()
             }
         }
         
-        if(has_flag(feature_flags, FeatureFlags::InputRegisters)) {
+        if(SyncInputRegisters) {
             for(int i = 0; i < InRegistersCount; i++) {
                 auto old_register_value = registers_in_p[i];
                 auto new_register_value = hardware.registers_in[i];
@@ -387,8 +328,6 @@ void Pult::monitor_state()
                     auto new_value = new_register_value >> k & 1;
 
                     if(old_value ^ new_value) {
-                        update_needed = true;
-
                         if(new_value) {
                             update->pins_enabled.emplace_back(8 * i + k);
                         } else {
@@ -399,7 +338,7 @@ void Pult::monitor_state()
             }
         }
 
-        if(update_needed) {
+        if(!(update->empty())) {
             std::copy(hardware.registers_in, hardware.registers_in + InRegistersCount, registers_in_p);
             communicator->send(update);
         }
@@ -408,19 +347,22 @@ void Pult::monitor_state()
 
 void Pult::start()
 {
+    load_pult_preferences();
     reset();
 
     communicator->set_on_message([](std::shared_ptr<PultMessage> message) { message->apply(); });
     communicator->set_on_device_number_changed([](int number) { display_symbols(number); });
     communicator->set_on_connect([](void) {
         xTaskCreatePinnedToCore(
-            [](void* param) { monitor_state(); },
+            [](void* param) {
+                monitor_state();
+                },
             "pult_state_monitor",
             8000, // takes ???
             nullptr,
             1,  // Priority
             &state_monitor,
-            1
+            0
         );
         });
     communicator->set_on_disconnect([](void) {
@@ -437,7 +379,7 @@ void Pult::start()
         nullptr,
         1,  // Priority
         nullptr,
-        1
+        0
     );
 
     xTaskCreatePinnedToCore(
@@ -449,6 +391,6 @@ void Pult::start()
         nullptr,
         5,  // Priority
         nullptr,
-        0
+        1
     );
 }
