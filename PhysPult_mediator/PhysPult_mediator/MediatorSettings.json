@@ -1,0 +1,12 @@
+{
+  "SerialPortParameters": {
+    "PortName": "COM4",
+    "BaudRate": 115200,
+    "DataBits": 8,
+    "StopBits": 1
+  },
+  "WebsocketParameters": {
+    "Timeout": "00:02:00",
+    "Port": 8080
+  }
+}
