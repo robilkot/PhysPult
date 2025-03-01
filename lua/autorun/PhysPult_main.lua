@@ -26,125 +26,247 @@ end
 -- (train) - Ентити поезда.
 -- RETURNS - Является ли поезд допустимым.
 local function checkTrainType(train)
-	return train:GetClass() == "gmod_subway_81-717_mvm"
+	local valid_entitites = {
+		"gmod_subway_81-717_mvm",
+		"gmod_subway_81-717_mmz",
+	}
+	
+	local class = train:GetClass()
+	for key, value in pairs(valid_entitites) do
+		if(value == class) then return true end
+	end
+	return false
 end
-
 
 
 -- Список индикаторов с соответствующим номером бита. Биты 26-39 под скорость нужны. Индексация с нуля
 local indicators = {
-	-- 2 Блок
-	["KVC"] = 19, -- 19
-	["AR0"] = 11,
-	["AR04"] = 13, 
-	["AR40"] = 12, 
-	["AR60"] = 9,
-	["AR70"] = 25, 
-	["AR80"] = 10,
-	["SD"] = 18, 
-	["VD"] = 24, 
-	["RP"] = 20,
-	["SN"] = 15,
-	["HRK"] = 22, 
-	["KVD"] = 8, 
-	["ST"] = 17, 
-	--["???"] = 21, -- ДВ
-	["KT"] = 23,
-	["LN"] = 14,
-	["GLIB"] = 16, -- ЛЭКК
+	["gmod_subway_81-717_mvm"] = {
+		-- 2 Блок
+		["KVC"] = 19, -- 19
+		["AR0"] = 11,
+		["AR04"] = 13, 
+		["AR40"] = 12, 
+		["AR60"] = 9,
+		["AR70"] = 25, 
+		["AR80"] = 10,
+		["SD"] = 18, 
+		["VD"] = 24, 
+		["RP"] = 20,
+		["SN"] = 15,
+		["HRK"] = 22, 
+		["KVD"] = 8, 
+		["ST"] = 17, 
+		--["???"] = 21, -- ДВ
+		["KT"] = 23,
+		["LN"] = 14,
+		["GLIB"] = 16, -- ЛЭКК
+	
+		-- 5-6 Блоки
+		["GreenRP"] = 7,
+		-- ["DoorsLeftL"] = ???,
+		["L1"] = 6,
+		["LSP"] = 4,
+		["AVU"] = 3,
+		["LKVP"] = 5,
+		-- ["RZP"] = ???,
+	
+		-- 7 Блок
+		--["???"] = -, -- Контроль печи
+		["PN"] = 2,
+		-- ["DoorsRightR"] = -,
+	},
 
-	-- 5-6 Блоки
-	["GreenRP"] = 7,
-	-- ["DoorsLeftL"] = ???,
-	["L1"] = 6,
-	["LSP"] = 4,
-	["AVU"] = 3,
-	["LKVP"] = 5,
-	-- ["RZP"] = ???,
-
-	-- 7 Блок
-	--["???"] = -, -- Контроль печи
-	["PN"] = 2,
-	-- ["DoorsRightR"] = -,
+	["gmod_subway_81-717_mmz"] = {
+		-- 2 Блок
+		["AR0"] = 11,
+		["AR04"] = 13, 
+		["AR40"] = 12, 
+		["AR60"] = 9,
+		["AR70"] = 25, 
+		["AR80"] = 10,
+		["KVC"] = 19, -- 19
+		["SD"] = 18, 
+		["VD"] = 24, 
+		["RP"] = 20,
+		["SN"] = 15,
+		["HRK"] = 22, 
+		["KVD"] = 8, 
+		["ST"] = 17, 
+		["DV"] = 21, -- ДВ
+		["KT"] = 23,
+		["LN"] = 14,
+		["LEKK"] = 16, -- ЛЭКК
+	
+		-- 5-6 Блоки
+		["GreenRP"] = 7,
+		["LKV1"] = 6,
+		["LKV2"] = 4, 
+		["LKVP"] = 5,
+		["RZP"] = 3,
+	
+		-- 7 Блок
+		["BrW"] = 2, -- ???
+	}
 }
 
 -- Список тумблеров с соответствующим номером бита.
 -- [Номер бита] = { "Имя тумблера", инвертировать ли (boolean) } 
 local switches = {
-	-- 1 блок
-	[34] = { "VMKToggle", true },
-	[33] = { "BPSNonToggle", true },
+	["gmod_subway_81-717_mvm"] = {
+			-- 1 блок
+		[34] = { "VMKToggle", true },
+		[33] = { "BPSNonToggle", true },
 
-	-- 5 блок
-	[5] = { "R_UNchToggle", true },
-	[7] = { "R_ZSToggle", true },
-	[4] = { "R_GToggle", true },
-	[6] = { "R_RadioToggle", true },
-	[14] = { "VUD1Toggle", true },
-	--[-] = { "R_VPRToggle" },
-	--[-] = { "DoorSelectToggle" },
+		-- 5 блок
+		[5] = { "R_UNchToggle", true },
+		[7] = { "R_ZSToggle", true },
+		[4] = { "R_GToggle", true },
+		[6] = { "R_RadioToggle", true },
+		[14] = { "VUD1Toggle", true },
+		--[-] = { "R_VPRToggle" },
+		--[-] = { "DoorSelectToggle" },
 
-	-- 6 блок
-	[30] = { "V13Toggle", true },
-	[29] = { "V11Toggle", true },
-	[31] = { "V12Toggle", true },
+		-- 6 блок
+		[30] = { "V13Toggle", true },
+		[29] = { "V11Toggle", true },
+		[31] = { "V12Toggle", true },
 
-	--[-] = { "OtklAVUToggle"},
-	--[-] = "???", -- Двери торцевые
-	--[22] = "???", -- Вентиляция кабины
-	[9] = { "ARSToggle", true },
-	[10] = { "ALSToggle", true },
-	-- [-] = { "ARSRToggle" },
-	[11] = { "OVTToggle" } ,
-	-- [-] = { "ALSFreqToggle" },
-	[32] = { "L_1Toggle", true }, -- Аварийное освещение (1 блок)
-	[20] = { "L_2Toggle", true }, 
-	[21] = { "L_3Toggle", true },
-	[22] = { "VPToggle", true },
+		--[-] = { "OtklAVUToggle"},
+		--[-] = "???", -- Двери торцевые
+		--[22] = "???", -- Вентиляция кабины
+		[9] = { "ARSToggle", true },
+		[10] = { "ALSToggle", true },
+		-- [-] = { "ARSRToggle" },
+		[11] = { "OVTToggle" } ,
+		[22] = { "ALSFreqToggle", true }, -- ВП
+		[32] = { "L_1Toggle", true }, -- Аварийное освещение (1 блок)
+		[20] = { "L_2Toggle", true }, 
+		[21] = { "L_3Toggle", true },
+		-- [22] = { "VPToggle", true },
+		
+		-- 7 блок
+		[38] = { "L_4Toggle", true },
+		[37] = { "VUSToggle", true }, 
+		[36] = { "VADToggle", true },
+		[35] = { "VAHToggle", true },
+
+	},
 	
-	-- 7 блок
-	[38] = { "L_4Toggle", true },
-	[37] = { "VUSToggle", true }, 
-	[36] = { "VADToggle", true },
-	[35] = { "VAHToggle", true },
+	["gmod_subway_81-717_mmz"] = {
+			-- 1 блок
+		[34] = { "VMKToggle", true },
+		[33] = { "BPSNonToggle", true },
+
+		-- 5 блок
+		[5] = { "R_UNchToggle", true },
+		[7] = { "R_ZSToggle", true },
+		[4] = { "R_GToggle", true },
+		[6] = { "R_RadioToggle", true },
+		[14] = { "VUDToggle", true },
+		--[-] = { "R_VPRToggle" },
+		--[-] = { "DoorSelectToggle" },
+
+		-- 6 блок
+		[30] = { "V13Toggle", true },
+		[29] = { "V11Toggle", true },
+		[31] = { "V12Toggle", true },
+
+		--[-] = { "OtklAVUToggle"},
+		--[-] = "???", -- Двери торцевые
+		--[22] = "???", -- Вентиляция кабины
+		[9] = { "ARSToggle", true },
+		[10] = { "ALSToggle", true },
+		-- [-] = { "ARSRToggle" },
+		[11] = { "OVTToggle" } ,
+		[22] = { "ALSFreqToggle", true }, -- ВП
+		[32] = { "VAOToggle", true }, -- Аварийное освещение (1 блок)
+		[20] = { "L_2Toggle", true }, 
+		[21] = { "L_3Toggle", true },
+		-- [22] = { "VPToggle", true },
+		
+		-- 7 блок
+		[38] = { "L_4Toggle", true },
+		[37] = { "VUSToggle", true }, 
+		[36] = { "VADToggle", true },
+		[35] = { "VAHToggle", true },
+
+	}
 }
 
 -- Список кнопок с соответствующим номером бита.
 -- [Номер бита] = { "Имя кнопки", инвертировать ли (boolean) } 
 local buttons = {
-	-- 1 блок
-	[39] = { "RezMKSet", false },
-	[46] = { "ARS13Set", false },
-	-- [???] = { "???", false }, -- Радио 13В
+	["gmod_subway_81-717_mvm"] = {
+		-- 1 блок
+		[39] = { "RezMKSet", false },
+		[46] = { "ARS13Set", false },
+		-- [???] = { "???", false }, -- Радио 13В
+	
+		-- 5 блок
+		[3] = { "R_Program1Set", true },
+		[2] = { "R_Program2Set", true },
+		[15] = { "KRZDSet", true },
+		[13] = { "VozvratRPSet", true },
+		-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
+		-- [2] =  { "KDLSet", false }, 
+	
+		-- 6 блок
+		[18] = {  "1:KVTSet", true },
+		-- [16] = Вкл ЭПК
+		[17] = {  "1:KVTRSet", false },
+		[28] = {  "VZ1Set", false }, -- ЛКВ
+		-- [-] = { "OtklBVSet", false },
+		[12] = { "ConverterProtectionSet", false },
+		[8] = {  "KSNSet", true },
+		[23] = {  "RingSet", true },
+	
+		-- 7 блок
+		-- [31] =  { "KDRSet", false }, -- обрабатываются особым образом ниже
+		[24] = { "KRPSet", true },
+		-- [--] = { "KAHSet", true },
+	
+		
+		--[55] = { "KRPSet", invert }, -- ПБ
+	},
 
-	-- 5 блок
-	[3] = { "R_Program1Set", true },
-	[2] = { "R_Program2Set", true },
-	[15] = { "KRZDSet", true },
-	[13] = { "VozvratRPSet", true },
-	-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
-	-- [2] =  { "KDLSet", false }, 
-
-	-- 6 блок
-	[18] = {  "1:KVTSet", true },
-	-- [16] = Вкл ЭПК
-	[17] = {  "1:KVTRSet", false },
-	[28] = {  "VZ1Set", false }, -- ЛКВ
-	-- [-] = { "OtklBVSet", false },
-	[12] = { "ConverterProtectionSet", false },
-	[8] = {  "KSNSet", true },
-	[23] = {  "RingSet", true },
-
-	-- 7 блок
-	-- [31] =  { "KDRSet", false }, -- обрабатываются особым образом ниже
-	[24] = { "KRPSet", true },
-	-- [--] = { "KAHSet", true },
+	["gmod_subway_81-717_mmz"] = {
+		-- 1 блок
+		[39] = { "RezMKSet", false },
+		[46] = { "ARS13Set", false },
+		[47] = { "Radio13Set", true }, -- Радио 13В
+	
+		-- 5 блок
+		[3] = { "R_Program1Set", true },
+		[2] = { "R_Program2Set", true },
+		[15] = { "KRZDSet", true },
+		[13] = { "VozvratRPSet", true },
+		-- [1] =  { "KDLSet", false }, -- обрабатываются особым образом ниже
+		-- [2] =  { "KDLSet", false }, 
+	
+		-- 6 блок
+		[18] = { "KVTSet", true },
+		[16] = { "EPKbSet", false }, -- Вкл ЭПК
+		[17] = {  "KB2Set", false },
+		[19] = {  "KB1Set", true },
+		[28] = {  "ContVentSet", false },
+		[12] = { "ConverterProtectionSet", false },
+		[8] = {  "KSNSet", true },
+		[23] = {  "RingSet", true },
+	
+		-- 7 блок
+		-- [31] =  { "KDRSet", false }, -- обрабатываются особым образом ниже
+		[24] = { "KRPSet", true },
+	
+		
+		--[55] = { "KRPSet", invert }, -- ПБ
+	}
 }
 
 PhysPult = PhysPult or {}
 
 -- Интверал между обновлениями состояния (мс).
-PhysPult.UpdateInterval = 25
+PhysPult.UpdateInterval = 20
 
 PhysPult.FeatureFlags = {
 	["SyncController"] = 0,
@@ -191,10 +313,12 @@ end
 local previousIndicatorsValues = {}
 
 local function GetBinaryValuesString(train)
+	local trainClass = train:GetClass()
+
 	local enabled_indicators = {}
 	local disabled_indicators = {}
 
-	for name, index in pairs(indicators) do
+	for name, index in pairs(indicators[trainClass]) do
 		local state = Metrostroi.GetTrainIndicatorStage(train, name)
 		if(previousIndicatorsValues[name] != state) then
 			previousIndicatorsValues[name] = state
@@ -208,23 +332,6 @@ local function GetBinaryValuesString(train)
 	end
 
 	return table.concat(enabled_indicators, ',')..';'..table.concat(disabled_indicators, ',')..';'
-end
-
--- Синхронизация кнопок в поезде.
-function PhysPult.SynchronizeButtons(train, registers)
-	if(kdlOneState or kdlTwoState) then
-		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", false)
-		Metrostroi.DownTrainButton(train, "KDLSet")
-	else
-		Metrostroi.UpTrainButton(train, "KDLSet")
-	end
-
-	if(kpdState) then
-		Metrostroi.UpTrainButton(train, "KDPSet")
-	else
-		Metrostroi.SetTrainSwitchStage(train, "DoorSelectToggle", true)
-		Metrostroi.DownTrainButton(train, "KDPSet")
-	end
 end
 
 function PhysPult.SynchronizeReverser(train, reverserPosition)
@@ -355,6 +462,8 @@ end
 -- todo: refactor
 -- todo: crane
 function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
+	local trainClass = train:GetClass()
+
 	local kvPairs = {}
 	for _, v in pairs(newValues) do
 		local substr = string.Explode('/', v)
@@ -385,18 +494,18 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 			Metrostroi.DownTrainButton(train, "KDPSet")
 		end
 
-		if(buttons[pin]) then
-			local name = buttons[pin][1]
-			local invert = buttons[pin][2]
+		if(buttons[trainClass][pin]) then
+			local name = buttons[trainClass][pin][1]
+			local invert = buttons[trainClass][pin][2]
 
 			if(invert == true) then 
 				Metrostroi.UpTrainButton(train, name)
 			else
 				Metrostroi.DownTrainButton(train, name)
 			end
-		elseif(switches[pin]) then
-			local name = switches[pin][1]
-			local invert = switches[pin][2]
+		elseif(switches[trainClass][pin]) then
+			local name = switches[trainClass][pin][1]
+			local invert = switches[trainClass][pin][2]
 
 			if(invert == true) then 
 				Metrostroi.SetTrainSwitchStage(train, name, false)
@@ -421,18 +530,18 @@ function PhysPult.SynchronizeInputs(train, enabledPins, disabledPins, newValues)
 			Metrostroi.UpTrainButton(train, "KDPSet")
 		end
 
-		if(buttons[pin]) then
-			local name = buttons[pin][1]
-			local invert = buttons[pin][2]
+		if(buttons[trainClass][pin]) then
+			local name = buttons[trainClass][pin][1]
+			local invert = buttons[trainClass][pin][2]
 
 			if(invert) then
 				Metrostroi.DownTrainButton(train, name)
 			else
 				Metrostroi.UpTrainButton(train, name)
 			end
-		elseif(switches[pin]) then
-			local name = switches[pin][1]
-			local invert = switches[pin][2]
+		elseif(switches[trainClass][pin]) then
+			local name = switches[trainClass][pin][1]
+			local invert = switches[trainClass][pin][2]
 
 			if(invert == true) then 
 				Metrostroi.SetTrainSwitchStage(train, name, true)
@@ -504,7 +613,7 @@ concommand.Add("pult_start", function()
 
 		local enabledFlags = {
 			"SyncController",
-			-- "SyncReverser",
+			"SyncReverser",
 			-- "SyncCrane",
 			"SyncInputRegisters",
 			-- "EnablePotentiometer",
