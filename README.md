@@ -47,6 +47,10 @@ if(params.headers["Connection"].find("Upgrade") == std::string::npos && params.h
 Кулачки: Н-2, Н-3, земля
 Перемычки: нет
 
+### Разъёмы блока электроники
+
+![scheme_pinout](https://github.com/user-attachments/assets/8fa1d35d-4b7a-45fe-a433-de70986d0ec6)
+
 ### Распинова разъёмов
 
 1 блок:
